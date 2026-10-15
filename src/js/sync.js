@@ -77,7 +77,22 @@ const Sync = (() => {
   }
 
   // ---------- الاتصال ----------
+  // على أندرويد نستخدم اتصال النظام المباشر (لا قيود WebView على الشبكة المحلية)
   async function post(host, port, body) {
+    const N = window.Native;
+    if (N && N.isNative && N.CapacitorHttp) {
+      const r = await N.CapacitorHttp.request({
+        url: `http://${host}:${port}/injaz/sync`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.parse(body),
+        responseType: 'text',
+        connectTimeout: 5000,
+        readTimeout: 15000,
+      });
+      const text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+      return { status: r.status, ok: r.status >= 200 && r.status < 300, text: async () => text };
+    }
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 15000);
     try {
