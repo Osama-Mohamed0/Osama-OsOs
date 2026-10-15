@@ -9,8 +9,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --x64 --publish never",
-    "dist:portable": "electron-builder --win portable --x64 --publish never"
+    "dist": "electron-builder --win --publish never",
+    "dist:portable": "electron-builder --win portable --publish never"
   },
   "build": {
     "appId": "com.osama.injaz",
@@ -29,11 +29,17 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         }
       ]
     },
@@ -50,7 +56,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^44.7.2",
+    "electron": "~43.7.11",
     "electron-builder": "^26.15.3"
   }
 }
