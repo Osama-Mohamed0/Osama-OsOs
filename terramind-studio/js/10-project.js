@@ -5,7 +5,7 @@
   TM.defaultSettings = () => ({
     density: 2.7, gradeField: 'au', gradeUnit: 'g/t',
     price: 2400, recovery: 92, mineCost: 2.8, procCost: 18, gaCost: 4, sellCost: 30, // $/oz selling/refining
-    capex: 40e6, millRate: 0.9e6, mineRate: 8e6, discount: 8, closure: 5e6,
+    capex: 120e6, millRate: 0.9e6, mineRate: 8e6, discount: 8, closure: 8e6,
     slope: 45, benchH: 10, batter: 70, bermW: 6, rampW: 20, rampGrade: 10,
     cutoff: 0.5, colormap: 'gold', topCut: null, compLen: 2,
     infill: []

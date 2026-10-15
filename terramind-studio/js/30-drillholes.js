@@ -144,8 +144,13 @@
   // Top-cut suggestion: percentile + coefficient-of-variation rule
   D.suggestTopCut = function () {
     const v = TM.rt.holes.flatMap(h => h.samples.map(s => s.g)).filter(isFinite); if (!v.length) return null;
-    const st = TM.stats(v); const p = st.cv > 2 ? st.p975 : st.cv > 1.2 ? st.p99 : st.max;
-    return { value: +(+p).toPrecision(3), stats: st, nAbove: v.filter(x => x > p).length };
+    const st = TM.stats(v), so = st.sorted, n = so.length;
+    // look for a break in the upper tail (top 1%): first jump > 1.8× between consecutive sorted values
+    let cut = null; for (let i = Math.floor(n * 0.99); i < n - 1; i++) if (so[i] > 0 && so[i + 1] > so[i] * 1.8) { cut = so[i]; break; }
+    let rule = 'tail break';
+    if (cut == null) { cut = st.cv > 2 ? st.p99 : st.max; rule = st.cv > 2 ? 'P99 (CV > 2)' : 'none needed'; }
+    const value = +(+cut).toPrecision(3);
+    return { value, rule, stats: st, nAbove: v.filter(x => x > value).length };
   };
 
   // ---------------------------------------------------------------- demo project (synthetic, clearly labelled)

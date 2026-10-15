@@ -69,6 +69,10 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   { const s = Object.assign(TM.defaultSettings(), { capex: 100, closure: 0, discount: 10, millRate: 1e12, mineRate: 1e12, mineCost: 0, procCost: 0, gaCost: 0, sellCost: 0, price: 31.1035, recovery: 100 });
     const r = TM.Mine.schedule([{ ore: 1, waste: 0, metal: 110 }], s); ok(near(r.npv, 0, 1e-6), 'NPV of 110 in yr1 at 10% − 100 = 0', r.npv); ok(near(r.irr, 0.1, 1e-6), 'IRR = 10%', r.irr); }
 
+  { const s2 = Object.assign(TM.defaultSettings(), { capex: 120, closure: 7, discount: 8, millRate: 1, mineRate: 1e12, mineCost: 0, procCost: 0, gaCost: 0, sellCost: 0, price: 31.1035, recovery: 100 });
+    const r = TM.Mine.schedule([{ ore: 1, waste: 0, metal: 73 }, { ore: 1, waste: 0, metal: 73 }, { ore: 1, waste: 0, metal: 73 }], s2); ok(r.irr > 0.2 && r.irr < 0.5, 'IRR with closure cost (negative last flow)', (r.irr * 100).toFixed(1) + '%'); }
+  { TM.rt.holes.find(h => h.id === 'WG008'); const sg = TM.Drill.suggestTopCut(); ok(sg.value >= 5 && sg.value <= 20 && sg.nAbove <= 5, 'top-cut suggestion isolates the spike', `${sg.value} (${sg.rule}, ${sg.nAbove} above)`); }
+
   console.log('Solids');
   { const R = 20, cs = 2, n = 30; const f = new Float32Array(n * n * n); for (let k = 0; k < n; k++) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x = (i + .5) * cs - 30, y = (j + .5) * cs - 30, z = (k + .5) * cs - 30; f[i + n * (j + n * k)] = R - Math.hypot(x, y, z); }
     const m = TM.Solid.surfaceNets({ f, nx: n, ny: n, nz: n, x0: 0, y0: 0, z0: 0, cs: [cs, cs, cs] }, 0); const v = TM.Solid.volume(m), tv = 4 / 3 * Math.PI * R ** 3;

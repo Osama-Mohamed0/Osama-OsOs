@@ -41,13 +41,16 @@
     const out = []; for (let k = 0; k < nLags; k++) if (cnt[k] >= 10) out.push({ h: dsum[k] / cnt[k], g: sum[k] / cnt[k] / 2, n: cnt[k] }); return out;
   };
   // Fit nugget + one structure (range only if nugget/sill fixed)
-  E.fit = function (exp, { sill, type = 'sph', fixNugget = null } = {}) {
+  E.fit = function (exp, { sill, type = 'sph', fixNugget = null, fixSill = false } = {}) {
     if (!exp.length) return null; const hmax = exp[exp.length - 1].h; let best = null;
-    const c0s = fixNugget != null ? [fixNugget] : Array.from({ length: 31 }, (_, i) => sill * i / 50);
-    for (const c0 of c0s) for (let k = 1; k <= 80; k++) {
-      const a = hmax * 1.4 * k / 80; let err = 0;
-      for (const p of exp) { const g = p.h <= 0 ? 0 : c0 + (sill - c0) * E.shape[type](p.h / a); err += p.n * (p.g - g) ** 2 / Math.max(g * g, 1e-9); }
-      if (!best || err < best.err) best = { nugget: c0, range: a, err };
+    const sills = fixSill ? [sill] : Array.from({ length: 21 }, (_, i) => sill * (0.6 + i * 0.05));
+    for (const S of sills) {
+      const c0s = fixNugget != null ? [fixNugget] : Array.from({ length: 26 }, (_, i) => S * i / 40);
+      for (const c0 of c0s) for (let k = 1; k <= 60; k++) {
+        const a = hmax * 1.3 * k / 60; let err = 0;
+        for (const p of exp) { const g = p.h <= 0 ? 0 : c0 + (S - c0) * E.shape[type](p.h / a); err += p.n * (p.g - g) ** 2 / Math.max(g * g, 1e-9); }
+        if (!best || err < best.err) best = { nugget: c0, range: a, sill: S, err };
+      }
     }
     return best;
   };
@@ -56,16 +59,16 @@
     const st = TM.stats(comps.map(c => c.g)); const sill = st.variance; const lag = opts.lag || 10, nLags = opts.nLags || 14;
     const omni = E.experimental(comps, { tolAng: 90, lag, nLags }); const fo = E.fit(omni, { sill });
     if (!fo) throw new Error(TM.L('Not enough composite pairs for a variogram', 'عدد أزواج العينات غير كافٍ للتباين'));
-    const nug = fo.nugget; let bestAz = 0, bestR = 0; const fan = [];
-    for (let az = 0; az < 180; az += 15) { const e = E.experimental(comps, { azi: az, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill, fixNugget: nug }); fan.push({ az, range: f ? f.range : 0, exp: e }); if (f && f.range > bestR) { bestR = f.range; bestAz = az; } }
+    const nug = fo.nugget, sillF = fo.sill; let bestAz = 0, bestR = 0; const fan = [];
+    for (let az = 0; az < 180; az += 15) { const e = E.experimental(comps, { azi: az, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill: sillF, fixSill: true, fixNugget: nug }); fan.push({ az, range: f ? f.range : 0, exp: e }); if (f && e.length >= 4 && f.range > bestR) { bestR = f.range; bestAz = az; } }
     let bestDip = 0, r1 = bestR;
-    for (let dp = 15; dp <= 75; dp += 15) for (const az of [bestAz, (bestAz + 180) % 360]) { const e = E.experimental(comps, { azi: az, dip: dp, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill, fixNugget: nug }); if (f && f.range > r1 * 1.05) { r1 = f.range; bestDip = dp; bestAz = az; } }
-    const semi = E.experimental(comps, { azi: (bestAz + 90) % 360, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const fs = E.fit(semi, { sill, fixNugget: nug });
+    for (let dp = 15; dp <= 75; dp += 15) for (const az of [bestAz, (bestAz + 180) % 360]) { const e = E.experimental(comps, { azi: az, dip: dp, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill: sillF, fixSill: true, fixNugget: nug }); if (f && f.range > r1 * 1.05) { r1 = f.range; bestDip = dp; bestAz = az; } }
+    const semi = E.experimental(comps, { azi: (bestAz + 90) % 360, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const fs = E.fit(semi, { sill: sillF, fixSill: true, fixNugget: nug });
     // minor ≈ normal to major/semi plane: use downhole-ish steep direction
     const minorDir = TM.anisoMetric(bestAz, bestDip, 0, 1, 1, 1).axes.w; const mAz = (Math.atan2(minorDir[0], minorDir[1]) / TM.D2R + 360) % 360, mDip = -Math.asin(minorDir[2]) / TM.D2R;
-    const minor = E.experimental(comps, { azi: mAz, dip: mDip, tolAng: 25, band: 15, lag: Math.max(2, lag / 3), nLags }); const fm = E.fit(minor, { sill, fixNugget: nug });
+    const minor = E.experimental(comps, { azi: mAz, dip: mDip, tolAng: 25, band: 15, lag: Math.max(2, lag / 3), nLags }); const fm = E.fit(minor, { sill: sillF, fixSill: true, fixNugget: nug });
     const r2 = Math.min(fs ? fs.range : r1, r1), r3 = Math.min(fm ? fm.range : r2, r2);
-    return { model: { type: 'sph', nugget: +nug.toFixed(4), sill: +sill.toFixed(4), azi: bestAz, dip: bestDip, rake: 0, ranges: [Math.round(r1), Math.round(Math.max(r2, 5)), Math.round(Math.max(r3, 3))] }, omni, fan, semi, minor, stats: st };
+    return { model: { type: 'sph', nugget: +nug.toFixed(4), sill: +sillF.toFixed(4), azi: bestAz, dip: bestDip, rake: 0, ranges: [Math.round(r1), Math.round(Math.max(r2, 5)), Math.round(Math.max(r3, 3))] }, omni, fan, semi, minor, stats: st };
   };
 
   // ---------------------------------------------------------------- block model

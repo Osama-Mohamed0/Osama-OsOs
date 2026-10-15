@@ -13,8 +13,8 @@
     const pf = o.priceF || 1, cf = o.costF || 1; const rec = s.recovery / 100; const years = []; let q = incs.map(x => Object.assign({}, x)); let qi = 0, y = 0;
     while (qi < q.length && y < 60) {
       let mill = s.millRate, mine = s.mineRate; const yr = { year: y + 1, ore: 0, waste: 0, metal: 0 };
-      while (qi < q.length && mill > 1 && mine > 1) {
-        const c = q[qi]; const tot = c.ore + c.waste; if (tot < 1) { qi++; continue; }
+      while (qi < q.length && mill > 1e-6 && mine > 1e-6) {
+        const c = q[qi]; const tot = c.ore + c.waste; if (tot < 1e-9) { qi++; continue; }
         const f = Math.min(1, c.ore > 0 ? mill / c.ore : Infinity, mine / tot);
         yr.ore += c.ore * f; yr.waste += c.waste * f; yr.metal += c.metal * f; mill -= c.ore * f; mine -= tot * f;
         c.ore -= c.ore * f; c.waste -= c.waste * f; c.metal -= c.metal * f; if (f >= 1 - 1e-9) qi++;
@@ -25,7 +25,7 @@
     }
     const r = s.discount / 100; const flows = [-s.capex].concat(years.map(v => v.cash)); if (years.length) flows[flows.length - 1] -= s.closure;
     const npv = flows.reduce((a, c, t) => a + c / Math.pow(1 + r, t), 0);
-    let irr = null; { const f = rr => flows.reduce((a, c, t) => a + c / Math.pow(1 + rr, t), 0); let lo = -0.9, hi = 5; if (f(lo) > 0 && f(hi) < 0) { for (let k = 0; k < 80; k++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; } irr = (lo + hi) / 2; } }
+    let irr = null; { const f = rr => flows.reduce((a, c, t) => a + c / Math.pow(1 + rr, t), 0); let lo, hi; if (f(0) > 0) { lo = 0; hi = 20; } else { lo = -0.6; hi = 0; } if ((f(lo) > 0) !== (f(hi) > 0)) { const up = f(lo) > 0; for (let k = 0; k < 80; k++) { const m = (lo + hi) / 2; if ((f(m) > 0) === up) lo = m; else hi = m; } irr = (lo + hi) / 2; } }
     let cum = -s.capex, payback = null; years.forEach((v, i) => { const prev = cum; cum += v.cash; if (payback == null && cum >= 0 && v.cash > 0) payback = i + (-prev) / v.cash; });
     const tot = years.reduce((a, v) => ({ ore: a.ore + v.ore, waste: a.waste + v.waste, metal: a.metal + v.metal, oz: a.oz + v.oz, revenue: a.revenue + v.revenue, cost: a.cost + v.cost, cash: a.cash + v.cash }), { ore: 0, waste: 0, metal: 0, oz: 0, revenue: 0, cost: 0, cash: 0 });
     return { years, npv, irr, payback, life: years.length, total: tot, flows };
