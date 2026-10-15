@@ -168,6 +168,7 @@ const Tasks = (() => {
         box.addEventListener('change', (e) => {
           const el = e.target;
           if (['due', 'time', 'categoryId'].includes(el.name)) draft[el.name] = el.value || null;
+          if (el.name === 'time' && el.value && Store.api.requestNotify) Store.api.requestNotify();
           if (el.name === 'priority' || el.name === 'repeat') draft[el.name] = el.value;
           if (el.type === 'checkbox' && el.closest('.sub')) {
             draft.subtasks[el.closest('.sub').dataset.i].done = el.checked;

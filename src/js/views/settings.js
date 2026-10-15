@@ -202,11 +202,19 @@ Views.settings = (() => {
   function render(root) {
     const s = Store.state.settings;
     const desktop = isDesktop();
+    const web = Store.api.platform === 'web';
     const syncCard = desktop ? !!Store.api.syncStatus : Sync.isEnabled();
     const page = document.createElement('div');
     page.className = 'page narrow';
     page.innerHTML = `
       <header class="page-head"><div><h1>الإعدادات</h1><p class="sub">خصّص إنجاز ليناسب طريقتك في العمل.</p></div></header>
+      ${web ? `<section class="card settings-card">
+        <h3>${icon('download')}تثبيت إنجاز كتطبيق</h3>
+        <p class="muted small">أضِفه إلى الشاشة الرئيسية في الهاتف أو الكمبيوتر ليفتح كتطبيق مستقل ويعمل حتى دون إنترنت.</p>
+        ${window.InjazWeb && InjazWeb.canInstall()
+          ? `<div class="btn-row"><button class="btn primary sm" data-install>${icon('download')}تثبيت الآن</button></div>`
+          : '<p class="small">من قائمة المتصفح ⋮ اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية». على آيفون (Safari): زر المشاركة ← «إضافة إلى الشاشة الرئيسية».</p>'}
+      </section>` : ''}
       ${syncCard ? `<section class="card settings-card sync-card" data-sync-card>${desktop ? `<h3>${icon('phone')}المزامنة مع الهاتف</h3>` : phoneSyncHtml()}</section>` : ''}
 
       <section class="card settings-card">
@@ -235,7 +243,7 @@ Views.settings = (() => {
 
       <section class="card settings-card">
         <h3>التنبيهات</h3>
-        ${row(desktop ? 'إشعارات ويندوز' : 'الإشعارات', 'تذكير المهام ذات الوقت المحدد وانتهاء المؤقت.', toggle('notifications', s.notifications))}
+        ${row(desktop ? 'إشعارات ويندوز' : web ? 'إشعارات المتصفح' : 'الإشعارات', web ? 'تذكير المهام وانتهاء المؤقت، ما دامت صفحة إنجاز مفتوحة.' : 'تذكير المهام ذات الوقت المحدد وانتهاء المؤقت.', toggle('notifications', s.notifications))}
         ${row('تذكير يومي بالعادات', 'إشعار إن بقيت عادات لم تُنجز.', `${toggle('habitReminder', s.habitReminder)}<input type="time" data-set="habitReminderTime" value="${esc(s.habitReminderTime)}" ${s.habitReminder ? '' : 'disabled'}>`)}
       </section>
 
@@ -252,7 +260,7 @@ Views.settings = (() => {
 
       <section class="card settings-card">
         <h3>البيانات والنسخ الاحتياطي</h3>
-        <p class="muted small">${desktop ? 'تُحفظ بياناتك على جهازك فقط، مع نسخة احتياطية تلقائية يومية (آخر 14 يوماً).' : 'تُحفظ بياناتك على هاتفك فقط، وتُنسخ إلى الكمبيوتر عند المزامنة.'}</p>
+        <p class="muted small">${desktop ? 'تُحفظ بياناتك على جهازك فقط، مع نسخة احتياطية تلقائية يومية (آخر 14 يوماً).' : web ? 'تُحفظ بياناتك في هذا المتصفح على جهازك فقط، ولا تُرفع لأي خادم. مسح بيانات المتصفح يحذفها، فصدّر نسخة احتياطية من حين لآخر. ولنقلها إلى جهاز آخر: صدّرها هنا ثم استوردها هناك.' : 'تُحفظ بياناتك على هاتفك فقط، وتُنسخ إلى الكمبيوتر عند المزامنة.'}</p>
         ${info && desktop ? `<p class="path" dir="ltr">${esc(info.dataPath)}</p>` : ''}
         <div class="btn-row">
           <button class="btn ghost" data-export>${icon('download')}تصدير نسخة احتياطية</button>
@@ -263,7 +271,7 @@ Views.settings = (() => {
         </div>
       </section>
 
-      ${desktop ? `<section class="card settings-card">
+      ${desktop || web ? `<section class="card settings-card">
         <h3>اختصارات لوحة المفاتيح</h3>
         <div class="shortcuts">
           <span><kbd>Ctrl</kbd>+<kbd>N</kbd> مهمة جديدة</span>
@@ -298,6 +306,7 @@ Views.settings = (() => {
           return;
         }
         Store.setSettings({ [key]: value });
+        if (key === 'notifications' && value && Store.api.requestNotify) Store.api.requestNotify();
         if (key === 'theme') App.applyTheme();
         if (key === 'zoom') App.applyZoom();
         if (['theme', 'closeToTray'].includes(key)) Store.api.applySettings(App.nativeSettings());
@@ -322,6 +331,7 @@ Views.settings = (() => {
     });
 
     page.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-install]')) return window.InjazWeb && InjazWeb.install();
       if (e.target.closest('[data-sync-scan]')) return scanQr();
       if (e.target.closest('[data-sync-manual]')) return manualPair();
       if (e.target.closest('[data-sync-now]')) return Sync.syncNow({ quiet: false });

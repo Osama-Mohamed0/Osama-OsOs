@@ -66,6 +66,7 @@ const Focus = (() => {
     t.resumedAt = Date.now();
     t.status = 'running';
     unlockAudio();
+    if (Store.api.requestNotify) Store.api.requestNotify();
     if (!timer) timer = setInterval(tick, 250);
     emit();
   }

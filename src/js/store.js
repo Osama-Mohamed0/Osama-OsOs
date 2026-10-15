@@ -70,7 +70,11 @@ const Store = (() => {
       platform: 'web',
       applySettings: async () => ({ openAtLogin: false }),
       notify(title, body) {
-        if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
+        if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: 'assets/icon.png', lang: 'ar', dir: 'rtl' });
+      },
+      // يُستدعى بعد نقرة من المستخدم (المتصفح يشترط ذلك لطلب الإذن)
+      requestNotify() {
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
       },
       progress: () => {},
       attention: () => {},

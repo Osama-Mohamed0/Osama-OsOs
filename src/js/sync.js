@@ -34,7 +34,15 @@ const Sync = (() => {
     }
   }
 
-  const isEnabled = () => Store.api.platform !== 'desktop' && !!(window.crypto && crypto.subtle);
+  // يعمل في تطبيق الهاتف فقط (نسخة الويب مستقلة لكل مستخدم). علامة injaz-sync-dev للاختبار في المتصفح.
+  function devFlag() {
+    try {
+      return localStorage.getItem('injaz-sync-dev') === '1';
+    } catch {
+      return false;
+    }
+  }
+  const isEnabled = () => (Store.api.platform === 'android' || devFlag()) && !!(window.crypto && crypto.subtle);
   const paired = () => !!(cfg && cfg.code && Array.isArray(cfg.hosts) && cfg.hosts.length);
   const normalizeCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const formatCode = (c) => normalizeCode(c).replace(/^(.{4})(.{4})(.{2})$/, '$1-$2-$3');
