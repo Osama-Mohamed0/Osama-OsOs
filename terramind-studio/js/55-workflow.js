@@ -38,9 +38,9 @@
     const comps0 = TM.Drill.comps(); if (comps0.length < 20) throw new Error(TM.L('Not enough composites — import drillholes first.', 'عدد العينات المركبة غير كافٍ — استورد الآبار أولاً.'));
     const solid = domain ? TM.P.solids.find(s => s.id === domain || s.name === domain) : null;
     const comps = solid ? comps0.filter(c => TM.Solid.inside(solid, c.x, c.y, c.z)) : comps0;
-    let model = S().variogram; if (!model) model = WF.variography().model;
+    let model = S().variogram; if (!model || (solid && S().variogramDomain !== solid.id)) { model = TM.Est.autoVariography(comps, { lag: Math.max(5, S().compLen * 5), nLags: 14 }).model; S().variogram = model; S().variogramDomain = solid ? solid.id : null; }
     const search = { azi: model.azi, dip: model.dip, rake: model.rake || 0, ranges: model.ranges.map(r => Math.max(r, 15) * searchFactor) };
-    const bm = TM.Est.define(TM.Est.autoDefine(comps0, { dx, dy, dz })); TM.Est.prepare(bm, solid);
+    const bm = TM.Est.define(TM.Est.autoDefine(solid ? comps : comps0, { dx, dy, dz, pad: solid ? 12 : 30 })); TM.Est.prepare(bm, solid);
     const t0 = Date.now(); const n = await TM.Est.estimate(bm, comps, { method, power, model, search, minS, maxS, maxPerHole, disc: 2 }, onProgress);
     bm.domain = solid ? solid.name : null; bm.topCut = S().topCut; TM.Est.classify(bm);
     TM.P.bm = bm; if (TM.P.pit) TM.P.pit.stale = true; TM.logHistory('estimate', `${method} ${dx}x${dy}x${dz} → ${n} blocks`); TM.touch('bm');
@@ -175,6 +175,17 @@
   WF.solidBoolean = function (aId, bId, op, cell = 2) { const a = TM.P.solids.find(s => s.id === aId), b = TM.P.solids.find(s => s.id === bId); if (!a || !b) throw new Error('Solid not found'); const m = W_().boolean(a, b, op, cell); TM.Undo.push('Boolean'); const so = TM.Solid.make(`${a.name}_${op}_${b.name}`, m, { source: 'boolean ' + op, color: '#F472B6' }); TM.P.solids.push(so); TM.touch('solids'); return { solid: so.name, volume_m3: Math.round(so.volume) }; };
   const W_ = () => TM.Wire;
   WF.blastPattern = function (o) { const s = strById(o.polygon); if (!s.closed) throw new Error(TM.L('Blast boundary must be a closed string.', 'حدود التفجير يجب أن تكون مغلقة.')); TM.Undo.push('Blast pattern'); const r = TM.Blast.pattern(Object.assign({}, o, { poly: s.pts })); TM.P.blast = { params: o, holes: r.holes, summary: r.summary, polygon: s.name }; TM.touch('blast'); const sm = r.summary; return { holes: sm.holes, rows: sm.rows, drill_m: Math.round(sm.drill_m), explosive_kg: Math.round(sm.explosive_kg), tonnes: Math.round(sm.tonnes), powder_factor_kg_t: +sm.powder_factor_kg_t.toFixed(3), powder_factor_kg_m3: +sm.powder_factor_kg_m3.toFixed(3), max_kg_per_delay: Math.round(sm.max_kg_per_delay) }; };
+
+
+  // ---------------------------------------------------------------- underground: stope reserves from the block model
+  WF.stopeReport = function (cog = S().cutoff, prefix = /^ST_/) {
+    const bm = TM.P.bm; if (!bm) throw new Error(TM.L('Estimate the block model first.', 'قدّر نموذج البلوكات أولاً.'));
+    const st = TM.P.solids.filter(s => prefix.test(s.name)); if (!st.length) throw new Error(TM.L('No stope solids (names starting with ST_).', 'لا توجد مجسمات أعمال (أسماء تبدأ بـ ST_).'));
+    const rows = st.map(s => { const r = TM.Wire.report(s, 0); return { stope: s.name, volume: Math.round(r.volume), tonnes: Math.round(r.bm_tonnes || 0), grade: +(r.bm_grade || 0).toFixed(2), oz: Math.round(r.bm_oz || 0), status: (r.bm_grade || 0) >= cog ? 'ore' : 'below COG' }; });
+    const ore = rows.filter(r => r.status === 'ore'), t = ore.reduce((a, r) => a + r.tonnes, 0), m = ore.reduce((a, r) => a + r.tonnes * r.grade, 0);
+    const e = TM.Mine.econ(), val = ore.reduce((a, r) => a + r.tonnes * (r.grade * e.netPrice - S().procCost - S().gaCost - S().mineCost), 0);
+    return { cutoff: cog, stopes: rows.length, ore_stopes: ore.length, ore_t: Math.round(t), grade: t ? +(m / t).toFixed(2) : 0, oz: Math.round(m / 31.1035), operating_margin_musd: +(val / 1e6).toFixed(1), rows };
+  };
 
   // ---------------------------------------------------------------- summary for the AI and the report
   WF.summary = function () {

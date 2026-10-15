@@ -1,7 +1,7 @@
 /* TerraMind Studio — core utilities, i18n, event bus, typed-array codec. */
 (function (TM) {
   'use strict';
-  TM.version = '1.1.0';
+  TM.version = '1.2.0';
 
   // ---------------------------------------------------------------- math / format
   TM.D2R = Math.PI / 180;
@@ -104,7 +104,7 @@
   TM.encode = function (obj) {
     return JSON.stringify(obj, (k, v) => {
       if (k.startsWith('_rt')) return undefined; // runtime-only fields
-      for (const t in TA) if (v instanceof TA[t]) return { __ta: t, b64: b64enc(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) };
+      if (v && ArrayBuffer.isView(v) && !(v instanceof DataView)) { const t = Object.keys(TA).find(k => TA[k].name === v.constructor.name); if (t) return { __ta: t, b64: b64enc(new Uint8Array(v.buffer, v.byteOffset, v.byteLength)) }; }
       return v;
     });
   };
@@ -132,11 +132,13 @@
   // ---------------------------------------------------------------- async progress helper
   // Runs a long loop in chunks so the UI stays responsive. step(i) processes item i.
   TM.chunked = async function (n, step, onProgress, chunk = 4000) {
-    for (let i = 0; i < n; i += chunk) {
-      const e = Math.min(n, i + chunk);
-      for (let j = i; j < e; j++) step(j);
-      if (onProgress) onProgress(e / n);
-      if (e < n) await TM.sleep(0);
+    // time-sliced: yield to the UI about every 80 ms (keeps the app responsive without slowing heavy jobs)
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    let t0 = now();
+    for (let i = 0; i < n; i++) {
+      step(i);
+      if ((i & 255) === 255 && now() - t0 > 80) { if (onProgress) onProgress((i + 1) / n); await TM.sleep(0); t0 = now(); }
     }
+    if (onProgress) onProgress(1);
   };
 })(typeof window !== 'undefined' ? (window.TM = window.TM || {}) : (globalThis.TM = globalThis.TM || {}));

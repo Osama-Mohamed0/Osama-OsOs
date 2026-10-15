@@ -2,7 +2,7 @@
 (function (TM) {
   'use strict';
   const PL = TM.Plot = {}; const L = (a, b) => TM.L(a, b), fmt = TM.fmt, esc = TM.esc;
-  const st = PL.state = { mode: 'section', axis: 'x', pos: null, rl: null, width: 10, scale: 'fit', layers: { topo: true, holes: true, strings: true, solids: true, bm: true, pit: true }, title: '', author: '', digit: null, view: null };
+  const st = PL.state = { planSlab: 0, mode: 'section', axis: 'x', pos: null, rl: null, width: 10, scale: 'fit', layers: { topo: true, holes: true, strings: true, solids: true, bm: true, pit: true }, title: '', author: '', digit: null, view: null };
   const PAPER = { w: 1587, h: 1123 }, M = { l: 70, r: 40, t: 50, b: 150 };
 
   // geometry helpers ------------------------------------------------------
@@ -56,7 +56,7 @@
     // solids
     if (L_.solids) for (const so of P.solids) { if (TM.VP.hidden.has(so.id)) continue; const segs = sliceMesh(so.pos, so.idx, fr); g.push(`<g style="stroke:${so.color || '#10B981'};stroke-width:1.6">` + segs.map(sg => `<line x1="${m.X(sg[0][0]).toFixed(1)}" y1="${m.Y(sg[0][1]).toFixed(1)}" x2="${m.X(sg[1][0]).toFixed(1)}" y2="${m.Y(sg[1][1]).toFixed(1)}"/>`).join('') + '</g>'); }
     // strings (plan: all; section: parts within ±width)
-    if (L_.strings) for (const so of P.strings) { if (TM.VP.hidden.has(so.id)) continue; const R = TM.Str.ring(so); if (fr.kind === 'plan') g.push(line(R.map(p => [p[0], p[1]]), `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); else { let cur = []; for (const p of R) { if (Math.abs(fr.off(p)) <= st.width) cur.push(fr.toUV(p)); else { g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); cur = []; } } g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); } }
+    if (L_.strings) for (const so of P.strings) { if (TM.VP.hidden.has(so.id)) continue; const R = TM.Str.ring(so); if (fr.kind === 'plan' && st.planSlab > 0) { let cur = []; for (const p of R) { if (Math.abs(p[2] - st.rl) <= st.planSlab) cur.push([p[0], p[1]]); else { g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.3`)); cur = []; } } g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.3`)); } else if (fr.kind === 'plan') g.push(line(R.map(p => [p[0], p[1]]), `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); else { let cur = []; for (const p of R) { if (Math.abs(fr.off(p)) <= st.width) cur.push(fr.toUV(p)); else { g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); cur = []; } } g.push(line(cur, `fill:none;stroke:${so.color || '#d97706'};stroke-width:1.1`)); } }
     // drillholes
     if (L_.holes) for (const h of TM.rt.holes) {
       if (fr.kind === 'plan') { const c = [h.collar.x, h.collar.y]; g.push(line(h.st.map(p => [p.x, p.y]), 'fill:none;stroke:#94a3b8;stroke-width:.8') + `<circle cx="${m.X(c[0])}" cy="${m.Y(c[1])}" r="3" fill="#111"/><text x="${m.X(c[0]) + 5}" y="${m.Y(c[1]) - 4}" font-size="9" fill="#111">${esc(h.id)}</text>`); continue; }
@@ -70,7 +70,7 @@
     if (fr.kind === 'plan') g.push(`<g transform="translate(${M.l + m.W - 40},${M.t + 50})"><polygon points="0,-30 9,8 0,2 -9,8" fill="#111"/><text y="-36" font-size="13" text-anchor="middle" font-weight="600">N</text></g>`);
     const sb = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find(v => v * m.k > 120) || 100; g.push(`<g transform="translate(${M.l},${PAPER.h - M.b + 34})"><rect width="${sb * m.k / 2}" height="6" fill="#111"/><rect x="${sb * m.k / 2}" width="${sb * m.k / 2}" height="6" fill="#fff" stroke="#111"/><text y="20" font-size="10">0</text><text x="${sb * m.k}" y="20" font-size="10" text-anchor="middle">${sb} m</text></g>`);
     const scaleTxt = st.scale === 'fit' ? `1:${fmt(Math.round(1000 * 96 / 25.4 / m.k))}` : `1:${fmt(+st.scale)}`;
-    const title = st.title || (fr.kind === 'plan' ? `Plan at RL ${fmt(st.rl)}` : `Section ${st.axis === 'x' ? 'E' : 'N'} ${fmt(st.pos)} (±${st.width} m)`);
+    const title = st.title || (fr.kind === 'plan' ? `Plan at RL ${fmt(st.rl)}${st.planSlab > 0 ? ` (±${st.planSlab} m)` : ''}` : `Section ${st.axis === 'x' ? 'E' : 'N'} ${fmt(st.pos)} (±${st.width} m)`);
     const tb = { x: PAPER.w - 520, y: PAPER.h - M.b + 20, w: 480, h: 112 };
     g.push(`<g font-family="Arial,Helvetica,sans-serif"><rect x="${tb.x}" y="${tb.y}" width="${tb.w}" height="${tb.h}" fill="#fff" stroke="#111"/><line x1="${tb.x}" x2="${tb.x + tb.w}" y1="${tb.y + 38}" y2="${tb.y + 38}" stroke="#111"/><line x1="${tb.x + 300}" x2="${tb.x + 300}" y1="${tb.y + 38}" y2="${tb.y + tb.h}" stroke="#111"/>
       <text x="${tb.x + 10}" y="${tb.y + 25}" font-size="17" font-weight="700">${esc(title)}</text>
@@ -94,7 +94,7 @@
     el.innerHTML = `<div class="plot-bar">
       <b>${L('Plan & section', 'المسقط والمقطع')}</b>
       <div class="seg" id="plMode"><button type="button" data-v="plan" aria-pressed="${st.mode === 'plan'}">${L('Plan', 'مسقط')}</button><button type="button" data-v="section" aria-pressed="${st.mode === 'section'}">${L('Section', 'مقطع')}</button></div>
-      ${st.mode === 'section' ? `<div class="seg" id="plAxis"><button type="button" data-v="x" aria-pressed="${st.axis === 'x'}">E =</button><button type="button" data-v="y" aria-pressed="${st.axis === 'y'}">N =</button></div><input id="plPos" type="number" step="5" value="${st.pos ?? ''}" title="position"><label>±<input id="plW" type="number" step="5" value="${st.width}"> m</label><button class="btn" type="button" id="plPrev">◀</button><button class="btn" type="button" id="plNext">▶</button>` : `<label>RL <input id="plRL" type="number" step="5" value="${st.rl ?? ''}"></label>`}
+      ${st.mode === 'section' ? `<div class="seg" id="plAxis"><button type="button" data-v="x" aria-pressed="${st.axis === 'x'}">E =</button><button type="button" data-v="y" aria-pressed="${st.axis === 'y'}">N =</button></div><input id="plPos" type="number" step="5" value="${st.pos ?? ''}" title="position"><label>±<input id="plW" type="number" step="5" value="${st.width}"> m</label><button class="btn" type="button" id="plPrev">◀</button><button class="btn" type="button" id="plNext">▶</button>` : `<label>RL <input id="plRL" type="number" step="5" value="${st.rl ?? ''}"></label><label title="0 = all strings">±<input id="plSlab" type="number" step="5" value="${st.planSlab}"> m</label>`}
       <label>${L('Scale', 'المقياس')} <select id="plScale">${['fit', 500, 1000, 2000, 2500, 5000, 10000].map(v => `<option value="${v}" ${String(st.scale) === String(v) ? 'selected' : ''}>${v === 'fit' ? L('Fit', 'ملاءمة') : '1:' + v}</option>`).join('')}</select></label>
       ${lay.map(k => `<label class="toggle"><input type="checkbox" data-layer="${k}" ${st.layers[k] ? 'checked' : ''}>${k}</label>`).join('')}
       <input id="plTitle" placeholder="${L('Sheet title', 'عنوان اللوحة')}" value="${esc(st.title)}"><input id="plAuthor" placeholder="${L('Drawn by', 'الرسام')}" value="${esc(st.author)}" style="width:110px">
@@ -105,7 +105,7 @@
     el.querySelectorAll('#plMode button').forEach(b => b.onclick = () => { st.mode = b.dataset.v; st.view = null; PL.renderUI(); PL.draw(); });
     el.querySelectorAll('#plAxis button').forEach(b => b.onclick = () => { st.axis = b.dataset.v; st.pos = null; st.view = null; PL.renderUI(); PL.draw(); });
     const num = (id, k) => { const i = $(id); if (i) i.onchange = () => { st[k] = +i.value; st.view = null; PL.draw(); }; };
-    num('#plPos', 'pos'); num('#plW', 'width'); num('#plRL', 'rl');
+    num('#plPos', 'pos'); num('#plW', 'width'); num('#plRL', 'rl'); num('#plSlab', 'planSlab');
     if ($('#plPrev')) { $('#plPrev').onclick = () => { st.pos -= st.width * 2; $('#plPos').value = st.pos; PL.draw(); }; $('#plNext').onclick = () => { st.pos += st.width * 2; $('#plPos').value = st.pos; PL.draw(); }; }
     $('#plScale').onchange = e => { st.scale = e.target.value; PL.draw(); };
     el.querySelectorAll('[data-layer]').forEach(c => c.onchange = () => { st.layers[c.dataset.layer] = c.checked; PL.draw(); });

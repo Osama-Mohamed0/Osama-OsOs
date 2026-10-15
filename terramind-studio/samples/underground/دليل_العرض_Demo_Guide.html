@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دليل عرض منجم جبل نحاس</title>
+<style>
+  :root { --bg:#ffffff; --fg:#111827; --mut:#4b5563; --acc:#059669; --line:#e5e7eb; --box:#f3f4f6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0B0F19; --fg:#e5e7eb; --mut:#9ca3af; --acc:#10B981; --line:#1f2937; --box:#111827; } }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI", Tahoma, Arial, sans-serif; line-height:1.75; max-width:900px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { color:var(--acc); margin-bottom:4px; } h2 { border-bottom:2px solid var(--acc); padding-bottom:4px; margin-top:36px; }
+  .sub { color:var(--mut); margin-top:0; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:6px 8px; text-align:right; vertical-align:top; }
+  th { background:var(--box); }
+  code, .en { direction:ltr; unicode-bidi:embed; font-family:Consolas, monospace; background:var(--box); padding:0 4px; border-radius:3px; }
+  .say { background:var(--box); border-right:4px solid var(--acc); padding:8px 12px; margin:8px 0; }
+  ol li { margin-bottom:6px; }
+  @media print { body { max-width:none; } h2 { page-break-after:avoid; } }
+</style>
+</head>
+<body>
+<h1>منجم جبل نحاس السفلي — دليل العرض</h1>
+<p class="sub">TerraMind Studio 1.2 · مشروع عرض (Showcase) لمنجم ذهب ونحاس سفلي بعرق شديد الميل. كل البيانات اصطناعية ومخصّصة للعرض فقط.</p>
+
+<h2>1. ملخّص المشروع</h2>
+<table>
+<tr><th>البند</th><th>القيمة</th></tr>
+<tr><td>الجسم المعدني</td><td>عرق كوارتز (Vein) باتجاه 045° وميل 75° نحو الجنوب الشرقي، وسُمكه بين 5 و13 م. يحوي ذهباً (<span class="en">au_gpt</span>) ونحاساً (<span class="en">cu_pct</span>)، ويقطعه سدّ ناري (Dyke).</td></tr>
+<tr><td>الآبار</td><td>34 بئراً سطحياً (JN) و8 آبار من داخل المنجم (UG)، وفيها 5711 تحليلاً.</td></tr>
+<tr><td>المستويات</td><td>15 مستوى من RL 850 إلى RL 500، بين كل مستوى وآخر 25 م.</td></tr>
+<tr><td>المنحدر الرئيسي (Decline)</td><td>طوله 3147 م، وانحداره 1:7، وفتحته (Portal) عند منسوب 937 تقريباً.</td></tr>
+<tr><td>إجمالي التطوير</td><td>10.7 كم تقريباً، تشمل المنحدر وممرات الخام والممرات العرضية.</td></tr>
+<tr><td>غرف الإنتاج (Stopes)</td><td>89 غرفة بطريقة Sublevel Open Stoping، كل غرفة مجسم مستقل اسمه يبدأ بـ <span class="en">ST_</span>.</td></tr>
+<tr><td>التهوية</td><td>بئر هواء نقي (FAR)، وبئر هواء راجع (RAR)، ووصلات تهوية لكل مستوى، ومحطة المروحة الرئيسية.</td></tr>
+<tr><td>الصرف (Dewatering)</td><td>بالوعة (Sump) في كل مستوى، ومصارف بميل 1%، ومحطة ضخ، وخط رفع DN200 إلى أحواض الترسيب.</td></tr>
+<tr><td>التفجير</td><td>نمط وجه تطوير من 48 ثقباً، ومراوح ثقوب (Rings) للغرفة ST_675_08 من 70 ثقباً.</td></tr>
+<tr><td>البنية السطحية</td><td>حدود الامتياز، وحفرة مدخل المنحدر، ومنصّة الخام (ROM pad)، وطريق النقل، ومكب النفايات. وتحت الأرض: الورشة، ومخزن المتفجرات، وغرف الإنقاذ.</td></tr>
+</table>
+
+<h2>2. محتويات المجلد</h2>
+<table>
+<tr><th>الملف</th><th>الاستخدام</th></tr>
+<tr><td><span class="en">JabalNuhas_UG.tmd</span></td><td><b>المشروع كاملاً جاهزاً</b>، يُفتح من ملف ← فتح. يحتوي الآبار والسطح والخطوط والمجسمات والإعدادات.</td></tr>
+<tr><td><span class="en">collar / survey / assay / lithology .csv</span></td><td>قاعدة بيانات الآبار، لعرض «الاستيراد من الصفر».</td></tr>
+<tr><td><span class="en">topography_points.csv</span></td><td>نقاط السطح الطبوغرافي (XYZ).</td></tr>
+<tr><td><span class="en">mine_layout.str / .dxf</span></td><td>تخطيط المنجم كاملاً بصيغة Surpac وصيغة AutoCAD. أرقام الخطوط في الجدول التالي.</td></tr>
+<tr><td><span class="en">stopes.dxf</span>، <span class="en">vein_wireframe.obj</span></td><td>مجسمات الغرف ومجسم العرق.</td></tr>
+<tr><td><span class="en">dev_face_pattern.csv</span>، <span class="en">stope_ring_design.csv</span></td><td>جداول ثقوب التفجير.</td></tr>
+<tr><td><span class="en">stope_list.csv</span>، <span class="en">levels_and_development.csv</span></td><td>قائمة الغرف، وأطوال التطوير لكل مستوى.</td></tr>
+<tr><td><span class="en">UG_Engineering_Calcs.xlsx</span></td><td>حسابات هندسية بمعادلات حيّة، وفيها هذه الأوراق:
+<ul>
+<li>التهوية (Ventilation): Atkinson وحجم الهواء المطلوب للمعدات.</li>
+<li>الصرف (Dewatering): Hazen-Williams وقدرة المضخة.</li>
+<li>تفجير التطوير وتفجير الغرف.</li>
+<li>التطوير.</li>
+<li>الغرف.</li>
+<li>الإنتاج وعمر المنجم.</li>
+</ul>
+خلايا الإدخال بخلفية صفراء، وكل ما سواها يُحسب تلقائياً.</td></tr>
+</table>
+
+<h3>أرقام الخطوط في mine_layout.str</h3>
+<table>
+<tr><th>الرقم</th><th>المحتوى</th><th>الرقم</th><th>المحتوى</th></tr>
+<tr><td>1</td><td>المنحدر الرئيسي (Decline)</td><td>20</td><td>البالوعات (Sumps)</td></tr>
+<tr><td>2</td><td>ممرات الخام (Ore drives)</td><td>21</td><td>محطة الضخ</td></tr>
+<tr><td>3</td><td>الممرات العرضية (Crosscuts)</td><td>22</td><td>المصارف بميل 1%</td></tr>
+<tr><td>10</td><td>بئر الهواء النقي (FAR)</td><td>23</td><td>أحواض الترسيب</td></tr>
+<tr><td>11</td><td>بئر الهواء الراجع (RAR)</td><td>24</td><td>خط الرفع DN200</td></tr>
+<tr><td>12</td><td>وصلات التهوية في المستويات</td><td>30</td><td>حدود الغرف</td></tr>
+<tr><td>13</td><td>محطة المروحة الرئيسية</td><td>40 / 41</td><td>ثقوب وجه التطوير / مراوح الغرفة</td></tr>
+<tr><td>50–52</td><td>الورشة، مخزن المتفجرات، غرف الإنقاذ</td><td>60–64</td><td>حدود الامتياز، حفرة المدخل، ROM، الطريق، المكب</td></tr>
+</table>
+
+<h2>3. سيناريو العرض (15–20 دقيقة)</h2>
+<ol>
+<li><b>الافتتاح:</b> افتح البرنامج، ثم <b>ملف ← فتح</b> واختر <span class="en">JabalNuhas_UG.tmd</span>. ستظهر الآبار والسطح والمنحدر الحلزوني والمستويات بالأبعاد الثلاثة. دوّر المشهد بالفأرة وقرّب على فتحة المنحدر.
+<div class="say">قل للحضور: «هذا منجم كامل في ملف واحد: الجيولوجيا والتطوير والتهوية والصرف والتفجير».</div></li>
+<li><b>الطبقات:</b> من لوحة الطبقات أطفئ الخطوط وأعد إظهارها مجموعةً مجموعة: المنحدر، ثم التهوية (FAR وRAR)، ثم الصرف، ثم الغرف. اضغط على أي خط ليعرض المفتش (Inspector) اسمه وطوله.</li>
+<li><b>المسقط والمقطع (F7):</b>
+  <ul>
+  <li>اختر مسقطاً (Plan) عند المنسوب 675، واكتب <b>±12 م</b> في حقل ± بجانب RL، فيظهر مستوى واحد فقط مع ممراته وبالوعته.</li>
+  <li>اعرض بعده مقطعاً عمودياً على العرق يظهر فيه الميل 75° والغرف فوق بعضها.</li>
+  <li>صدّر اللوحة PDF بحجم A3.</li>
+  </ul></li>
+<li><b>ضبط جودة البيانات (QA/QC):</b> من «بيانات الآبار» اضغط <b>تحقق</b>. سيكتشف البرنامج ثلاثة أخطاء زُرعت عمداً في البيانات:
+  <ul>
+  <li>قيمة شاذة 86.4 غ/طن في البئر JN014.</li>
+  <li>تداخل في فترات البئر JN021.</li>
+  <li>بئر JN030 بلا مسوحات.</li>
+  </ul>
+  بعدها اضغط «الإحصاء والسقف» ليقترح البرنامج سقفاً للقيم العالية (Top-cut).</li>
+<li><b>الجيولوجيا:</b> اعرض مجسم العرق <span class="en">VEIN_interpreted</span>. يمكنك أيضاً بناء غلاف ضمني (RBF) جديد من التحاليل ومقارنته بالمجسم.</li>
+<li><b>التقدير:</b> من «نموذج البلوكات» شغّل <b>التباين المكاني</b> أولاً، فيكتشف البرنامج اتجاه العرق تلقائياً. بعده شغّل <b>التقدير</b> بالكريجنغ داخل مجسم العرق ببلوكات 4×4×4، ويستغرق ذلك ثوانيَ معدودة. ثم شغّل «تصنيف الموارد».
+<div class="say">النتيجة المتوقعة: نحو 3.4 مليون طن بتركيز 7.4 غ/طن عند حد قطع 2.5.</div></li>
+<li><b>احتياطي الغرف:</b> من «الجيولوجيا والمجسمات» اضغط <b>احتياطي الأعمال</b> (Stope reserves)، فيظهر لكل غرفة من الغرف الـ89 حمولتها وتركيزها وقيمتها.
+<div class="say">النتيجة المتوقعة: نحو 1.12 مليون طن بتركيز 8.7 غ/طن، أي قرابة 312 ألف أوقية.</div></li>
+<li><b>التفجير:</b> اعرض الخطين 40 و41 (ثقوب الوجه ومراوح الغرفة ST_675_08). افتح بعدها <span class="en">UG_Engineering_Calcs.xlsx</span> على ورقة <b>Blasting_Stope</b>، وغيّر قطر الثقب أو كثافة المتفجر، فيتغيّر عامل التفجير (Powder factor) فوراً.</li>
+<li><b>التهوية والصرف:</b> في ملف Excel غيّر عدد المعدات في ورقة <b>Ventilation</b>، فتتغيّر كمية الهواء المطلوبة وضغط المروحة وقدرتها. وفي ورقة <b>Dewatering</b> غيّر معدل التدفق فتتغيّر قدرة المضخة. اربط ما يظهر على الشاشة بالمسارات المرسومة في الخطوط 10–13 و20–24.</li>
+<li><b>المساعد الذكي:</b> اكتب له أوامر بالعربية، مثلاً:
+  <ul>
+  <li>«احتياطي الأعمال» أو «stope report»</li>
+  <li>«اعرض البلوكات فوق 5 غ/طن»</li>
+  <li>«تحقق من الآبار»</li>
+  <li>«مقطع شمالي عند 50200»</li>
+  </ul>
+  ينفّذ المساعد هذه الأوامر حتى دون إنترنت. ومع مفتاح Claude يجيب كذلك على الأسئلة الحرّة.</li>
+<li><b>الختام:</b> من «الذكاء والتقارير» افتح <b>التقرير التنفيذي</b> واحفظه PDF.</li>
+</ol>
+
+<h2>4. عرض «من الصفر» (اختياري)</h2>
+<p>ابدأ بمشروع جديد، ثم:</p>
+<ol>
+<li>استورد ملفات CSV الأربعة للآبار من «استيراد الآبار»؛ الأعمدة تُطابق تلقائياً.</li>
+<li>استورد <span class="en">topography_points.csv</span> من «التضاريس» لبناء السطح.</li>
+<li>استورد <span class="en">mine_layout.str</span> و<span class="en">stopes.dxf</span> (يُستورد كمجسم واحد يجمع كل الغرف).</li>
+<li>استورد <span class="en">vein_wireframe.obj</span> واستخدمه مجالاً للتقدير. أما تقرير الغرف واحدةً واحدة فيعمل من ملف <span class="en">.tmd</span>، لأن كل غرفة فيه مجسم مستقل.</li>
+</ol>
+<p>بهذا تُظهر للحضور أن البرنامج يقرأ صيغ Surpac وAutoCAD مباشرة.</p>
+
+<h2>5. حدود يجب ذكرها بصراحة</h2>
+<ul>
+<li>البيانات اصطناعية، فلا تُعرض على أنها منجم حقيقي.</li>
+<li>التهوية والصرف ممثّلان في البرنامج كمسارات مرسومة. أما الحسابات (Atkinson وHazen-Williams) ففي ملف Excel. البرنامج لا يحاكي شبكة التهوية كما يفعل Ventsim.</li>
+<li>لا يصمّم البرنامج الغرف تلقائياً (Stope optimiser). الغرف مجسمات جاهزة، والبرنامج يحسب احتياطيها من نموذج البلوكات.</li>
+<li>أي تقرير موارد رسمي يحتاج مراجعة شخص مؤهَّل (Competent Person).</li>
+</ul>
+</body>
+</html>

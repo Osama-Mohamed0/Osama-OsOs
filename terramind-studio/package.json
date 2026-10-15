@@ -1,7 +1,7 @@
 {
   "name": "terramind-studio",
   "productName": "TerraMind Studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mining geology, resource estimation and mine design — desktop edition",
   "main": "desktop/main.js",
   "author": "TerraMind Studio",

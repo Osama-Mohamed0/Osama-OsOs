@@ -56,6 +56,7 @@
   };
   // Automatic 3D variography: horizontal fan → major azimuth; plunge search → major dip; perpendicular axes.
   E.autoVariography = function (comps, opts = {}) {
+    if (comps.length > 4000) { const k = comps.length / 4000; comps = Array.from({ length: 4000 }, (_, i) => comps[Math.floor(i * k)]); }
     const st = TM.stats(comps.map(c => c.g)); const sill = st.variance; const lag = opts.lag || 10, nLags = opts.nLags || 14;
     const omni = E.experimental(comps, { tolAng: 90, lag, nLags }); const fo = E.fit(omni, { sill });
     if (!fo) throw new Error(TM.L('Not enough composite pairs for a variogram', 'عدد أزواج العينات غير كافٍ للتباين'));
@@ -63,12 +64,14 @@
     for (let az = 0; az < 180; az += 15) { const e = E.experimental(comps, { azi: az, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill: sillF, fixSill: true, fixNugget: nug }); fan.push({ az, range: f ? f.range : 0, exp: e }); if (f && e.length >= 4 && f.range > bestR) { bestR = f.range; bestAz = az; } }
     let bestDip = 0, r1 = bestR;
     for (let dp = 15; dp <= 75; dp += 15) for (const az of [bestAz, (bestAz + 180) % 360]) { const e = E.experimental(comps, { azi: az, dip: dp, tolAng: 22.5, band: 25, lag, nLags }); const f = E.fit(e, { sill: sillF, fixSill: true, fixNugget: nug }); if (f && f.range > r1 * 1.05) { r1 = f.range; bestDip = dp; bestAz = az; } }
-    const semi = E.experimental(comps, { azi: (bestAz + 90) % 360, dip: 0, tolAng: 22.5, band: 25, lag, nLags }); const fs = E.fit(semi, { sill: sillF, fixSill: true, fixNugget: nug });
-    // minor ≈ normal to major/semi plane: use downhole-ish steep direction
-    const minorDir = TM.anisoMetric(bestAz, bestDip, 0, 1, 1, 1).axes.w; const mAz = (Math.atan2(minorDir[0], minorDir[1]) / TM.D2R + 360) % 360, mDip = -Math.asin(minorDir[2]) / TM.D2R;
-    const minor = E.experimental(comps, { azi: mAz, dip: mDip, tolAng: 25, band: 15, lag: Math.max(2, lag / 3), nLags }); const fm = E.fit(minor, { sill: sillF, fixSill: true, fixNugget: nug });
-    const r2 = Math.min(fs ? fs.range : r1, r1), r3 = Math.min(fm ? fm.range : r2, r2);
-    return { model: { type: 'sph', nugget: +nug.toFixed(4), sill: +sillF.toFixed(4), azi: bestAz, dip: bestDip, rake: 0, ranges: [Math.round(r1), Math.round(Math.max(r2, 5)), Math.round(Math.max(r3, 3))] }, omni, fan, semi, minor, stats: st };
+    // semi-major: longest range among directions perpendicular to the major axis (rake search)
+    const toAD = v => ({ azi: (Math.atan2(v[0], v[1]) / TM.D2R + 360) % 360, dip: -Math.asin(TM.clamp(v[2], -1, 1)) / TM.D2R });
+    let bestRake = 0, r2 = 0, semi = [];
+    for (let rk = 0; rk < 180; rk += 15) { const v = TM.anisoMetric(bestAz, bestDip, rk, 1, 1, 1).axes.v, ad = toAD(v); const e = E.experimental(comps, { azi: ad.azi, dip: ad.dip, tolAng: 22.5, band: 20, lag, nLags }); const f = E.fit(e, { sill: sillF, fixSill: true, fixNugget: nug }); if (f && e.length >= 4 && f.range > r2) { r2 = f.range; bestRake = rk; semi = e; } }
+    const wv = TM.anisoMetric(bestAz, bestDip, bestRake, 1, 1, 1).axes.w, mad = toAD(wv);
+    const minor = E.experimental(comps, { azi: mad.azi, dip: mad.dip, tolAng: 25, band: 15, lag: Math.max(2, lag / 3), nLags }); const fm = E.fit(minor, { sill: sillF, fixSill: true, fixNugget: nug });
+    r2 = Math.min(r2 || r1, r1); const r3 = Math.min(fm ? fm.range : r2, r2);
+    return { model: { type: 'sph', nugget: +nug.toFixed(4), sill: +sillF.toFixed(4), azi: bestAz, dip: bestDip, rake: bestRake, ranges: [Math.round(r1), Math.round(Math.max(r2, 5)), Math.round(Math.max(r3, 3))] }, omni, fan, semi, minor, stats: st };
   };
 
   // ---------------------------------------------------------------- block model

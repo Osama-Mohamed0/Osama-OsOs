@@ -113,7 +113,7 @@
       [L('Ore tonnage', 'حمولة الخام'), `${fmt(k.ore / 1e6, 2)} <small>Mt</small>`, `${k.inPit ? L('in pit', 'داخل الحفرة') : L('resource', 'مورد')} · ${fmt(k.ore)} t` + d(k.ore / 1e6, 'ore', v => fmt(v, 2), ' Mt')],
       [L('Average grade', 'متوسط التركيز'), `${fmt(k.grade, 2)} <small>${s.gradeUnit}</small>`, `≥ ${fmt(s.cutoff, 2)} COG` + d(k.grade, 'grade', v => fmt(v, 2))],
       [L('Contained metal', 'المعدن المحتوى'), `${fmt(k.oz / 1e3, 1)} <small>koz</small>`, `${fmt(k.oz * s.recovery / 100 / 1e3, 1)} koz ${L('recovered', 'مستخلص')}` + d(k.oz / 1e3, 'oz', v => fmt(v, 1), ' koz')],
-      [L('Waste tonnage', 'حمولة النفايات'), k.waste != null ? `${fmt(k.waste / 1e6, 2)} <small>Mt</small>` : '—', k.waste != null ? `${L('pit', 'الحفرة')} ${fmt((k.waste + k.ore) / 1e6, 2)} Mt` + d(k.waste / 1e6, 'waste', v => fmt(v, 2), ' Mt') : L('optimise pit', 'حسّن الحفرة')],
+      [L('Waste tonnage', 'حمولة النفايات'), k.waste != null ? `${fmt(k.waste / 1e6, 2)} <small>Mt</small>` : '—', k.waste != null ? `${L('pit', 'الحفرة')} ${fmt((k.waste + k.ore) / 1e6, 2)} Mt` + d(k.waste / 1e6, 'waste', v => fmt(v, 2), ' Mt') : (s.mineType === 'underground' ? L('see stope reserves', 'راجع احتياطي الأعمال') : L('optimise pit', 'حسّن الحفرة'))],
       [L('Stripping ratio', 'نسبة الكشف'), k.sr != null ? `${fmt(k.sr, 2)} <small>W:O</small>` : '—', k.sr != null ? `${esc(k.pitLabel || '')}` + d(k.sr, 'sr', v => fmt(v, 2)) : ''],
       [`NPV @ ${s.discount}%`, k.npv != null ? `${TM.usd(k.npv / 1e6)} <small>M</small>` : '—', k.npv != null ? `${fmt(k.life)} ${L('yr', 'سنة')} · IRR ${k.irr != null ? fmt(k.irr * 100, 0) + '%' : '—'}` + d(k.npv / 1e6, 'npv', v => '$' + fmt(v, 1), 'M') : '', k.npv != null ? (k.npv >= 0 ? 'hero' : 'neg') : '']
     ];

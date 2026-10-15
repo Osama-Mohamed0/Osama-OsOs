@@ -23,7 +23,7 @@
     }
     const tin = { pts, tri, x0, y0, x1, y1, z0, z1, G, cw, ch, cells, nTri: n };
     tin.z = function (x, y) {
-      const i = Math.floor((x - x0) / cw), j = Math.floor((y - y0) / ch); if (i < 0 || j < 0 || i >= G || j >= G) return NaN;
+      const i = Math.floor((x - x0) / cw), j = Math.floor((y - y0) / ch); if (!(i >= 0 && j >= 0 && i < G && j < G)) return NaN;
       for (const t of cells[i + G * j]) {
         const a = tri[t * 3] * 3, b = tri[t * 3 + 1] * 3, c = tri[t * 3 + 2] * 3;
         const ax = pts[a], ay = pts[a + 1], bx = pts[b], by = pts[b + 1], cx = pts[c], cy = pts[c + 1];
