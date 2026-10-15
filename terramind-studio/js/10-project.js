@@ -7,7 +7,7 @@
     price: 2400, recovery: 92, mineCost: 2.8, procCost: 18, gaCost: 4, sellCost: 30, // $/oz selling/refining
     capex: 120e6, millRate: 0.9e6, mineRate: 8e6, discount: 8, closure: 8e6,
     slope: 45, benchH: 10, batter: 70, bermW: 6, rampW: 20, rampGrade: 10,
-    cutoff: 0.5, colormap: 'gold', topCut: null, compLen: 2,
+    cutoff: 0.5, colormap: 'gold', topCut: null, compLen: 2, pitSource: 'shell',
     infill: []
   });
 
@@ -27,8 +27,8 @@
   TM.P = null;
   TM.rt = { holes: [], comps: null, tin: null, dirty: false };
 
-  TM.setProject = function (P) {
-    TM.P = P; TM.rt = { holes: [], comps: null, tin: null, dirty: false };
+  TM.setProject = function (P, filePath) {
+    TM.P = P; TM.rt = { holes: [], comps: null, tin: null, dirty: false, filePath: filePath || null };
     TM.Drill && TM.Drill.rebuild();
     TM.Surf && TM.Surf.rebuildTopo();
     TM.emit('project', P);
@@ -54,25 +54,29 @@
   };
 
   // ---------------------------------------------------------------- file save/open
-  TM.saveBlob = function (blob, filename) {
+  TM.native = typeof window !== 'undefined' && window.tmNative ? window.tmNative : null;
+  const FILTERS = { tmd: [{ name: 'TerraMind project', extensions: ['tmd'] }], csv: [{ name: 'CSV', extensions: ['csv'] }], str: [{ name: 'Surpac string', extensions: ['str'] }], dxf: [{ name: 'DXF', extensions: ['dxf'] }], svg: [{ name: 'SVG', extensions: ['svg'] }], png: [{ name: 'PNG image', extensions: ['png'] }], html: [{ name: 'HTML', extensions: ['html'] }], obj: [{ name: 'OBJ', extensions: ['obj'] }], stl: [{ name: 'STL', extensions: ['stl'] }] };
+  TM.saveBlob = async function (blob, filename, knownPath) {
+    if (TM.native) { const ext = (filename.split('.').pop() || '').toLowerCase(); const data = new Uint8Array(await blob.arrayBuffer()); return await TM.native.save(filename, data, FILTERS[ext], knownPath); }
     try {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-      return true;
-    } catch (e) { return false; }
+      return filename;
+    } catch (e) { return null; }
   };
-  TM.saveProjectFile = async function () {
+  TM.saveProjectFile = async function (saveAs = false) {
     const json = TM.encode(TM.P); const gz = await TM.gzip(json);
-    const name = (TM.P.name || 'project').replace(/[^\w؀-ۿ\- ]+/g, '').trim().replace(/\s+/g, '_') + '.tmd';
-    TM.saveBlob(new Blob([gz], { type: 'application/octet-stream' }), name);
-    TM.rt.dirty = false; TM.logHistory('save', name); return name;
+    const name = (TM.P.name || 'project').replace(/[^\w\u0600-\u06FF\- ]+/g, '').trim().replace(/\s+/g, '_') + '.tmd';
+    const where = await TM.saveBlob(new Blob([gz], { type: 'application/octet-stream' }), name, saveAs ? null : TM.rt.filePath);
+    if (!where) return null; if (TM.native) TM.rt.filePath = where;
+    TM.rt.dirty = false; TM.logHistory('save', where); TM.emit('saved', where); return where;
   };
   TM.openProjectFile = async function (file) {
     const buf = await file.arrayBuffer(); const txt = await TM.gunzipToText(buf); const P = TM.decode(txt);
     if (P.format !== 'TerraMind.tmd') throw new Error(TM.L('Not a TerraMind project file', 'الملف ليس مشروع TerraMind'));
     P.settings = Object.assign(TM.defaultSettings(), P.settings || {});
     P.history = P.history || []; P.ai = P.ai || { log: [] };
-    TM.setProject(P); return P;
+    TM.setProject(P, file.path || null); return P;
   };
 
   // ---------------------------------------------------------------- IndexedDB autosave

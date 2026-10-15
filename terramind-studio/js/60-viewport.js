@@ -54,7 +54,7 @@
   function put(key, o) { dispose(key); if (o) { objs[key] = o; scene.add(o); } }
 
   // ---------------------------------------------------------------- builders
-  VP.rebuildAll = function () { VP.fit(); VP.buildGrid(); VP.buildSurfaces(); VP.buildHoles(); VP.buildStrings(); VP.buildSolids(); VP.buildBM(); VP.buildPit(); VP.buildInfill(); VP.applySlice(); };
+  VP.rebuildAll = function () { VP.fit(); VP.buildGrid(); VP.buildSurfaces(); VP.buildHoles(); VP.buildStrings(); VP.buildSolids(); VP.buildBM(); VP.buildPit(); VP.buildDesign(); VP.buildBlast(); VP.buildInfill(); VP.applySlice(); };
   VP.buildGrid = function () {
     const e = TM.extents(), st = e.size > 1500 ? 500 : 100, pts = []; const x0 = Math.floor(e.x0 / st) * st, x1 = Math.ceil(e.x1 / st) * st, y0 = Math.floor(e.y0 / st) * st, y1 = Math.ceil(e.y1 / st) * st, z = e.z0 - 20;
     for (let x = x0; x <= x1; x += st) pts.push(V3(x, y0, z), V3(x, y1, z)); for (let y = y0; y <= y1; y += st) pts.push(V3(x0, y, z), V3(x1, y, z));
@@ -122,11 +122,11 @@
   };
   VP.filterBM = function () {
     const bm = TM.P.bm, mesh = objs.bm; if (!bm || !mesh) return; const d = bm.def, cog = TM.P.settings.cutoff, m4 = new THREE.Matrix4(), c = new THREE.Color(); let k = 0; const cap = mesh.userData.vis.length;
-    const shell = VP.vis.bmFilter === 'pit' ? TM.Pit && TM.Pit.selectedFloor() : null;
+    const shell = VP.vis.bmFilter === 'pit' ? TM.Pit && TM.Pit.active() : null;
     for (let id = 0; id < bm.N && k < cap; id++) {
       const g = bm.grade[id]; if (!(g >= cog)) continue;
       const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, kk = Math.floor(id / (d.nx * d.ny)); const x = d.x0 + (i + .5) * d.dx, y = d.y0 + (j + .5) * d.dy, z = d.z0 + (kk + .5) * d.dz;
-      if (shell && !(z > TM.Pit.floorAt(x, y))) continue;
+      if (shell && !(z > shell.floorAt(x, y))) continue;
       const v = V3(x, y, z); m4.makeTranslation(v.x, v.y, v.z); mesh.setMatrixAt(k, m4);
       if (VP.vis.bmColor === 'class') c.set(TM.Est.CLASS[bm.cls[id]] ? TM.Est.CLASS[bm.cls[id]].c : '#5b6577'); else c.setRGB(...VP.cmap(g)); mesh.setColorAt(k, c); mesh.userData.vis[k] = id; k++;
     }
@@ -156,6 +156,24 @@
     put('sketch', g);
   };
 
+
+  VP.buildDesign = function () {
+    dispose('designSurf'); dispose('designStr'); const D = TM.P.design; if (!D) return;
+    const m = TM.Design.toMesh(D, Math.max(1, Math.round(2 / D.grid.res))), n = m.pos.length / 3, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const v = V3(m.pos[i * 3], m.pos[i * 3 + 1], m.pos[i * 3 + 2] + 0.15); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setIndex(new THREE.BufferAttribute(m.idx, 1)); geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, clipMat(new THREE.MeshLambertMaterial({ color: D.kind === 'pit' ? 0x8fa6c4 : 0xb59a6a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }))); mesh.renderOrder = 2; mesh.userData = { kind: 'design', ref: { name: D.kind === 'pit' ? 'Pit design' : 'Dump design' } }; put('designSurf', mesh);
+    const pts = [], ramp = []; for (const s of D.strings) { const arr = s.kind === 'ramp' ? ramp : pts; for (let i = 1; i < s.pts.length; i++) arr.push(V3(...s.pts[i - 1]).add(new THREE.Vector3(0, 0.3, 0)), V3(...s.pts[i]).add(new THREE.Vector3(0, 0.3, 0))); }
+    const g = new THREE.Group(); g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), clipMat(new THREE.LineBasicMaterial({ color: D.kind === 'pit' ? 0x34D399 : 0xF2B740 }))));
+    if (ramp.length) g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ramp), clipMat(new THREE.LineBasicMaterial({ color: 0xF97316 })))); put('designStr', g); VP.applyVis();
+  };
+  VP.buildBlast = function () {
+    dispose('blast'); const B = TM.P.blast; if (!B || !B.holes.length) return; const pts = [], col = []; const g = new THREE.Group();
+    for (const h of B.holes) { pts.push(V3(h.x, h.y, h.z), V3(h.ex, h.ey, h.ez)); }
+    g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), clipMat(new THREE.LineBasicMaterial({ color: 0xF472B6 }))));
+    g.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(B.holes.map(h => V3(h.x, h.y, h.z + 0.3))), new THREE.PointsMaterial({ color: 0xF472B6, size: 6, sizeAttenuation: false })));
+    put('blast', g); VP.applyVis();
+  };
   VP.applyVis = function () {
     const v = VP.vis;
     for (const k in objs) {
@@ -168,6 +186,8 @@
       else if (k === 'pit') o.visible = v.pit;
       else if (k === 'design') o.visible = v.design;
       else if (k === 'infill') o.visible = v.infill;
+      else if (k === 'designSurf' || k === 'designStr') o.visible = v.designP !== false;
+      else if (k === 'blast') o.visible = v.blast !== false;
     }
   };
 
@@ -194,16 +214,30 @@
     return raycaster.intersectObjects(targets, false).filter(h => VP.passesClip(h.point));
   };
   VP.sketch = null; // {pts:[], onDone}
+  VP.tool = null; // active interactive tool: {down(e,ctx), move(e,ctx), up(e,ctx), key(e)} → return true to consume
+  VP.three = () => ({ renderer, camera, controls, scene, raycaster });
+  VP.objs = objs; VP.put = put; VP.dispose = dispose;
+  // ray → horizontal plane at RL z (world coords)
+  VP.rayToZ = function (ev, z) { const r = renderer.domElement.getBoundingClientRect(); mouse.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(mouse, camera); const pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(z - O.z)); const hit = new THREE.Vector3(); return raycaster.ray.intersectPlane(pl, hit) ? VP.toWorld(hit) : null; };
+  // world → screen px
+  VP.toScreen = function (x, y, z) { const v = V3(x, y, z).project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: (v.x + 1) / 2 * r.width, y: (1 - v.y) / 2 * r.height, front: v.z < 1 }; };
+  VP.surfacePoint = function (ev) { const h = VP.pick(ev, ['srf:', 'sol:', 'pit', 'design'])[0]; return h ? VP.toWorld(h.point) : null; };
   VP.bindPointer = function (cv) {
     let down = null, pend = false;
-    cv.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
-    cv.addEventListener('pointermove', e => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; const h = VP.pick(e, ['srf:', 'bm', 'sol:', 'pit'])[0]; TM.emit('hover', h ? { p: VP.toWorld(h.point), hit: h } : null); }); });
+    const ctxOf = e => { const r = cv.getBoundingClientRect(); return { sx: e.clientX - r.left, sy: e.clientY - r.top }; };
+    cv.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; if (VP.tool && VP.tool.down && VP.tool.down(e, ctxOf(e))) { controls.enabled = false; cv.setPointerCapture(e.pointerId); } });
+    cv.addEventListener('pointermove', e => {
+      if (VP.tool && VP.tool.move && VP.tool.move(e, ctxOf(e))) return;
+      if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; const h = VP.pick(e, ['srf:', 'bm', 'sol:', 'pit'])[0]; TM.emit('hover', h ? { p: VP.toWorld(h.point), hit: h } : null); });
+    });
     cv.addEventListener('pointerup', e => {
-      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;
+      const click = down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) <= 4; controls.enabled = true;
+      if (VP.tool && VP.tool.up && VP.tool.up(e, Object.assign(ctxOf(e), { click }))) return;
+      if (!click) return;
       if (VP.sketch) { const h = VP.pick(e, ['srf:', 'sol:', 'pit'])[0]; if (h) { const p = VP.toWorld(h.point); VP.sketch.pts.push([+p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3)]); VP.sketchPreview(VP.sketch.pts, false); TM.emit('sketch', VP.sketch); } return; }
       const h = VP.pick(e, ['bm', 'holes', 'sol:', 'srf:', 'pit'])[0]; if (!h) return; TM.emit('pick', VP.describeHit(h));
     });
-    cv.addEventListener('dblclick', () => { if (VP.sketch && VP.sketch.onDone) VP.sketch.onDone(); });
+    cv.addEventListener('dblclick', e => { if (VP.tool && VP.tool.dbl && VP.tool.dbl(e)) return; if (VP.sketch && VP.sketch.onDone) VP.sketch.onDone(); });
   };
   VP.describeHit = function (h) {
     const o = h.object, p = VP.toWorld(h.point);

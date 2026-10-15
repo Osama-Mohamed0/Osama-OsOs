@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const ctx = { console, setTimeout, clearTimeout, Math, Date, JSON, Buffer, TextEncoder, TextDecoder };
 ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/50-mining.js'])
+for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/62-cad.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 const TM = ctx.TM;
 let pass = 0, fail = 0;
@@ -79,6 +79,31 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     ok(Math.abs(v - tv) / tv < 0.03, 'surface-nets sphere volume', `${v.toFixed(0)} vs ${tv.toFixed(0)}`); ok(TM.Solid.isClosed(m).closed, 'mesh closed');
     ok(TM.Solid.inside(m, 30, 30, 30) && !TM.Solid.inside(m, 2, 2, 2), 'point-in-solid'); }
   { t0 = Date.now(); const r = await TM.Solid.rbfShell(comps, { threshold: 0.5, cell: 6, maxPts: 700 }); const v = TM.Solid.volume(r.mesh); ok(v > 1e5 && TM.Solid.isClosed(r.mesh).closed, 'RBF grade shell', `${(v / 1e3).toFixed(0)}k m³, ${r.mesh.idx.length / 3} tris, ${Date.now() - t0} ms`); }
+
+  console.log('CAD string tools');
+  { const sq = [[0, 0, 0], [0, 10, 0], [10, 10, 0], [10, 0, 0]]; const o = TM.Str.offset(TM.Str.clockwise(sq), 2, true); ok(near(TM.Str.area(o), 196, 0.5), 'offset square outward by 2 m → 14×14', TM.Str.area(o).toFixed(2));
+    const dn = TM.Str.densify(sq, 1, true); ok(dn.length === 40, 'densify 1 m', dn.length); ok(TM.Str.simplify(dn, 0.01, true).length === 4, 'simplify back to 4 corners');
+    const cl = TM.Str.clip({ closed: false, pts: [[-5, 5, 0], [15, 5, 0]] }, sq, true); ok(cl.length === 1 && near(cl[0][0][0], 0, 1e-3) && near(cl[0][cl[0].length - 1][0], 10, 1e-3), 'clip line to polygon');
+    const m = TM.Str.measure([0, 0, 0], [30, 40, 5]); ok(near(m.horizontal, 50, 1e-9) && near(m.gradient, 10, 1e-9) && near(m.bearing, 36.87, 0.01), 'measure distance/gradient/bearing'); }
+  { const n0 = TM.P.strings.length; TM.Undo.push('t'); TM.P.strings.push({ id: 'x', name: 'x', pts: [[0, 0, 0], [1, 1, 1]] }); TM.Undo.undo(); ok(TM.P.strings.length === n0, 'undo restores strings'); TM.Undo.redoOne(); ok(TM.P.strings.length === n0 + 1, 'redo'); TM.Undo.undo(); }
+
+  console.log('Pit & dump design');
+  { const c = [5300, 8300]; const toe = [[c[0] - 40, c[1] - 25, 220], [c[0] - 40, c[1] + 25, 220], [c[0] + 40, c[1] + 25, 220], [c[0] + 40, c[1] - 25, 220]];
+    let t0 = Date.now(); const D = TM.Design.pit({ toe, benchH: 10, batter: 70, berm: 6, ramp: { width: 20, gradient: 10, dir: 1, start: toe[0] }, res: 2, maxBenches: 30 });
+    ok(D.stats.benches >= 8 && D.stats.volume > 1e6, 'pit design benches & volume', `${D.stats.benches} benches, ${(D.stats.volume / 1e6).toFixed(2)} Mm³, ${Date.now() - t0} ms`);
+    ok(near(TM.Design.zAt(D, c[0], c[1]), 220, 1e-6), 'pit floor at toe RL');
+    const f = 10 / Math.tan(70 * TM.D2R); const Dh = TM.Design.pit({ toe, benchH: 10, batter: 70, berm: 6, ramp: null, res: 0.5, maxBenches: 3 }); const zFace = TM.Design.zAt(Dh, c[0] + 40 + f / 2, c[1]); ok(zFace > 223.5 && zFace < 226.5, 'face mid-height (0.5 m grid)', zFace.toFixed(2));
+    ok(D.strings.some(x => x.kind === 'ramp') && D.strings.filter(x => x.kind === 'toe').length >= 8, 'toe/crest/ramp strings', D.strings.length);
+    const Dn = TM.Design.pit({ toe, benchH: 10, batter: 70, berm: 6, ramp: null, res: 2, maxBenches: 30 }); ok(D.stats.volume > Dn.stats.volume, 'ramp adds waste volume', `${(D.stats.volume / 1e6).toFixed(2)} vs ${(Dn.stats.volume / 1e6).toFixed(2)} Mm³`);
+    const gz = TM.topoZ(5100, 8500); const base = [[5050, 8450, gz], [5050, 8550, gz], [5150, 8550, gz], [5150, 8450, gz]]; const Du = TM.Design.dump({ base, benchH: 10, batter: 37, berm: 10, maxRL: gz + 40, res: 2 }); ok(Du.stats.volume > 1e5 && Du.stats.benches >= 2, 'dump design capacity', `${(Du.stats.volume / 1e3).toFixed(0)}k m³, ${Du.stats.benches} lifts`); }
+
+  console.log('Wireframes & blasting');
+  { const a = { closed: true, pts: [[0, 0, 0], [0, 10, 0], [10, 10, 0], [10, 0, 0]] }, b = { closed: true, pts: [[0, 0, 10], [0, 10, 10], [10, 10, 10], [10, 0, 10]] };
+    const m = TM.Wire.fromSections([a, b], 40, true); const v = TM.Solid.volume(m); ok(near(v, 1000, 20) && TM.Solid.isClosed(m).closed, 'triangulate between sections', v.toFixed(1));
+    const cube = (o) => TM.Wire.fromSections([{ closed: true, pts: [[o, o, o], [o, o + 10, o], [o + 10, o + 10, o], [o + 10, o, o]] }, { closed: true, pts: [[o, o, o + 10], [o, o + 10, o + 10], [o + 10, o + 10, o + 10], [o + 10, o, o + 10]] }], 40, true);
+    const A = cube(0), B = cube(5); const I = TM.Wire.boolean(A, B, 'intersect', 0.5); ok(near(TM.Solid.volume(I), 125, 15), 'boolean intersect', TM.Solid.volume(I).toFixed(1)); const Un = TM.Wire.boolean(A, B, 'union', 0.5); ok(near(TM.Solid.volume(Un), 1875, 80), 'boolean union', TM.Solid.volume(Un).toFixed(0)); }
+  { const r = TM.Blast.pattern({ poly: [[0, 0, 100], [0, 30, 100], [50, 30, 100], [50, 0, 100]], burden: 4, spacing: 5, pattern: 'square', azimuth: 90, dip: 90, benchH: 10, subdrill: 1, stemming: 3, diameter: 115, explosive: 'ANFO', density: 2.7 });
+    ok(r.summary.holes >= 60 && r.summary.holes <= 80, 'blast pattern hole count', r.summary.holes); ok(r.summary.powder_factor_kg_t > 0.1 && r.summary.powder_factor_kg_t < 0.6, 'powder factor', r.summary.powder_factor_kg_t.toFixed(3) + ' kg/t'); }
 
   console.log('Formats');
   { const s = [{ strNo: 3, closed: true, pts: [[1, 2, 3], [4, 5, 6], [7, 8, 9]] }]; const back = TM.IO.readSTR(TM.IO.writeSTR(s), 't'); ok(back.length === 1 && back[0].closed && back[0].pts.length === 3 && back[0].pts[1][0] === 4 && back[0].pts[1][1] === 5, 'Surpac .str round-trip'); }

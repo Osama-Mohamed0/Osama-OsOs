@@ -1,8 +1,10 @@
-# TerraMind Studio 1.0
+# TerraMind Studio 1.1
 
 TerraMind Studio is a mining geology, resource estimation and open-pit planning application. It runs in the browser and is controlled by a bilingual (Arabic/English) AI copilot.
 
-It needs no installation or server. On Windows, double-click `index.html` (Chrome or Edge). You can also open the published GitHub Pages site. Libraries are bundled in `vendor/`, so it works offline. The only exceptions are the fonts and the live AI connection.
+**Windows desktop app:** download the installer (`TerraMind-Studio-…-nsis.exe`) or the portable `.exe` from the repository's **Actions → TerraMind Studio desktop build → Artifacts** (or from a GitHub Release when a `v*` tag is pushed). The desktop edition adds native Open/Save dialogs, a menu bar, `.tmd` file association and unsaved-changes protection.
+
+The browser edition needs no installation or server. On Windows, double-click `index.html` (Chrome or Edge). You can also open the published GitHub Pages site. Libraries are bundled in `vendor/`, so it works offline. The only exceptions are the fonts and the live AI connection.
 
 > **Tip:** if a browser blocks some features when the file is opened directly, use the GitHub Pages copy. Another option is a local server: `python -m http.server` inside the folder, then open `http://localhost:8000`.
 
@@ -44,6 +46,28 @@ It needs no installation or server. On Windows, double-click `index.html` (Chrom
      - «اقترح 3 آبار تكميلية»
      - «مقطع شمالي عند 8300»
 
+## الجديد في 1.1 (أدوات سورباك)
+- **الرسم والخطوط (CAD):**
+  - تحديد الخطوط والنقاط، وتحريك النقاط (Shift للالتقاط، Alt للإسقاط على السطح)، وإدراجها وحذفها، وقياس المسافة والسمت والانحدار والمساحة.
+  - أدوات الخطوط: إزاحة وتوسيع، تنعيم، تكثيف، تبسيط، إسقاط على السطح، تعيين المنسوب، إزاحة وتدوير، تقسيم، وصل، قص بمضلع، نسخ وحذف.
+  - تراجع وإعادة (Ctrl+Z / Ctrl+Y).
+- **تصميم الحفرة من خط القاع:** مصاطب بارتفاع وزاوية وجه وعرض رصيف، وطريق نقل بعرض وانحدار. تنتهي المصاطب عند تقاطعها مع السطح، ثم يُحسب حجم الحفرة واحتياطيها وتقرير المصاطب. يمكن جعل المؤشرات تعتمد على التصميم بدل غلاف LG.
+- **تصميم مكب النفايات:** طبقات وأرصفة بزاوية الاستقرار الطبيعية، مع حساب السعة.
+- **المجسمات:**
+  - تثليث مجسم بين مقاطع مغلقة.
+  - عمليات منطقية على المجسمات: تقاطع واتحاد وطرح.
+  - تقرير المجسم، ويشمل الحمولة والتركيز من نموذج البلوكات.
+- **نموذج البلوكات:** حاسبة حقول بمعادلات، مثل قيمة البلوك بالدولار.
+- **الحفر والتفجير:**
+  - نمط مربع أو متعرج داخل مضلع.
+  - حساب الحشوة وعامل التفجير وأقصى شحنة لكل تأخير.
+  - تصدير جدول الثقوب.
+- **لوحات المسقط والمقطع (F7):**
+  - مقاطع شرقية أو شمالية بعرض محدد، أو مسقط عند منسوب معين.
+  - تُعرض فيها البلوكات والآبار والمجسمات والتصميم.
+  - الرسم مباشرة على المقطع، ولوحة A3 بإطار عنوان ومقياس رسم.
+  - تصدير SVG أو PNG، أو طباعة إلى PDF.
+
 ## Workflow (English)
 
 | Step | Ribbon | What it does |
@@ -60,6 +84,12 @@ It needs no installation or server. On Windows, double-click `index.html` (Chrom
 | Solids | Geological Modeling | RBF implicit grade shells (closed meshes), solid from block model, solid ∩ pit, OBJ/STL/DXF export. |
 | Pit | Pit Design & Schedule | Lerchs-Grossmann maximum closure (Dinic max-flow) with nested shells by revenue factor, pit-by-pit best/worst NPV, bench contours, design → strings. |
 | Schedule | Schedule & cash flow | Pushback schedule limited by mill and mining rates. Annual cash flow, NPV, IRR, payback, and price/cost sensitivity. |
+| CAD | CAD & Strings | Select / move / insert / delete vertices, measure, offset, smooth, densify, simplify, drape, set RL, translate, rotate, split, join, clip, undo/redo. |
+| Pit design | Pit Design → Pit design from toe | Bench expansion from a closed toe string: batter, berm, ramp (width, gradient, direction), daylighting to topography, design surface, volume, reserve, bench report. Optional KPI source. |
+| Dump design | Pit Design → Dump design | Lifts stepping in from a base string at the angle of repose, capacity. |
+| Solids | Geology & Solids | Triangulate between section strings, voxel Booleans (∩, ∪, −), solid report with block-model tonnes and grade. |
+| Drill & blast | Drill & Blast | Square/staggered patterns in a polygon, hole dip and azimuth, sub-drill, stemming, charge, powder factor, delays, CSV export. |
+| Plots | Surfaces & Plots → Plan / section plots (F7) | Plan or section sheets (A3) with grid, title block, scale bar and legend. Digitise on section. SVG/PNG/PDF export. |
 | Report | AI & Reports → Executive report | Summary, QA/QC, resource by class, grade-tonnage, pit-by-pit, schedule, sensitivity, recommendations. Print/PDF, HTML or Markdown. |
 
 ### Project file (`.tmd`)
@@ -95,5 +125,6 @@ tools/make-samples.js regenerates samples/ from the demo generator
 ### Limits to know
 - The demo project is synthetic. A Competent Person must review domains, top-cut, variogram and classification before any public reporting.
 - The DTM uses unconstrained Delaunay: strings are densified, not enforced as hard breaklines.
-- The pit design is bench contours from the optimised shell. Haul-road ramps are not designed automatically.
+- In the pit design, the ramp is modelled as a widened berm along its path (correct footprint and waste volume). The climbing ramp surface itself is drawn as a centreline, not as a sloped surface.
+- Solid Booleans are voxel-based: accuracy equals the voxel size you choose.
 - Kriging and LG run on the main thread with a progress bar. Allow about 10–20 s for ~100k blocks on a laptop.

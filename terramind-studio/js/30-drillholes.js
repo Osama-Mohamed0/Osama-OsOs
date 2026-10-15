@@ -203,6 +203,11 @@
     P.strings.push({ id: TM.uid('str'), name: 'Lease_boundary', strNo: 1, closed: true, color: '#F87171', pts: [[X0 + 20, Y0 + 20], [X0 + 580, Y0 + 20], [X0 + 580, Y0 + 580], [X0 + 20, Y0 + 580]].map(p => [p[0], p[1], topo(p[0], p[1]) + 1]) });
     const road = []; for (let k = 0; k <= 20; k++) { const e = X0 + 40 + k * 26, n = Y0 + 60 + 40 * Math.sin(k / 4); road.push([e, n, topo(e, n) + 0.5]); }
     P.strings.push({ id: TM.uid('str'), name: 'Haul_road_existing', strNo: 2, closed: false, color: '#A7B1C2', pts: road });
+    // design starting strings: pit toe (bottom bench), blast boundary on a bench, waste dump footprint
+    const rect = (cx, cy, w, h, ang, z, drape) => { const a = ang * D2R, c = Math.cos(a), s2 = Math.sin(a); return [[-w, -h], [-w, h], [w, h], [w, -h]].map(([u, v]) => { const x = cx + u * c + v * s2, y = cy - u * s2 + v * c; return [+x.toFixed(2), +y.toFixed(2), drape ? +topo(x, y).toFixed(2) : z]; }); };
+    P.strings.push({ id: TM.uid('str'), name: 'Pit_toe_RL220', strNo: 10, closed: true, color: '#34D399', pts: rect(C[0] + 10, C[1] - 15, 70, 26, 60, 220) });
+    P.strings.push({ id: TM.uid('str'), name: 'Blast_RL300', strNo: 30, closed: true, color: '#F472B6', pts: rect(C[0] - 30, C[1] - 60, 30, 14, 60, 300) });
+    P.strings.push({ id: TM.uid('str'), name: 'Dump_footprint', strNo: 20, closed: true, color: '#F2B740', pts: rect(X0 + 470, Y0 + 470, 70, 55, 0, 0, true) });
     P.settings.compLen = 2;
     return P;
   };

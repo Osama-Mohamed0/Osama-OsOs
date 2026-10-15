@@ -8,7 +8,14 @@
   TM.Pit = {
     selected() { const p = TM.P.pit; return p && p.shells && p.selected != null ? p.shells[p.selected] : null; },
     selectedFloor() { return TM.Pit.selected() ? TM.Pit.selected().floor : null; },
-    floorAt(x, y) { const p = TM.P.pit, sh = TM.Pit.selected(); return sh ? TM.Mine.floorAt(p.lg, sh.floor, x, y) : NaN; }
+    floorAt(x, y) { const a = TM.Pit.active(); return a ? a.floorAt(x, y) : NaN; },
+    // The pit that drives KPIs: the engineered design (when chosen) or the optimised LG shell
+    active() {
+      const P = TM.P, D = P.design;
+      if (D && D.kind === 'pit' && P.settings.pitSource === 'design') return { kind: 'design', label: TM.L('Pit design', 'تصميم الحفرة'), floorAt: (x, y) => { const z = TM.Design.zAt(D, x, y), t = TM.topoZ(x, y); return isFinite(z) && isFinite(t) && z < t - 0.01 ? z : NaN; }, rock: D.stats.tonnes };
+      const p = P.pit, sh = TM.Pit.selected(); if (!sh) return null;
+      return { kind: 'shell', label: 'LG shell ' + (p.selected + 1), floorAt: (x, y) => TM.Mine.floorAt(p.lg, sh.floor, x, y), rock: sh.ore + sh.waste };
+    }
   };
 
   // ---------------------------------------------------------------- data
@@ -66,18 +73,17 @@
     p.design = TM.Mine.benchContours(hm, S().benchH, zmin + 0.01, TM.rt.tin ? TM.rt.tin.z1 : zmin + 300); TM.touch('pit');
     return { benches: p.design.length, from_rl: Math.round(zmin), bench_height: S().benchH, berm_m: +(S().benchH / Math.tan(S().slope * TM.D2R) - S().benchH / Math.tan(Math.max(S().batter, S().slope) * TM.D2R)).toFixed(1) };
   };
-  WF.designToStrings = function () { const p = TM.P.pit; if (!p || !p.design) WF.designPit(); let n = 0; for (const lv of TM.P.pit.design) for (const L of lv.lines) { TM.P.strings.push({ id: TM.uid('str'), name: `Pit_RL${Math.round(lv.z)}`, strNo: 100 + Math.round(lv.z / S().benchH) % 100, closed: false, color: '#7AA9F8', pts: L.map(p => [+p[0].toFixed(3), +p[1].toFixed(3), +p[2].toFixed(3)]) }); n++; } TM.touch('strings'); return { strings: n }; };
 
   // ---------------------------------------------------------------- KPIs at the current cut-off
   WF.kpis = function (cog = S().cutoff, o = {}) {
-    const bm = TM.P.bm; if (!bm) return null; const d = bm.def, sh = TM.Pit.selected(); let ore = 0, metal = 0;
+    const bm = TM.P.bm; if (!bm) return null; const d = bm.def, sh = TM.Pit.active(); let ore = 0, metal = 0;
     for (let id = 0; id < bm.N; id++) {
       const g = bm.grade[id]; if (!(g >= cog)) continue;
-      if (sh) { const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const z = d.z0 + (k + .5) * d.dz, f = TM.Mine.floorAt(TM.P.pit.lg, sh.floor, d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy); if (!(z > f)) continue; }
+      if (sh) { const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const z = d.z0 + (k + .5) * d.dz, f = sh.floorAt(d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy); if (!(z > f)) continue; }
       const t = TM.Est.blockTonnes(bm, id); ore += t; metal += t * g;
     }
-    const out = { cutoff: cog, ore, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, inPit: !!sh };
-    if (sh) { const rock = sh.ore + sh.waste; out.waste = Math.max(0, rock - ore); out.sr = ore ? out.waste / ore : 0; const sc = TM.Mine.schedule([{ ore, waste: out.waste, metal }], S(), o); out.npv = sc.npv; out.irr = sc.irr; out.life = sc.life; out.payback = sc.payback; }
+    const out = { cutoff: cog, ore, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, inPit: !!sh, pitLabel: sh ? sh.label : null };
+    if (sh) { const rock = sh.rock; out.waste = Math.max(0, rock - ore); out.sr = ore ? out.waste / ore : 0; const sc = TM.Mine.schedule([{ ore, waste: out.waste, metal }], S(), o); out.npv = sc.npv; out.irr = sc.irr; out.life = sc.life; out.payback = sc.payback; }
     return out;
   };
   WF.kpisBrief = function () { const k = WF.kpis(); if (!k) return {}; return { ore_t: Math.round(k.ore), grade: +k.grade.toFixed(2), contained_oz: Math.round(k.oz), waste_t: k.waste != null ? Math.round(k.waste) : null, strip_ratio: k.sr != null ? +k.sr.toFixed(2) : null, npv_musd: k.npv != null ? +(k.npv / 1e6).toFixed(1) : null }; };
@@ -123,6 +129,52 @@
     S().infill = holes; TM.touch('infill');
     return { holes: holes.map(h => ({ id: h.id, collar_e: Math.round(h.collar[0]), collar_n: Math.round(h.collar[1]), collar_rl: Math.round(h.collar[2]), azimuth: h.az, dip: h.dip, length_m: h.len, target_rl: Math.round(h.target[2]), avg_sample_distance_m: h.gap })) };
   };
+
+
+  // ---------------------------------------------------------------- engineered design (Surpac-style)
+  const strById = id => { const s = TM.P.strings.find(x => x.id === id || x.name === id); if (!s) throw new Error(TM.L('String not found', 'الخط غير موجود')); return s; };
+  WF.pitDesign = function ({ toe, benchH = S().benchH, batter = S().batter, berm = S().bermW, rampWidth = S().rampW, rampGrade = S().rampGrade, rampDir = 1, res = 1, maxBenches = 40 } = {}) {
+    const s = strById(toe); if (!s.closed || s.pts.length < 3) throw new Error(TM.L('The toe string must be a closed polygon.', 'خط القاع يجب أن يكون مضلعاً مغلقاً.'));
+    TM.Undo.push(TM.L('Pit design', 'تصميم الحفرة'));
+    const D = TM.Design.pit({ toe: s.pts, benchH, batter, berm, ramp: rampWidth > 0 ? { width: rampWidth, gradient: rampGrade, dir: rampDir, start: s.pts[0] } : null, maxBenches, res });
+    D.source = s.name; TM.P.design = D; S().pitSource = 'design'; TM.logHistory('pitDesign', s.name); TM.touch('design');
+    const r = D.stats.reserve; return { benches: D.stats.benches, volume_m3: Math.round(D.stats.volume), rock_t: Math.round(D.stats.tonnes), footprint_m2: Math.round(D.stats.footprint), overall_slope_deg: +(Math.atan(benchH / (benchH / Math.tan(batter * TM.D2R) + berm)) / TM.D2R).toFixed(1), reserve: r ? { cutoff: r.cutoff, ore_t: Math.round(r.ore), grade: +r.grade.toFixed(2), oz: Math.round(r.oz), waste_t: Math.round(r.waste), strip_ratio: r.sr != null ? +r.sr.toFixed(2) : null } : null };
+  };
+  WF.dumpDesign = function ({ base, benchH = 10, batter = 37, berm = 10, maxRL = null, res = 1 } = {}) {
+    const s = strById(base); if (!s.closed) throw new Error(TM.L('The base string must be closed.', 'خط القاعدة يجب أن يكون مغلقاً.'));
+    TM.Undo.push(TM.L('Dump design', 'تصميم المكب')); const z0 = s.pts.reduce((a, p) => a + p[2], 0) / s.pts.length;
+    const D = TM.Design.dump({ base: s.pts, benchH, batter, berm, maxRL: maxRL || z0 + 50, res }); D.source = s.name; TM.P.design = D; TM.touch('design');
+    return { lifts: D.stats.benches, capacity_m3: Math.round(D.stats.volume), capacity_t_loose: Math.round(D.stats.volume * 1.9), footprint_m2: Math.round(D.stats.footprint) };
+  };
+  WF.designToStrings = function () {
+    const D = TM.P.design; if (D) { TM.Undo.push('Design → strings'); let n = 0; for (const s of D.strings) { TM.P.strings.push({ id: TM.uid('str'), name: s.name, strNo: s.kind === 'ramp' ? 3 : (D.kind === 'pit' ? 10 : 20), closed: false, color: s.kind === 'ramp' ? '#F97316' : (D.kind === 'pit' ? '#34D399' : '#F2B740'), pts: s.pts }); n++; } TM.touch('strings'); return { strings: n }; }
+    const p = TM.P.pit; if (!p || !p.design) WF.designPit(); let n = 0; for (const lv of TM.P.pit.design) for (const L of lv.lines) { TM.P.strings.push({ id: TM.uid('str'), name: `Pit_RL${Math.round(lv.z)}`, strNo: 100 + Math.round(lv.z / S().benchH) % 100, closed: false, color: '#7AA9F8', pts: L.map(p => [+p[0].toFixed(3), +p[1].toFixed(3), +p[2].toFixed(3)]) }); n++; } TM.touch('strings'); return { strings: n };
+  };
+  WF.designSurface = function () { const D = TM.P.design; if (!D) throw new Error('No design'); const m = TM.Design.toMesh(D, Math.max(1, Math.round(2 / D.grid.res))); const s = { id: TM.uid('srf'), name: D.kind === 'pit' ? 'Pit_design_DTM' : 'Dump_design_DTM', role: 'surface', pts: m.pos, tri: m.idx, color: '#8fa6c4' }; TM.P.surfaces.push(s); TM.touch('surfaces'); return { surface: s.name, points: m.pos.length / 3, triangles: m.idx.length / 3 }; };
+
+  // ---------------------------------------------------------------- bench-by-bench report inside the active pit
+  WF.benchReport = function (cog = S().cutoff) {
+    const bm = TM.P.bm, a = TM.Pit.active(); if (!bm || !a) throw new Error(TM.L('Needs a block model and a pit (shell or design).', 'يتطلب نموذج بلوكات وحفرة.'));
+    const d = bm.def, H = S().benchH, rows = new Map(), dn = S().density; const key = z => Math.floor(z / H) * H;
+    for (let id = 0; id < bm.N; id++) { if (!bm.frac[id]) continue; const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const x = d.x0 + (i + .5) * d.dx, y = d.y0 + (j + .5) * d.dy, z = d.z0 + (k + .5) * d.dz; const f = a.floorAt(x, y); if (!(z > f)) continue; const t = TM.Est.blockTonnes(bm, id), g = bm.grade[id]; const r = rows.get(key(z)) || { rl: key(z), ore: 0, metal: 0, waste: 0 }; if (g >= cog) { r.ore += t; r.metal += t * g; } else r.waste += t; rows.set(key(z), r); }
+    return [...rows.values()].sort((p, q) => q.rl - p.rl).map(r => ({ rl: r.rl, ore_t: Math.round(r.ore), grade: r.ore ? +(r.metal / r.ore).toFixed(2) : 0, waste_t: Math.round(r.waste), sr: r.ore ? +(r.waste / r.ore).toFixed(2) : null, oz: Math.round(r.metal / 31.1035) }));
+  };
+  // ---------------------------------------------------------------- block model calculator
+  WF.bmCalc = function (name, expr) {
+    const bm = TM.P.bm; if (!bm) throw new Error('No block model'); if (!/^[A-Za-z_]\w*$/.test(name)) throw new Error(TM.L('Attribute name must be a simple identifier', 'اسم الحقل يجب أن يكون معرّفاً بسيطاً'));
+    const d = bm.def, attrs = bm.attrs = bm.attrs || {}; const names = Object.keys(attrs).filter(n => n !== name);
+    const fn = new Function('grade', 'x', 'y', 'z', 'kv', 'ns', 'cls', 'density', 'tonnes', 'Math', ...names, `"use strict"; return (${expr});`);
+    const out = new Float32Array(bm.N).fill(NaN); let n = 0;
+    for (let id = 0; id < bm.N; id++) { if (!bm.frac[id]) continue; const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const v = fn(bm.grade[id], d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy, d.z0 + (k + .5) * d.dz, bm.kv[id], bm.ns[id], bm.cls[id], S().density, TM.Est.blockTonnes(bm, id), Math, ...names.map(q => attrs[q][id])); const num = typeof v === 'boolean' ? (v ? 1 : 0) : +v; if (isFinite(num)) { out[id] = num; n++; } }
+    attrs[name] = out; TM.touch('bm'); const vals = []; for (let i = 0; i < out.length; i++) if (isFinite(out[i])) vals.push(out[i]); const st = TM.stats(vals);
+    return { attribute: name, blocks: n, min: st.n ? +st.min.toFixed(4) : null, mean: st.n ? +st.mean.toFixed(4) : null, max: st.n ? +st.max.toFixed(4) : null };
+  };
+
+  // ---------------------------------------------------------------- solids & blasting
+  WF.solidFromStrings = function (ids, name) { const ss = W_().orderSections(ids.map(strById)); const m = W_().fromSections(ss, 64, true); TM.Undo.push('Triangulate solid'); const so = TM.Solid.make(name || 'Solid_' + (TM.P.solids.length + 1), m, { source: 'section triangulation', color: '#A78BFA' }); TM.P.solids.push(so); TM.touch('solids'); return { solid: so.name, volume_m3: Math.round(so.volume), closed: so.closed, triangles: so.idx.length / 3 }; };
+  WF.solidBoolean = function (aId, bId, op, cell = 2) { const a = TM.P.solids.find(s => s.id === aId), b = TM.P.solids.find(s => s.id === bId); if (!a || !b) throw new Error('Solid not found'); const m = W_().boolean(a, b, op, cell); TM.Undo.push('Boolean'); const so = TM.Solid.make(`${a.name}_${op}_${b.name}`, m, { source: 'boolean ' + op, color: '#F472B6' }); TM.P.solids.push(so); TM.touch('solids'); return { solid: so.name, volume_m3: Math.round(so.volume) }; };
+  const W_ = () => TM.Wire;
+  WF.blastPattern = function (o) { const s = strById(o.polygon); if (!s.closed) throw new Error(TM.L('Blast boundary must be a closed string.', 'حدود التفجير يجب أن تكون مغلقة.')); TM.Undo.push('Blast pattern'); const r = TM.Blast.pattern(Object.assign({}, o, { poly: s.pts })); TM.P.blast = { params: o, holes: r.holes, summary: r.summary, polygon: s.name }; TM.touch('blast'); const sm = r.summary; return { holes: sm.holes, rows: sm.rows, drill_m: Math.round(sm.drill_m), explosive_kg: Math.round(sm.explosive_kg), tonnes: Math.round(sm.tonnes), powder_factor_kg_t: +sm.powder_factor_kg_t.toFixed(3), powder_factor_kg_m3: +sm.powder_factor_kg_m3.toFixed(3), max_kg_per_delay: Math.round(sm.max_kg_per_delay) }; };
 
   // ---------------------------------------------------------------- summary for the AI and the report
   WF.summary = function () {

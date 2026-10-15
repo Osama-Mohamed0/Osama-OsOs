@@ -19,6 +19,9 @@
     { name: 'set_layer_visibility', description: 'Show or hide a layer in the 3D view.', input_schema: obj({ layer: { type: 'string', enum: ['surfaces', 'drillholes', 'strings', 'solids', 'block_model', 'pit_shell', 'pit_design', 'proposed_holes'] }, visible: { type: 'boolean' } }, ['layer', 'visible']) },
     { name: 'propose_infill_holes', description: 'Propose infill drillholes targeting high-grade blocks with the largest sample spacing (estimation uncertainty).', input_schema: obj({ count: { type: 'integer' } }, ['count']) },
     { name: 'build_grade_shell', description: 'Build an RBF implicit grade-shell solid at a threshold grade.', input_schema: obj({ threshold: { type: 'number' } }, ['threshold']) },
+    { name: 'design_pit_from_toe', description: 'Engineer a pit from a closed toe string: benches, berms, ramp, daylighting to topography; reports volume and reserve. KPIs then use the design.', input_schema: obj({ toe_string: { type: 'string', description: 'name of a closed string; default = last closed string' }, bench_height: { type: 'number' }, batter_deg: { type: 'number' }, berm_m: { type: 'number' }, ramp_width_m: { type: 'number' }, ramp_gradient_pct: { type: 'number' } }, []) },
+    { name: 'bench_report', description: 'Ore, grade and waste by bench inside the active pit (shell or design).', input_schema: obj({}) },
+    { name: 'blast_pattern', description: 'Lay out a drill & blast pattern inside a closed string and compute charge and powder factor.', input_schema: obj({ boundary_string: { type: 'string' }, burden: { type: 'number' }, spacing: { type: 'number' }, diameter_mm: { type: 'number' }, pattern: { type: 'string', enum: ['staggered', 'square'] } }, ['burden', 'spacing']) },
     { name: 'generate_executive_report', description: 'Open the executive engineering & reserve report.', input_schema: obj({ project_name: { type: 'string' }, include_sensitivity: { type: 'boolean' } }, ['project_name']) }
   ];
   const LAYER = { surfaces: 'topo', drillholes: 'holes', strings: 'strings', solids: 'solids', block_model: 'bm', pit_shell: 'pit', pit_design: 'design', proposed_holes: 'infill' };
@@ -39,6 +42,9 @@
       case 'set_layer_visibility': { const k = LAYER[a.layer]; if (!k) return { error: 'unknown layer' }; TM.VP.vis[k] = !!a.visible; TM.VP.applyVis(); UI.renderLayers(); return { layer: a.layer, visible: !!a.visible }; }
       case 'propose_infill_holes': return WF.proposeInfill(TM.clamp(a.count || 2, 1, 8));
       case 'build_grade_shell': return await UI.run(L('Building implicit grade shell…', 'جارٍ بناء الغلاف الضمني…'), p => WF.implicitShell({ threshold: +a.threshold || 0.5 }, p));
+      case 'design_pit_from_toe': { const cl = TM.P.strings.filter(x => x.closed); const named = n => (TM.P.strings.find(x => x.name === n) || {}).id; const toe = (a.toe_string && named(a.toe_string)) || (TM.CAD.sel && TM.CAD.sel.closed ? TM.CAD.sel.id : ((cl.filter(x => /toe|قاع/i.test(x.name)).pop() || cl[cl.length - 1] || {}).id)); if (!toe) return { error: 'No closed toe string. Digitise one first.' }; const S_ = TM.P.settings; return await UI.run(L('Designing pit…', 'جارٍ تصميم الحفرة…'), async () => WF.pitDesign({ toe, benchH: a.bench_height || S_.benchH, batter: a.batter_deg || S_.batter, berm: a.berm_m ?? S_.bermW, rampWidth: a.ramp_width_m ?? S_.rampW, rampGrade: a.ramp_gradient_pct || S_.rampGrade, res: 1 })); }
+      case 'bench_report': return { benches: WF.benchReport() };
+      case 'blast_pattern': { const cl = TM.P.strings.filter(x => x.closed); const named = n => (TM.P.strings.find(x => x.name === n) || {}).id; const poly = (a.boundary_string && named(a.boundary_string)) || (TM.CAD.sel && TM.CAD.sel.closed ? TM.CAD.sel.id : ((cl.filter(x => /blast|تفجير/i.test(x.name)).pop() || cl[cl.length - 1] || {}).id)); if (!poly) return { error: 'No closed boundary string.' }; return WF.blastPattern({ polygon: poly, burden: a.burden, spacing: a.spacing, pattern: a.pattern || 'staggered', azimuth: 90, dip: 90, benchH: TM.P.settings.benchH, subdrill: 1, stemming: 3, diameter: a.diameter_mm || 115, explosive: 'ANFO', delayRow: 67, delayHole: 17, density: TM.P.settings.density }); }
       case 'generate_executive_report': TM.Report.open({ name: a.project_name || TM.P.name, sensitivity: a.include_sensitivity !== false }); return { opened: true };
     }
     return { error: 'unknown tool ' + name };
@@ -137,7 +143,10 @@ Current project snapshot: ${JSON.stringify(TM.WF.summary())}`;
       const cm = /colou?r|cmap|colormap|ألوان|تلوين|لون/.test(lo) ? (lo.match(/viridis|turbo|gold/) || [])[0] : null;
       if (cog != null && cog < 50) calls.push(['filter_block_model', { cutoff_grade: cog, colormap: cm || undefined }]); else if (cm) calls.push(['filter_block_model', { cutoff_grade: TM.P.settings.cutoff, colormap: cm }]);
     }
-    if (has(/\bpit\b|حفرة|الحفرة|منجم مفتوح|slope|ميل|زاوية|منحدر|gold price|سعر/) && !calls.some(c => c[0] === 'propose_infill_holes')) {
+    if (has(/blast|تفجير|نمط الحفر/)) { calls.push(['blast_pattern', { burden: after(s, 'burden|بردن', 10) || 4, spacing: after(s, 'spacing|تباعد', 10) || 4.5 }]); }
+    else if (has(/bench report|تقرير المصاطب/)) calls.push(['bench_report', {}]);
+    else if (has(/design (?:the )?pit|pit design|from (?:the )?toe|صمم الحفرة|تصميم الحفرة|من خط القاع/)) calls.push(['design_pit_from_toe', { berm_m: after(s, 'berm|رصيف', 10) ?? undefined, ramp_width_m: after(s, 'ramp|طريق', 12) ?? undefined }]);
+    else if (has(/\bpit\b|حفرة|الحفرة|منجم مفتوح|slope|ميل|زاوية|منحدر|gold price|سعر/) && !calls.some(c => c[0] === 'propose_infill_holes')) {
       if (has(/schedule|جدول|جدولة|cash ?flow|تدفق/)) calls.push(['run_schedule', {}]);
       else if (has(/design|bench|تصميم|مصاطب/)) calls.push(['design_pit', {}]);
       else if (has(/shell \d|غلاف رقم|select shell/)) calls.push(['select_pit_shell', { shell: after(s, 'shell|غلاف', 8) || 1 }]);
@@ -163,6 +172,9 @@ Current project snapshot: ${JSON.stringify(TM.WF.summary())}`;
       case 'design_pit': return L(`${r.benches} bench contours from RL ${r.from_rl}, ${r.bench_height} m benches, ${r.berm_m} m berms.`, `${r.benches} خط مصطبة من المنسوب ${r.from_rl}، ارتفاع ${r.bench_height} م، رصيف ${r.berm_m} م.`);
       case 'build_grade_shell': return L(`${r.solid}: ${fmt(r.volume_m3)} m³ (${M(r.tonnes)} Mt), ${fmt(r.triangles)} triangles, ${r.closed ? 'closed' : 'open'}.`, `${r.solid}: ${fmt(r.volume_m3)} م³ (${M(r.tonnes)} مليون طن)، ${fmt(r.triangles)} مثلث.`);
       case 'select_pit_shell': return L(`Shell ${r.shell} (RF ${r.rf}): ore ${M(r.ore_t)} Mt, SR ${r.strip_ratio}, NPV ${TM.usd(r.npv_musd)}M.`, `الغلاف ${r.shell} (معامل ${r.rf}): خام ${M(r.ore_t)} مليون طن، نسبة كشف ${r.strip_ratio}، صافي القيمة ${TM.usd(r.npv_musd)} مليون.`);
+      case 'design_pit_from_toe': return L(`Pit design: ${r.benches} benches, overall ${r.overall_slope_deg}°, ${fmt(r.volume_m3 / 1e6, 2)} Mm³.` + (r.reserve ? ` Reserve ${M(r.reserve.ore_t)} Mt @ ${r.reserve.grade} g/t, SR ${r.reserve.strip_ratio}.` : ''), `تصميم الحفرة: ${r.benches} مصطبة، ميل كلي ${r.overall_slope_deg}°، ${fmt(r.volume_m3 / 1e6, 2)} مليون م³.` + (r.reserve ? ` الاحتياطي ${M(r.reserve.ore_t)} مليون طن بتركيز ${r.reserve.grade}، نسبة كشف ${r.reserve.strip_ratio}.` : ''));
+      case 'bench_report': return r.benches.slice(0, 12).map(b => `RL ${b.rl}: ${M(b.ore_t)} Mt @ ${b.grade} · waste ${M(b.waste_t)} Mt`).join('<br>');
+      case 'blast_pattern': return L(`${r.holes} holes, ${fmt(r.drill_m)} m, ${fmt(r.explosive_kg)} kg, PF ${r.powder_factor_kg_t} kg/t.`, `${r.holes} ثقباً، ${fmt(r.drill_m)} م، ${fmt(r.explosive_kg)} كغ، عامل التفجير ${r.powder_factor_kg_t} كغ/طن.`);
       case 'get_project_summary': return `<pre class="call">${esc(JSON.stringify(r, null, 1)).slice(0, 1500)}</pre>`;
       case 'set_layer_visibility': return `${r.layer}: ${r.visible ? L('shown', 'ظاهر') : L('hidden', 'مخفي')}`;
       case 'generate_executive_report': return L('Report opened.', 'تم فتح التقرير.');
