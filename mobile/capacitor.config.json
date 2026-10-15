@@ -1,0 +1,19 @@
+{
+  "appId": "com.osama.injaz",
+  "appName": "إنجاز",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#f3f3ef"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DEFAULT"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_injaz",
+      "iconColor": "#2a78d6"
+    }
+  }
+}

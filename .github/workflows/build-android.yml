@@ -1,0 +1,70 @@
+# بناء تطبيق إنجاز لأندرويد (ملف APK للتثبيت المباشر)
+name: Build Android app
+
+on:
+  push:
+    branches: ['main', 'claude/**']
+    tags: ['v*']
+    paths: ['mobile/**', 'src/**', '.github/workflows/build-android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets and sync Android project
+        run: npm run build
+
+      - name: Build APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk ../Injaz-Android.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Injaz-Android
+          path: mobile/Injaz-Android.apk
+          if-no-files-found: error
+
+      # رابط تنزيل ثابت يعمل من متصفح الهاتف دون تسجيل دخول:
+      # https://github.com/<owner>/<repo>/releases/download/android-latest/Injaz-Android.apk
+      - name: Publish latest APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          target_commitish: ${{ github.sha }}
+          name: إنجاز للأندرويد — آخر نسخة
+          body: |
+            افتح هذه الصفحة من متصفح الهاتف واضغط على Injaz-Android.apk لتنزيله، ثم افتحه واسمح بالتثبيت.
+            تُحدَّث تلقائياً مع كل تعديل على التطبيق.
+          files: mobile/Injaz-Android.apk
+          overwrite_files: true
+          make_latest: true
