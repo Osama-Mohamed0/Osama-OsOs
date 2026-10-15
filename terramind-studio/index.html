@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TerraMind Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 5-zone CAD workspace — workflow ribbon / layers dock / 3D viewport / AI copilot dock / live KPI strip.
+   Single dark CAD theme by design (user-specified palette). */
+:root{
+  --bg:#0B0F19; --panel:#111827; --panel-2:#0E1421; --raise:#172033;
+  --line:#1F2937; --line-2:#2B3648;
+  --fg:#E6EAF1; --fg-2:#A7B1C2; --muted:#6F7A8E;
+  --em:#10B981; --em-ink:#34D399; --em-soft:rgba(16,185,129,.13);
+  --blue:#3B82F6; --blue-ink:#7AA9F8; --blue-soft:rgba(59,130,246,.14);
+  --series-a:#3B82F6; --series-b:#12A877;
+  --warn:#F59E0B; --warn-soft:rgba(245,158,11,.13);
+  --crit:#F87171; --crit-soft:rgba(248,113,113,.12);
+  --f-body:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --f-ar:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;
+  --f-cond:"IBM Plex Sans Condensed","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+html[lang=ar] body{font-family:var(--f-ar)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+
+.app{height:100%;display:grid;gap:8px;
+  grid-template-columns:272px minmax(0,1fr) 360px;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"rib rib rib" "left view right" "left kpi right";
+  padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-width:0;min-height:0}
+
+/* ---------- Zone 1: ribbon ---------- */
+.ribbon{grid-area:rib;display:flex;flex-direction:column}
+.rib-top{display:flex;align-items:center;gap:12px;padding:6px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-cond);font-weight:600;font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.brand-mark{width:22px;height:22px;border-radius:5px;background:conic-gradient(from 210deg,var(--em),var(--blue),var(--em));display:grid;place-items:center}
+.brand-mark span{width:10px;height:10px;background:var(--panel);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.brand small{font-family:var(--f-mono);font-weight:400;font-size:11px;color:var(--muted)}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1 1 auto;min-width:0;scrollbar-width:none}
+.tab{background:none;border:0;border-radius:5px;padding:6px 10px;color:var(--fg-2);font-family:var(--f-cond);font-weight:500;font-size:12.5px;letter-spacing:.02em;white-space:nowrap}
+.tab:hover{background:var(--raise);color:var(--fg)}
+.tab[aria-selected=true]{background:var(--blue-soft);color:var(--blue-ink)}
+.rib-end{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line-2);color:var(--fg-2);white-space:nowrap}
+.chip.ok{color:var(--em-ink);border-color:rgba(16,185,129,.35);background:var(--em-soft)}
+.chip.warn{color:var(--warn);border-color:rgba(245,158,11,.35);background:var(--warn-soft)}
+.chip.crit{color:var(--crit);border-color:rgba(248,113,113,.35);background:var(--crit-soft)}
+.chip.info{color:var(--blue-ink);border-color:rgba(59,130,246,.35);background:var(--blue-soft)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sel{background:var(--panel-2);border:1px solid var(--line-2);border-radius:5px;padding:4px 6px;font-size:12px}
+.tools{display:flex;gap:4px;padding:6px 8px;overflow-x:auto;scrollbar-width:thin}
+.tool{display:flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:6px 10px;font-size:12px;white-space:nowrap;color:var(--fg)}
+.tool:hover{border-color:var(--line-2);background:var(--raise)}
+.tool[aria-pressed=true]{border-color:rgba(16,185,129,.5);background:var(--em-soft);color:var(--em-ink)}
+.tool svg{width:15px;height:15px;color:var(--fg-2)}
+.tool[aria-pressed=true] svg{color:var(--em-ink)}
+.tool-sep{width:1px;background:var(--line);margin:2px 4px;flex:0 0 auto}
+.btn-lang{background:var(--panel-2);border:1px solid var(--line-2);border-radius:5px;padding:4px 8px;font-size:12px}
+
+/* ---------- docks ---------- */
+.dock{display:flex;flex-direction:column;overflow:hidden}
+.left{grid-area:left}
+.right{grid-area:right}
+.dock-scroll{overflow:auto;min-height:0;flex:1 1 auto}
+.sec{padding:10px 12px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.eyebrow{font-family:var(--f-cond);font-weight:600;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+html[lang=ar] .eyebrow{letter-spacing:0;font-size:12px}
+.layer{border:1px solid var(--line);border-radius:5px;margin-bottom:6px;background:var(--panel-2)}
+.layer-row{display:flex;align-items:center;gap:6px;padding:6px 6px}
+.eye{background:none;border:0;padding:3px;border-radius:4px;color:var(--fg-2);display:grid;place-items:center}
+.eye:hover{background:var(--raise)}
+.eye svg{width:15px;height:15px}
+.layer.off .layer-name{color:var(--muted)}
+.layer-name{font-family:var(--f-mono);font-size:12px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:0;text-align:start;padding:0}
+.swatch{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
+.badge{font-family:var(--f-mono);font-size:10.5px;color:var(--fg-2);white-space:nowrap}
+.layer-body{padding:2px 8px 8px 30px;display:grid;gap:6px}
+html[dir=rtl] .layer-body{padding:2px 30px 8px 8px}
+.ctl{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:8px;font-size:11.5px;color:var(--fg-2)}
+.ctl output{font-family:var(--f-mono);font-size:11px;color:var(--fg);min-width:40px;text-align:end}
+input[type=range]{width:100%;accent-color:var(--em);height:16px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:5px;overflow:hidden}
+.seg button{background:none;border:0;padding:3px 9px;font-size:11.5px;color:var(--fg-2)}
+.seg button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue-ink)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-2)}
+.toggle input{accent-color:var(--em)}
+.cog{background:linear-gradient(180deg,rgba(16,185,129,.08),transparent);border:1px solid rgba(16,185,129,.28);border-radius:6px;padding:10px}
+.cog-val{font-family:var(--f-mono);font-size:22px;font-weight:500;color:var(--em-ink)}
+.cog-val small{font-size:12px;color:var(--fg-2);font-weight:400}
+.cog-scale{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--muted)}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px;align-items:center;font-size:11.5px;color:var(--fg-2);margin-bottom:6px}
+.field input{background:var(--panel-2);border:1px solid var(--line-2);border-radius:4px;padding:4px 6px;font-family:var(--f-mono);font-size:12px;width:100%;text-align:end}
+.insp{font-size:12px}
+.insp dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;margin:0}
+.insp dt{color:var(--muted)}
+.insp dd{margin:0;font-family:var(--f-mono);text-align:end}
+.hint{color:var(--muted);font-size:11.5px;margin:0}
+
+/* ---------- Zone 3: viewport ---------- */
+.view{grid-area:view;position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#131b2c 0%,#0B0F19 70%)}
+#gl{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;pointer-events:none;font-size:11px}
+.hud-tl{top:10px;inset-inline-start:10px;display:grid;gap:4px}
+.hud-card{background:rgba(11,15,25,.78);border:1px solid var(--line-2);border-radius:5px;padding:6px 8px;backdrop-filter:blur(4px)}
+.hud-card .mono{font-size:11px}
+.hud-k{color:var(--muted);font-family:var(--f-cond);letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.legend{top:10px;inset-inline-end:10px;width:172px}
+.legend canvas{width:100%;height:10px;display:block;border-radius:2px;margin-top:5px}
+.legend .ticks{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--fg-2);margin-top:3px}
+.lith-key{display:grid;grid-template-columns:auto 1fr;gap:3px 6px;margin-top:5px;align-items:center}
+.gizmo{bottom:10px;inset-inline-end:10px;width:84px;height:84px}
+.slicer{position:absolute;bottom:10px;inset-inline-start:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 120px);background:rgba(11,15,25,.82);border:1px solid var(--line-2);border-radius:6px;padding:6px 8px;font-size:11.5px}
+.slicer input[type=range]{width:150px}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-130%);font-family:var(--f-mono);font-size:10px;color:var(--fg);background:rgba(11,15,25,.72);border:1px solid var(--line-2);padding:0 4px;border-radius:3px;white-space:nowrap}
+.lbl.ph{color:#67E8F9;border-color:rgba(103,232,249,.45)}
+.lbl.flag{color:var(--crit);border-color:rgba(248,113,113,.5)}
+.toast{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);background:var(--raise);border:1px solid var(--line-2);border-radius:6px;padding:7px 12px;font-size:12px;max-width:min(520px,calc(100% - 24px));box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .2s}
+.view.sketching #gl{cursor:crosshair}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--fg-2);font-family:var(--f-mono);font-size:12px}
+
+/* ---------- Zone 4: KPI bar ---------- */
+.kpis{grid-area:kpi;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;overflow:hidden}
+.kpi{padding:9px 12px;border-inline-end:1px solid var(--line);min-width:0}
+.kpi:last-child{border-inline-end:0}
+.kpi-k{font-family:var(--f-cond);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[lang=ar] .kpi-k{letter-spacing:0;font-size:12px}
+.kpi-v{font-family:var(--f-mono);font-size:19px;font-weight:500;margin-top:2px;white-space:nowrap}
+.kpi-v small{font-size:11px;color:var(--fg-2);font-weight:400}
+.kpi-s{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.delta-up{color:var(--em-ink)} .delta-dn{color:var(--crit)}
+.kpi.hero .kpi-v{color:var(--em-ink)}
+.kpi.neg .kpi-v{color:var(--crit)}
+
+/* ---------- Zone 5: copilot ---------- */
+.cp-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.cp-head h2{margin:0;font-family:var(--f-cond);font-size:14px;font-weight:600;letter-spacing:.02em}
+.cp-head svg{width:16px;height:16px;color:var(--em-ink)}
+.cards{display:grid;gap:8px}
+.card{border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:var(--panel-2);display:grid;gap:6px}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.card p{margin:0;font-size:12px;color:var(--fg)}
+.card .sub{font-size:11px;color:var(--fg-2)}
+.card.done{opacity:.72}
+.act{justify-self:start;display:inline-flex;align-items:center;gap:6px;background:var(--em);color:#04150F;border:0;border-radius:5px;padding:5px 10px;font-weight:600;font-size:12px}
+.act:hover{filter:brightness(1.08)}
+.act.blue{background:var(--blue);color:#fff}
+.act:disabled{background:var(--raise);color:var(--fg-2);cursor:default;filter:none}
+.act svg{width:14px;height:14px}
+.chat{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+.msgs{flex:1 1 auto;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:160px}
+.msg{max-width:92%;padding:7px 10px;border-radius:8px;font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--blue-soft);border:1px solid rgba(59,130,246,.3)}
+.msg.bot{align-self:flex-start;background:var(--panel-2);border:1px solid var(--line)}
+.msg.bot b{color:var(--em-ink);font-weight:500}
+.call{font-family:var(--f-mono);font-size:11px;background:#0A0E17;border:1px solid var(--line-2);border-radius:5px;padding:6px 8px;margin:4px 0;white-space:pre-wrap;color:var(--blue-ink);direction:ltr;text-align:left}
+.call .fn{color:var(--em-ink)}
+.suggest{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px}
+.sg{background:none;border:1px dashed var(--line-2);border-radius:999px;padding:3px 9px;font-size:11.5px;color:var(--fg-2);text-align:start}
+.sg:hover{border-color:var(--blue);color:var(--fg)}
+.composer{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
+.composer textarea{flex:1 1 auto;min-width:0;resize:none;background:var(--panel-2);border:1px solid var(--line-2);border-radius:6px;padding:7px 9px;font-size:12.5px;height:38px}
+.composer button{background:var(--blue);border:0;border-radius:6px;color:#fff;width:38px;display:grid;place-items:center}
+.composer button svg{width:16px;height:16px}
+html[dir=rtl] .composer button svg{transform:scaleX(-1)}
+.report-btn{width:100%;justify-content:center;display:flex;align-items:center;gap:8px;background:var(--raise);border:1px solid var(--line-2);border-radius:6px;padding:8px;font-weight:500}
+.report-btn:hover{border-color:var(--em)}
+.report-btn svg{width:15px;height:15px;color:var(--em-ink)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(3,6,12,.72);display:grid;place-items:center;z-index:50;padding-block:max(16px,env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;width:min(980px,100%);max-height:100%;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.sheet-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheet-h h2{margin:0;font-family:var(--f-cond);font-size:16px;font-weight:600;flex:1 1 auto;text-wrap:balance}
+.sheet-b{overflow:auto;padding:16px 20px 24px}
+.icon-btn{background:var(--panel-2);border:1px solid var(--line-2);border-radius:5px;padding:5px 10px;display:inline-flex;gap:6px;align-items:center;font-size:12px}
+.icon-btn svg{width:14px;height:14px}
+.rpt h3{font-family:var(--f-cond);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--em-ink);margin:22px 0 8px;font-weight:600}
+html[lang=ar] .rpt h3{letter-spacing:0;font-size:14px}
+.rpt h3:first-child{margin-top:0}
+.rpt p{max-width:72ch;margin:0 0 8px;color:var(--fg);line-height:1.6}
+.rpt .meta{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-bottom:14px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:5px 10px;border-bottom:1px solid var(--line);text-align:end;white-space:nowrap}
+th{font-family:var(--f-cond);font-weight:500;color:var(--fg-2);background:var(--panel-2);font-size:11.5px}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:start}
+tr.cur td{background:var(--em-soft)}
+tr:last-child td{border-bottom:0}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kbox{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--panel-2)}
+.kbox .kpi-v{font-size:16px}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.chart{border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--panel-2);position:relative;min-width:0}
+.chart h4{margin:0 0 4px;font-size:12px;font-weight:500;color:var(--fg)}
+.chart svg{width:100%;height:auto;display:block}
+.chart-legend{display:flex;gap:12px;font-size:11px;color:var(--fg-2);margin-bottom:4px}
+.chart-legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-inline-end:5px}
+.tip{position:absolute;pointer-events:none;background:var(--raise);border:1px solid var(--line-2);border-radius:5px;padding:5px 8px;font-size:11px;font-family:var(--f-mono);white-space:nowrap;z-index:2}
+.qa{display:grid;gap:6px}
+.qa-row{display:flex;gap:8px;align-items:flex-start}
+.recs{margin:0;padding-inline-start:20px;display:grid;gap:5px;max-width:78ch}
+pre.json{font-family:var(--f-mono);font-size:11.5px;background:#0A0E17;border:1px solid var(--line-2);border-radius:6px;padding:12px;overflow:auto;max-height:60vh;direction:ltr;text-align:left;margin:0}
+
+/* ---------- responsive ---------- */
+@media (max-width:1280px){ .app{grid-template-columns:240px minmax(0,1fr) 320px} .kpi-v{font-size:16px} }
+@media (max-width:1000px){
+  html,body{height:auto}
+  .app{height:auto;grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"rib" "view" "kpi" "right" "left"}
+  .view{height:62vh;min-height:380px}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi:nth-child(3n){border-inline-end:0}
+  .kpi:nth-child(-n+3){border-bottom:1px solid var(--line)}
+  .dock{overflow:visible} .dock-scroll{overflow:visible}
+  .msgs{max-height:420px}
+}
+@media (max-width:560px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi:nth-child(3n){border-inline-end:1px solid var(--line)}
+  .kpi:nth-child(2n){border-inline-end:0}
+  .kpi:nth-child(-n+4){border-bottom:1px solid var(--line)}
+  .legend{width:132px}
+  .slicer{max-width:calc(100% - 20px);bottom:100px}
+  .slicer input[type=range]{width:110px}
+  .rib-end{margin-inline-start:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Zone 1: Workflow ribbon -->
+  <header class="panel ribbon">
+    <div class="rib-top">
+      <div class="brand"><div class="brand-mark"><span></span></div>TerraMind Studio <small>Wadi Gold · demo.tmd</small></div>
+      <nav class="tabs" role="tablist" id="tabs"></nav>
+      <div class="rib-end">
+        <span class="chip ok" id="dbChip"><span class="dot"></span><span data-i18n="dbOk"></span></span>
+        <button class="btn-lang" id="langBtn" type="button">العربية</button>
+      </div>
+    </div>
+    <div class="tools" id="tools"></div>
+  </header>
+
+  <!-- Zone 2: Layers + inspector -->
+  <aside class="panel dock left">
+    <div class="dock-scroll">
+      <section class="sec">
+        <div class="cog">
+          <div class="sec-h" style="margin-bottom:2px"><span class="eyebrow" data-i18n="cutoff"></span><span class="chip info mono" id="visBlocks">–</span></div>
+          <div class="cog-val" id="cogVal">0.50 <small>g/t Au</small></div>
+          <input type="range" id="cog" min="0.3" max="2.5" step="0.05" value="0.5" aria-label="Cut-off grade">
+          <div class="cog-scale"><span>0.30</span><span>1.40</span><span>2.50 g/t</span></div>
+        </div>
+      </section>
+      <section class="sec">
+        <div class="sec-h"><span class="eyebrow" data-i18n="layers"></span></div>
+        <div id="layerTree"></div>
+      </section>
+      <section class="sec">
+        <div class="sec-h"><span class="eyebrow" data-i18n="economics"></span></div>
+        <label class="field"><span data-i18n="price"></span><input id="inPrice" type="number" step="50" value="2400"></label>
+        <label class="field"><span data-i18n="mcost"></span><input id="inMine" type="number" step="0.1" value="2.8"></label>
+        <label class="field"><span data-i18n="pcost"></span><input id="inProc" type="number" step="0.5" value="22"></label>
+        <label class="field"><span data-i18n="rec"></span><input id="inRec" type="number" step="1" value="92"></label>
+        <p class="hint" data-i18n="econNote"></p>
+      </section>
+      <section class="sec insp">
+        <div class="sec-h"><span class="eyebrow" data-i18n="inspector"></span></div>
+        <div id="inspector"><p class="hint" data-i18n="inspEmpty"></p></div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Zone 3: Viewport -->
+  <main class="panel view" id="view">
+    <canvas id="gl"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="loading" id="loading">Estimating block model…</div>
+    <div class="hud hud-tl">
+      <div class="hud-card"><div class="hud-k" data-i18n="cursor"></div><div class="mono" id="hudXYZ">E —  N —  Z —</div><div class="mono" id="hudHit" style="color:var(--fg-2)"></div></div>
+      <div class="hud-card"><div class="hud-k" data-i18n="slice"></div><div class="mono" id="hudSlice">off</div></div>
+    </div>
+    <div class="hud hud-card legend" id="legend"></div>
+    <canvas class="hud gizmo" id="gizmo" width="168" height="168"></canvas>
+    <div class="slicer" id="slicer">
+      <label class="toggle"><input type="checkbox" id="slOn"><span data-i18n="sectionSlicer"></span></label>
+      <div class="seg" id="slAxis"><button type="button" data-ax="x" aria-pressed="true">E</button><button type="button" data-ax="y" aria-pressed="false">N</button><button type="button" data-ax="z" aria-pressed="false">RL</button></div>
+      <input type="range" id="slPos" min="0" max="600" step="1" value="300" aria-label="Slice position">
+      <output class="mono" id="slVal">300 m</output>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+  </main>
+
+  <!-- Zone 4: KPIs -->
+  <section class="panel kpis" id="kpis"></section>
+
+  <!-- Zone 5: AI copilot -->
+  <aside class="panel dock right">
+    <div class="cp-head"><i data-lucide="sparkles"></i><h2 data-i18n="copilot"></h2><span class="chip warn" id="engineChip" style="margin-inline-start:auto"><span class="dot"></span><span id="engineTxt"></span></span></div>
+    <div class="dock-scroll" style="display:flex;flex-direction:column">
+      <section class="sec">
+        <div class="sec-h"><span class="eyebrow" data-i18n="decision"></span><span class="badge" id="alertCount"></span></div>
+        <div class="cards" id="cards"></div>
+      </section>
+      <section class="sec" style="padding-block:8px">
+        <button class="report-btn" id="reportBtn" type="button"><i data-lucide="file-text"></i><span data-i18n="report"></span></button>
+      </section>
+      <section class="chat">
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="suggest" id="suggest"></div>
+        <form class="composer" id="composer">
+          <textarea id="prompt" dir="auto" rows="1"></textarea>
+          <button type="submit" aria-label="Send"><i data-lucide="send"></i></button>
+        </form>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="sheet-h"><h2 id="modalTitle"></h2><span id="modalActions" style="display:flex;gap:6px"></span><button class="icon-btn" id="modalClose" type="button" aria-label="Close"><i data-lucide="x"></i></button></div>
+    <div class="sheet-b" id="modalBody"></div>
+  </div>
+</div>
+<input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   TerraMind Studio — interactive prototype
+   Engine: synthetic drillholes → top-cut/QA → IDW block model →
+   implicit orebody (surface nets) → nested-shell pit search → economics.
+   AI Copilot: local bilingual intent parser → JSON tool calls → dispatcher.
+   ===================================================================== */
+
+// ---------------------------------------------------------------- utils
+const $ = s => document.querySelector(s);
+const D2R = Math.PI / 180;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = (m, d = 1) => (m < 0 ? '−$' : '$') + fmt(Math.abs(m), d);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let rnd = mulberry32(20261015);
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const icons = () => { try { window.lucide && lucide.createIcons({ attrs: { 'stroke-width': 1.8 } }); } catch (e) {} };
+
+// ---------------------------------------------------------------- i18n
+const T = {
+  en: {
+    dbOk: 'DB validated', dbWarn: 'DB: issues found',
+    tab_project: 'Project & Data', tab_terrain: 'Terrain & Strings', tab_geology: 'Geological Modeling', tab_block: 'Block Model & Reserves', tab_pit: 'Pit Design', tab_ai: 'AI Engine',
+    importDH: 'Import Drillholes (CSV)', validate: 'Auto-Validate Database', save: 'Save .tmd Project',
+    sketch: 'Smart Sketch', dtm: 'Generate DTM Surface', cutfill: 'Cut & Fill Volume',
+    sectionSlicer: 'Section slicer', implicit: 'Auto-Implicit Orebody', boolean: 'Wireframe Booleans',
+    voxel: 'Voxel Grid', idw: 'Run IDW', gt: 'Grade-Tonnage Curve',
+    pitBottom: 'Set Pit Bottom', benches: 'Benches (Batter/Berm/Ramp)', strip: 'Stripping Ratio', optPit: 'Optimize Pit',
+    schemas: 'Tool Schemas', keyStatus: 'No API key · local parser',
+    cutoff: 'Cut-off grade', layers: 'Layers', economics: 'Economics', price: 'Gold price ($/oz)', mcost: 'Mining cost ($/t)', pcost: 'Processing + G&A ($/t)', rec: 'Recovery (%)',
+    econNote: 'Capex $40M · mill 0.9 Mtpa · 8% discount · SG 2.7',
+    inspector: 'Object inspector', inspEmpty: 'Click a block, drillhole interval or the terrain in the viewport.',
+    opacity: 'Opacity', mode: 'Mode', solid: 'Solid', wire: 'Wire', colorBy: 'Color by', labels: 'Labels', colormap: 'Colormap', slope: 'Overall slope', bottom: 'Bottom RL', iso: 'Iso-shell',
+    cursor: 'Cursor', slice: 'Section', off: 'off',
+    k_ore: 'Ore tonnage', k_grade: 'Average grade', k_metal: 'Contained metal', k_waste: 'Waste tonnage', k_sr: 'Stripping ratio', k_npv: 'NPV @ 8%',
+    copilot: 'AI Copilot', decision: 'Decision support', report: 'Generate executive report',
+    prompt: 'Type a command in English or Arabic…', loading: 'Estimating block model…',
+    applied: 'Applied', run: 'Run'
+  },
+  ar: {
+    dbOk: 'قاعدة البيانات سليمة', dbWarn: 'قاعدة البيانات: توجد مشكلات',
+    tab_project: 'المشروع والبيانات', tab_terrain: 'التضاريس والخطوط', tab_geology: 'النمذجة الجيولوجية', tab_block: 'نموذج البلوكات والاحتياطي', tab_pit: 'تصميم الحفرة', tab_ai: 'محرك الذكاء الاصطناعي',
+    importDH: 'استيراد الآبار (CSV)', validate: 'تحقق تلقائي من القاعدة', save: 'حفظ مشروع ‎.tmd',
+    sketch: 'رسم ذكي', dtm: 'إنشاء سطح DTM', cutfill: 'حجم القطع والردم',
+    sectionSlicer: 'المقطع الحي', implicit: 'جسم خام ضمني تلقائي', boolean: 'عمليات منطقية للمجسمات',
+    voxel: 'شبكة البلوكات', idw: 'تشغيل IDW', gt: 'منحنى التركيز-الحمولة',
+    pitBottom: 'تحديد قاع الحفرة', benches: 'المصاطب (الميل/الرصيف/الطريق)', strip: 'نسبة الكشف', optPit: 'تحسين الحفرة',
+    schemas: 'مخططات الأدوات', keyStatus: 'لا يوجد مفتاح API · محلل محلي',
+    cutoff: 'حد القطع', layers: 'الطبقات', economics: 'الاقتصاديات', price: 'سعر الذهب ($/أونصة)', mcost: 'تكلفة التعدين ($/طن)', pcost: 'المعالجة والإدارة ($/طن)', rec: 'الاستخلاص (%)',
+    econNote: 'رأس المال 40 مليون $ · طاقة المصنع 0.9 مليون طن/سنة · خصم 8% · كثافة 2.7',
+    inspector: 'فاحص العناصر', inspEmpty: 'انقر على بلوك أو مقطع بئر أو سطح الأرض في نافذة العرض.',
+    opacity: 'الشفافية', mode: 'النمط', solid: 'مصمت', wire: 'شبكي', colorBy: 'التلوين حسب', labels: 'التسميات', colormap: 'خريطة الألوان', slope: 'الميل الكلي', bottom: 'منسوب القاع', iso: 'قيمة السطح',
+    cursor: 'المؤشر', slice: 'المقطع', off: 'متوقف',
+    k_ore: 'حمولة الخام', k_grade: 'متوسط التركيز', k_metal: 'المعدن المحتوى', k_waste: 'حمولة النفايات', k_sr: 'نسبة الكشف', k_npv: 'صافي القيمة الحالية 8%',
+    copilot: 'المساعد الذكي', decision: 'دعم القرار', report: 'إنشاء التقرير التنفيذي',
+    prompt: 'اكتب أمراً بالعربية أو الإنجليزية…', loading: 'جارٍ تقدير نموذج البلوكات…',
+    applied: 'تم التطبيق', run: 'تنفيذ'
+  }
+};
+const t = k => (T[S.lang] && T[S.lang][k]) || T.en[k] || k;
+const isAr = s => /[؀-ۿ]/.test(s);
+
+// ---------------------------------------------------------------- state
+const S = {
+  lang: 'en', cutoff: 0.5, colormap: 'gold',
+  price: 2400, mineCost: 2.8, procCost: 22, recovery: 92, density: 2.7,
+  capex: 40e6, throughput: 0.9e6, disc: 0.08,
+  slope: 45, benchH: 10, batter: 70,
+  pit: null, topCut: null, overlapsFixed: false,
+  idwPower: 2, blockSize: 5, searchR: 55, iso: 0.5,
+  slice: { axis: 'x', pos: 300, enabled: false },
+  layers: {
+    topo: { vis: true, op: 0.38, mode: 'solid' },
+    dh: { vis: true, colorBy: 'au', labels: true },
+    ore: { vis: true, op: 0.08 },
+    bm: { vis: true, op: 0.92 },
+    pit: { vis: true, benches: true },
+    infill: { vis: true }
+  },
+  engine: 'claude-sonnet', applied: {}, infill: [], sketch: { on: false, pts: [] }
+};
+
+// ---------------------------------------------------------------- geology (synthetic truth)
+const EXT = 600;
+function topoZ(e, n) { return 318 + 12 * Math.sin(e / 90 + 0.6) + 9 * Math.cos(n / 75 - 0.3) + 6 * Math.sin((e + n) / 130) + 0.025 * (n - 300); }
+const ORE = { c: [300, 300, 205], A: 130, T: 22, W: 75 };
+const SV = [Math.sin(60 * D2R), Math.cos(60 * D2R), 0];
+const DV = [Math.sin(150 * D2R) * Math.cos(55 * D2R), Math.cos(150 * D2R) * Math.cos(55 * D2R), -Math.sin(55 * D2R)];
+const NV = (() => { const a = SV, b = DV; const c = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; const l = Math.hypot(...c); return c.map(x => x / l); })();
+function local(e, n, z) { const d = [e - ORE.c[0], n - ORE.c[1], z - ORE.c[2]]; return { u: d[0] * SV[0] + d[1] * SV[1] + d[2] * SV[2], w: d[0] * DV[0] + d[1] * DV[1] + d[2] * DV[2], v: d[0] * NV[0] + d[1] * NV[1] + d[2] * NV[2] }; }
+function trueGrade(e, n, z) {
+  const L = local(e, n, z); const r2 = (L.u / ORE.A) ** 2 + (L.v / ORE.T) ** 2 + (L.w / ORE.W) ** 2;
+  let g;
+  if (r2 < 1) { const core = Math.pow(1 - r2, 1.4); const shoot = Math.exp(-((L.u - 0.6 * L.w - 25) ** 2) / (2 * 32 * 32)); g = 0.35 + 1.9 * core + 3.1 * core * shoot; }
+  else g = 0.16 * Math.exp(-(Math.sqrt(r2) - 1) * 2.4) + 0.015;
+  return g * Math.exp(gauss() * 0.38 - 0.07);
+}
+function lithAt(e, n, z) { const L = local(e, n, z); const r2 = (L.u / ORE.A) ** 2 + (L.v / ORE.T) ** 2 + (L.w / ORE.W) ** 2; if (r2 < 1) return 'QV'; if (z > topoZ(e, n) - 22) return 'OX'; return L.v > 0 ? 'SCH' : 'GD'; }
+const LITH = { QV: { c: '#F2C94C', en: 'Quartz vein (mineralised)', ar: 'عرق كوارتز (متمعدن)' }, OX: { c: '#C0784A', en: 'Oxide cap', ar: 'غطاء مؤكسد' }, SCH: { c: '#7C8CE0', en: 'Schist (hanging wall)', ar: 'شيست (الجدار العلوي)' }, GD: { c: '#8E99AB', en: 'Granodiorite (footwall)', ar: 'جرانوديوريت (الجدار السفلي)' } };
+
+let HOLES = [];
+function placeSamples(h) { for (const s of h.samples) { const m = (s.from + s.to) / 2; s.x = h.collar[0] + h.dir[0] * m; s.y = h.collar[1] + h.dir[1] * m; s.z = h.collar[2] + h.dir[2] * m; } }
+function dirOf(az, dip) { return [Math.sin(az * D2R) * Math.cos(dip * D2R), Math.cos(az * D2R) * Math.cos(dip * D2R), -Math.sin(dip * D2R)]; }
+function collarFor(T, az, dip) {
+  const h = dirOf(az, dip), sd = Math.sin(dip * D2R); let L = (topoZ(T[0], T[1]) - T[2]) / sd;
+  for (let i = 0; i < 8; i++) { const P = [T[0] - h[0] * L, T[1] - h[1] * L, T[2] - h[2] * L]; L += (topoZ(P[0], P[1]) - P[2]) / sd; }
+  const c = [T[0] - h[0] * L, T[1] - h[1] * L, 0]; c[2] = topoZ(c[0], c[1]); return { collar: c, L, dir: h };
+}
+function makeHoles() {
+  rnd = mulberry32(20261015);
+  const tg = []; for (const u of [-100, -50, 0, 50, 100]) for (const w of [-45, 0, 45]) { if (u === 100 && w === 45) continue; tg.push([u, w]); }
+  HOLES = tg.map(([u, w], i) => {
+    const tu = u + gauss() * 6, tw = w + gauss() * 6;
+    const T = [0, 1, 2].map(k => ORE.c[k] + SV[k] * tu + DV[k] * tw);
+    const az = 330 + gauss() * 4, dip = 60 + gauss() * 3;
+    const { collar, L, dir } = collarFor(T, az, dip);
+    const len = Math.round((L + 45 + rnd() * 25) / 2) * 2;
+    const h = { id: 'DH-' + String(i + 1).padStart(2, '0'), collar, az, dip, len, dir, samples: [] };
+    for (let d = 0; d < len; d += 2) h.samples.push({ from: d, to: d + 2, au: 0, lith: '' });
+    placeSamples(h);
+    for (const s of h.samples) { s.au = +trueGrade(s.x, s.y, s.z).toFixed(2); s.lith = lithAt(s.x, s.y, s.z); }
+    return h;
+  });
+  // planted QA/QC issues: an assay spike in DH-08, an overlap in DH-03, a duplicate interval in DH-11
+  const h8 = HOLES[7]; let mi = 0; h8.samples.forEach((s, i) => { if (s.au > h8.samples[mi].au) mi = i; }); h8.samples[mi].au = 42.5;
+  const h3 = HOLES[2]; h3.samples[30].from -= 1;
+  const h11 = HOLES[10]; const dup = Object.assign({}, h11.samples[40]); h11.samples.splice(41, 0, dup);
+}
+function holeIssues() {
+  let overlaps = 0, dups = 0; const where = new Set();
+  for (const h of HOLES) for (let i = 1; i < h.samples.length; i++) { const a = h.samples[i - 1], b = h.samples[i]; if (b.from === a.from && b.to === a.to) { dups++; where.add(h.id); } else if (b.from < a.to - 1e-6) { overlaps++; where.add(h.id); } }
+  return { overlaps, dups, where: [...where] };
+}
+function fixOverlaps() {
+  const r = holeIssues();
+  for (const h of HOLES) { const out = []; for (const s of h.samples) { const p = out[out.length - 1]; if (p && s.from === p.from && s.to === p.to) continue; if (p && s.from < p.to) s.from = p.to; if (s.to - s.from > 1e-6) out.push(s); } h.samples = out; placeSamples(h); }
+  return r;
+}
+function maxAssay() { let best = { au: 0 }; for (const h of HOLES) for (const s of h.samples) if (s.au > best.au) best = { au: s.au, hole: h.id, depth: s.from, s }; return best; }
+function percentile(p) { const a = []; for (const h of HOLES) for (const s of h.samples) a.push(s.au); a.sort((x, y) => x - y); return a[Math.floor(p * (a.length - 1))]; }
+const effAu = au => S.topCut ? Math.min(au, S.topCut) : au;
+
+// ---------------------------------------------------------------- block model (IDW)
+let BM = null;
+function estimate() {
+  const bs = S.blockSize, R = S.searchR, R2 = R * R, pw = S.idwPower / 2;
+  const P = []; for (const h of HOLES) for (const s of h.samples) P.push(s.x, s.y, s.z, effAu(s.au));
+  const n = P.length / 4; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9;
+  for (let i = 0; i < n; i++) { x0 = Math.min(x0, P[i * 4]); x1 = Math.max(x1, P[i * 4]); y0 = Math.min(y0, P[i * 4 + 1]); y1 = Math.max(y1, P[i * 4 + 1]); z0 = Math.min(z0, P[i * 4 + 2]); }
+  x0 = Math.floor((x0 - 20) / bs) * bs; y0 = Math.floor((y0 - 20) / bs) * bs; z0 = Math.floor((z0 - 20) / bs) * bs;
+  const nx = Math.ceil((x1 + 20 - x0) / bs), ny = Math.ceil((y1 + 20 - y0) / bs), nz = Math.ceil((360 - z0) / bs);
+  const hash = new Map(); const key = (a, b, c) => (a + 512) + (b + 512) * 1024 + (c + 512) * 1048576;
+  for (let i = 0; i < n; i++) { const k = key(Math.floor(P[i * 4] / R), Math.floor(P[i * 4 + 1] / R), Math.floor(P[i * 4 + 2] / R)); let a = hash.get(k); if (!a) hash.set(k, a = []); a.push(i); }
+  const dense = new Float32Array(nx * ny * nz), near = new Float32Array(nx * ny * nz);
+  const bx = [], by = [], bz = [], bg = [], bcol = [], bnear = [], bidx = [];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const cx = x0 + (i + .5) * bs, cy = y0 + (j + .5) * bs, top = topoZ(cx, cy);
+    for (let k = 0; k < nz; k++) {
+      const cz = z0 + (k + .5) * bs; if (cz > top) break;
+      const hx = Math.floor(cx / R), hy = Math.floor(cy / R), hz = Math.floor(cz / R);
+      let sw = 0, sg = 0, cnt = 0, dmin = 1e9;
+      for (let a = hx - 1; a <= hx + 1; a++) for (let b = hy - 1; b <= hy + 1; b++) for (let c = hz - 1; c <= hz + 1; c++) {
+        const arr = hash.get(key(a, b, c)); if (!arr) continue;
+        for (const q of arr) { const dx = P[q * 4] - cx, dy = P[q * 4 + 1] - cy, dz = P[q * 4 + 2] - cz; const d2 = dx * dx + dy * dy + dz * dz; if (d2 > R2) continue; if (d2 < dmin) dmin = d2; const w = 1 / Math.pow(Math.max(d2, 1), pw); sw += w; sg += w * P[q * 4 + 3]; cnt++; }
+      }
+      if (cnt < 4) continue;
+      const g = sg / sw, id = i + nx * (j + ny * k); dense[id] = g; near[id] = Math.sqrt(dmin);
+      if (g >= 0.1) { bx.push(cx); by.push(cy); bz.push(cz); bg.push(g); bcol.push(i + nx * j); bnear.push(Math.sqrt(dmin)); bidx.push(id); }
+    }
+  }
+  BM = { bs, nx, ny, nz, x0, y0, z0, dense, near, N: bg.length, bx: Float32Array.from(bx), by: Float32Array.from(by), bz: Float32Array.from(bz), bg: Float32Array.from(bg), bcol: Int32Array.from(bcol), bnear: Float32Array.from(bnear), bidx: Int32Array.from(bidx), nSamples: n, blockT: bs * bs * bs * S.density };
+}
+
+// ---------------------------------------------------------------- pit engine
+const TOPO = {}; function topoGrid(cs) { if (TOPO[cs]) return TOPO[cs]; const n = EXT / cs, a = new Float32Array(n * n); for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) a[i + n * j] = topoZ((i + .5) * cs, (j + .5) * cs); return TOPO[cs] = a; }
+function pitOffset(x, y, P) {
+  const dx = x - P.cx, dy = y - P.cy, u = dx * SV[0] + dy * SV[1], v = -dx * SV[1] + dy * SV[0];
+  if ((u / P.a) ** 2 + (v / P.b) ** 2 <= 1) return 0;
+  let lo = 0, hi = 900; for (let k = 0; k < 18; k++) { const m = (lo + hi) / 2; if ((u / (P.a + m)) ** 2 + (v / (P.b + m)) ** 2 > 1) lo = m; else hi = m; } return hi;
+}
+const pitFloor = (x, y, P) => P.zb + pitOffset(x, y, P) * Math.tan(P.slope * D2R);
+function evalPit(P, cs = 5) {
+  const n = EXT / cs, tg = topoGrid(cs), tanS = Math.tan(P.slope * D2R), maxOff = (380 - P.zb) / tanS; let rockV = 0;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const x = (i + .5) * cs, y = (j + .5) * cs; if (Math.abs(x - P.cx) > P.a + maxOff || Math.abs(y - P.cy) > P.a + maxOff) continue;
+    const f = P.zb + pitOffset(x, y, P) * tanS, tp = tg[i + n * j]; if (tp > f) rockV += (tp - f) * cs * cs;
+  }
+  const colF = new Float32Array(BM.nx * BM.ny);
+  for (let j = 0; j < BM.ny; j++) for (let i = 0; i < BM.nx; i++) colF[i + BM.nx * j] = pitFloor(BM.x0 + (i + .5) * BM.bs, BM.y0 + (j + .5) * BM.bs, P);
+  const inPit = new Uint8Array(BM.N); for (let b = 0; b < BM.N; b++) inPit[b] = BM.bz[b] > colF[BM.bcol[b]] ? 1 : 0;
+  return { rockT: rockV * S.density, inPit, colF };
+}
+function pitStats(pe, cutoff) { let n = 0, sg = 0; for (let b = 0; b < BM.N; b++) if (pe.inPit[b] && BM.bg[b] >= cutoff) { n++; sg += BM.bg[b]; } const oreT = n * BM.blockT, grade = n ? sg / n : 0; return { oreT, grade, wasteT: Math.max(pe.rockT - oreT, 0), n }; }
+function econ(st, o = {}) {
+  const price = S.price * (o.priceF || 1), cf = o.costF || 1, rec = S.recovery / 100;
+  const oz = st.oreT * st.grade / 31.1035; const rev = oz * rec * price; const cost = (st.oreT + st.wasteT) * S.mineCost * cf + st.oreT * S.procCost * cf;
+  const cash = rev - cost; const life = Math.max(st.oreT / S.throughput, 0.25); const af = (1 - Math.pow(1 + S.disc, -life)) / S.disc;
+  return { oz, rev, cost, cash, life, npv: st.oreT > 0 ? cash / life * af - S.capex : -S.capex };
+}
+function oreCentroid() { let sx = 0, sy = 0, n = 0, zmin = 1e9; for (let b = 0; b < BM.N; b++) if (BM.bg[b] >= Math.max(S.cutoff, 0.5)) { sx += BM.bx[b]; sy += BM.by[b]; n++; zmin = Math.min(zmin, BM.bz[b]); } return n ? { x: sx / n, y: sy / n, zmin } : { x: 300, y: 300, zmin: 150 }; }
+function optimizePit(onlyBottom = false) {
+  const c = oreCentroid(), bh = S.benchH; let best = null;
+  const zbs = []; for (let z = Math.floor((c.zmin - 5) / bh) * bh; z <= 300; z += bh) zbs.push(z);
+  const as = onlyBottom ? [S.pit.a] : [40, 70, 100, 130, 160], bsz = onlyBottom ? [S.pit.b] : [12, 25, 40], shifts = onlyBottom ? [0] : [-25, 0, 25];
+  const hx = DV[0] / Math.hypot(DV[0], DV[1]), hy = DV[1] / Math.hypot(DV[0], DV[1]);
+  for (const zb of zbs) for (const a of as) for (const b of bsz) for (const sh of shifts) {
+    const P = onlyBottom ? Object.assign({}, S.pit, { zb, slope: S.slope }) : { cx: c.x + hx * sh, cy: c.y + hy * sh, a, b, zb, slope: S.slope };
+    const e = econ(pitStats(evalPit(P, 20), S.cutoff)).npv; if (!best || e > best.npv) best = { P, npv: e };
+  }
+  S.pit = best.P; return best;
+}
+
+// ---------------------------------------------------------------- colormaps
+const CMAPS = { gold: ['#4a3216', '#8a5715', '#cf8a1c', '#f2b740', '#fde9ad'], viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'], turbo: ['#30123b', '#4686fb', '#1ae4b6', '#a2fc3c', '#fabb39', '#e4460a', '#7a0403'] };
+const hexRgb = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+const CM_RGB = {}; for (const k in CMAPS) CM_RGB[k] = CMAPS[k].map(hexRgb);
+const GMAX = 3;
+function cmap(g, name = S.colormap) { const st = CM_RGB[name] || CM_RGB.gold; const x = clamp(g / GMAX, 0, 1) * (st.length - 1); const i = Math.min(Math.floor(x), st.length - 2), f = x - i; return [0, 1, 2].map(k => st[i][k] + (st[i + 1][k] - st[i][k]) * f); }
+
+// ---------------------------------------------------------------- three.js scene
+const OXc = 300, OYc = 300, OZc = 230;
+const V3 = (e, n, z) => new THREE.Vector3(e - OXc, z - OZc, -(n - OYc));
+const toENZ = v => ({ e: v.x + OXc, n: -v.z + OYc, z: v.y + OZc });
+let renderer, scene, camera, controls, raycaster, G = {};
+const clipPlanes = []; const clipMats = [];
+const clipMat = m => { m.clippingPlanes = clipPlanes; clipMats.push(m); return m; };
+function initScene() {
+  const cv = $('#gl');
+  renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.localClippingEnabled = true;
+  scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0B0F19, 900, 1800);
+  camera = new THREE.PerspectiveCamera(42, 1, 1, 5000); camera.position.copy(V3(760, -170, 500));
+  controls = new THREE.OrbitControls(camera, cv); controls.target.copy(V3(300, 300, 230)); controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxPolarAngle = Math.PI * 0.95; controls.update();
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x1a1408, 0.55));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.75); dl.position.set(-300, 600, 300); scene.add(dl);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+  raycaster = new THREE.Raycaster(); raycaster.params.Line.threshold = 3;
+  // ground reference grid at 100 m spacing
+  const gpts = []; for (let v = 0; v <= EXT; v += 100) { gpts.push(V3(v, 0, 120), V3(v, EXT, 120), V3(0, v, 120), V3(EXT, v, 120)); }
+  const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gpts), new THREE.LineBasicMaterial({ color: 0x1f2a3d })); scene.add(grid);
+  buildTopo();
+  const ro = new ResizeObserver(resize); ro.observe($('#view')); resize();
+}
+function resize() { const v = $('#view'); const w = v.clientWidth, h = v.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function disposeObj(o) { if (!o) return; scene.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) { const ms = Array.isArray(c.material) ? c.material : [c.material]; ms.forEach(m => { const i = clipMats.indexOf(m); if (i >= 0) clipMats.splice(i, 1); m.dispose(); }); } }); }
+
+function buildTopo() {
+  disposeObj(G.topo);
+  const seg = 100, geo = new THREE.PlaneGeometry(EXT, EXT, seg, seg); const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+  let zmin = 1e9, zmax = -1e9;
+  for (let i = 0; i < pos.count; i++) { const e = pos.getX(i) + EXT / 2, n = pos.getY(i) + EXT / 2, z = topoZ(e, n); zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); const p = V3(e, n, z); pos.setXYZ(i, p.x, p.y, p.z); }
+  for (let i = 0; i < pos.count; i++) { const z = pos.getY(i) + OZc, f = (z - zmin) / (zmax - zmin); const a = [0.16, 0.2, 0.17], b = [0.42, 0.40, 0.30]; for (let k = 0; k < 3; k++) col[i * 3 + k] = a[k] + (b[k] - a[k]) * f; }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+  const grp = new THREE.Group();
+  const solid = new THREE.Mesh(geo, clipMat(new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: S.layers.topo.op, side: THREE.DoubleSide, depthWrite: false })));
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.PlaneGeometry(EXT, EXT, 30, 30).applyMatrix4(new THREE.Matrix4())), clipMat(new THREE.LineBasicMaterial({ color: 0x5b6b56, transparent: true, opacity: 0.5 })));
+  // drape the coarse wire mesh
+  const wp = wire.geometry.attributes.position; for (let i = 0; i < wp.count; i++) { const e = wp.getX(i) + EXT / 2, n = wp.getY(i) + EXT / 2; const p = V3(e, n, topoZ(e, n) + 0.3); wp.setXYZ(i, p.x, p.y, p.z); }
+  solid.renderOrder = 1; grp.add(solid, wire); G.topoSolid = solid; G.topoWire = wire; G.topo = grp; G.topoRange = [zmin, zmax]; scene.add(grp); applyLayerVis();
+}
+
+function buildDrillholes() {
+  disposeObj(G.dh); const grp = new THREE.Group();
+  const cnt = HOLES.reduce((a, h) => a + h.samples.length, 0);
+  const geo = new THREE.CylinderGeometry(1.25, 1.25, 1, 6, 1, false);
+  const mesh = new THREE.InstancedMesh(geo, clipMat(new THREE.MeshLambertMaterial({ color: 0xffffff })), cnt);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color(); let k = 0; G.dhIndex = [];
+  for (const h of HOLES) {
+    const d = V3(h.dir[0] + OXc, h.dir[1] + OYc, h.dir[2] + OZc).normalize(); q.setFromUnitVectors(up, d);
+    for (const s of h.samples) { const len = s.to - s.from; m4.compose(V3(s.x, s.y, s.z), q, new THREE.Vector3(1, len * 0.96, 1)); mesh.setMatrixAt(k, m4); G.dhIndex.push([h, s]); k++; }
+    const cm = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 1.2, 12), clipMat(new THREE.MeshBasicMaterial({ color: 0xE6EAF1 }))); cm.position.copy(V3(h.collar[0], h.collar[1], h.collar[2] + 0.6)); grp.add(cm);
+  }
+  grp.add(mesh); G.dhMesh = mesh; G.dh = grp; scene.add(grp); colorDrillholes(); applyLayerVis();
+}
+function colorDrillholes() {
+  if (!G.dhMesh) return; const c = new THREE.Color();
+  G.dhIndex.forEach(([h, s], i) => { if (S.layers.dh.colorBy === 'lith') c.set(LITH[s.lith].c); else { const g = effAu(s.au); if (g < 0.2) c.set('#3a4558'); else c.setRGB(...cmap(g)); } G.dhMesh.setColorAt(i, c); });
+  G.dhMesh.instanceColor.needsUpdate = true;
+}
+
+function buildBlocks() {
+  disposeObj(G.bm); const s = BM.bs * 0.9;
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(s, s, s), clipMat(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: S.layers.bm.op })), Math.max(BM.N, 1));
+  mesh.count = 0; mesh.frustumCulled = false; G.bm = mesh; G.bmVisible = new Int32Array(BM.N); scene.add(mesh); filterBlocks();
+}
+function filterBlocks() {
+  if (!G.bm) return; const m4 = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
+  for (let b = 0; b < BM.N; b++) { if (BM.bg[b] < S.cutoff) continue; m4.makeTranslation(BM.bx[b] - OXc, BM.bz[b] - OZc, -(BM.by[b] - OYc)); G.bm.setMatrixAt(k, m4); c.setRGB(...cmap(BM.bg[b])); G.bm.setColorAt(k, c); G.bmVisible[k] = b; k++; }
+  G.bm.count = k; G.bm.instanceMatrix.needsUpdate = true; if (G.bm.instanceColor) G.bm.instanceColor.needsUpdate = true; G.bmCount = k;
+}
+
+// implicit orebody: surface nets isosurface of the IDW grade field
+function surfaceNets(iso) {
+  const { nx, ny, nz, dense, x0, y0, z0, bs } = BM; const W = nx + 1, H = ny + 1;
+  const val = (i, j, k) => (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) ? -iso : dense[i + nx * (j + ny * k)] - iso;
+  const vid = new Int32Array(W * H * (nz + 1)).fill(-1); const cid = (i, j, k) => (i + 1) + W * ((j + 1) + H * (k + 1));
+  const pos = [], cr = new Float32Array(8);
+  const E = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  for (let k = -1; k < nz; k++) for (let j = -1; j < ny; j++) for (let i = -1; i < nx; i++) {
+    let mask = 0; for (let c = 0; c < 8; c++) { const v = val(i + (c & 1), j + ((c >> 1) & 1), k + ((c >> 2) & 1)); cr[c] = v; if (v > 0) mask |= 1 << c; }
+    if (mask === 0 || mask === 255) continue;
+    let sx = 0, sy = 0, sz = 0, n = 0;
+    for (const [a, b] of E) { const va = cr[a], vb = cr[b]; if ((va > 0) === (vb > 0)) continue; const tt = va / (va - vb); sx += (a & 1) + (((b & 1) - (a & 1)) * tt); sy += ((a >> 1) & 1) + ((((b >> 1) & 1) - ((a >> 1) & 1)) * tt); sz += ((a >> 2) & 1) + ((((b >> 2) & 1) - ((a >> 2) & 1)) * tt); n++; }
+    const gx = i + sx / n, gy = j + sy / n, gz = k + sz / n; const p = V3(x0 + (gx + .5) * bs, y0 + (gy + .5) * bs, z0 + (gz + .5) * bs);
+    vid[cid(i, j, k)] = pos.length / 3; pos.push(p.x, p.y, p.z);
+  }
+  const idx = []; const ax = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let k = -1; k < nz; k++) for (let j = -1; j < ny; j++) for (let i = -1; i < nx; i++) {
+    const v0 = val(i, j, k);
+    for (let a = 0; a < 3; a++) {
+      const [dx, dy, dz] = ax[a]; const v1 = val(i + dx, j + dy, k + dz); if ((v0 > 0) === (v1 > 0)) continue;
+      const b = ax[(a + 1) % 3], c = ax[(a + 2) % 3];
+      const p = [i, j, k]; if (p[(a + 1) % 3] < 0 || p[(a + 2) % 3] < 0) continue;
+      const q0 = vid[cid(i, j, k)], q1 = vid[cid(i - b[0], j - b[1], k - b[2])], q2 = vid[cid(i - b[0] - c[0], j - b[1] - c[1], k - b[2] - c[2])], q3 = vid[cid(i - c[0], j - c[1], k - c[2])];
+      if (q0 < 0 || q1 < 0 || q2 < 0 || q3 < 0) continue;
+      if (v0 > 0) idx.push(q0, q1, q2, q0, q2, q3); else idx.push(q0, q2, q1, q0, q3, q2);
+    }
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  let vox = 0; for (let i = 0; i < dense.length; i++) if (dense[i] >= iso) vox++;
+  return { geo, volume: vox * bs ** 3, tris: idx.length / 3 };
+}
+function buildOrebody() {
+  disposeObj(G.ore); const r = surfaceNets(S.iso); const grp = new THREE.Group();
+  const solid = new THREE.Mesh(r.geo, clipMat(new THREE.MeshPhongMaterial({ color: 0x10B981, transparent: true, opacity: S.layers.ore.op, side: THREE.DoubleSide, depthWrite: false, shininess: 40 })));
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(r.geo), clipMat(new THREE.LineBasicMaterial({ color: 0x34D399, transparent: true, opacity: 0.07 })));
+  solid.renderOrder = 3; wire.renderOrder = 3; grp.add(solid, wire); G.ore = grp; G.oreSolid = solid; G.oreWire = wire; G.oreInfo = r; scene.add(grp); applyLayerVis();
+}
+
+function buildPit() {
+  disposeObj(G.pit); const P = S.pit, grp = new THREE.Group(), tanS = Math.tan(P.slope * D2R);
+  // translucent shell surface on a 10 m lattice
+  const n = 60, cs = 10, pos = [], idx = [], ins = [];
+  for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) { const x = i * cs, y = j * cs, tp = topoZ(x, y), f = pitFloor(x, y, P); const p = V3(x, y, Math.min(tp, f) - 0.2); pos.push(p.x, p.y, p.z); ins.push(f < tp - 0.3); }
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const a = i + (n + 1) * j, b = a + 1, c = a + n + 1, d = c + 1; if (ins[a] || ins[b] || ins[c] || ins[d]) idx.push(a, c, b, b, c, d); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setIndex(idx); sg.computeVertexNormals();
+  const shell = new THREE.Mesh(sg, clipMat(new THREE.MeshLambertMaterial({ color: 0x3B82F6, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }))); shell.renderOrder = 2; grp.add(shell);
+  // bench toes / crests and ramp
+  const toe = [], crest = [], ramp = []; const batter = Math.max(S.batter, P.slope);
+  const ring = (d, z, out) => { let prev = null; for (let s = 0; s <= 120; s++) { const th = s / 120 * Math.PI * 2; const u = (P.a + d) * Math.cos(th), v = (P.b + d) * Math.sin(th); const x = P.cx + u * SV[0] - v * SV[1], y = P.cy + u * SV[1] + v * SV[0]; const ok = z <= topoZ(x, y) + 0.5; const p = V3(x, y, z); if (prev && ok && prev.ok) out.push(prev.p, p); prev = { p, ok }; } };
+  for (let k = 0; ; k++) { const z = P.zb + k * S.benchH; if (z > G.topoRange[1] + 2) break; const d = k * S.benchH / tanS; ring(d, z, toe); if (S.layers.pit.benches) ring(d + S.benchH / Math.tan(batter * D2R), z + S.benchH, crest); }
+  if (S.layers.pit.benches) { let th = 0.4, z = P.zb, prev = null; for (let s = 0; s < 2400; s++) { const d = (z - P.zb) / tanS + 2; const u = (P.a + d) * Math.cos(th), v = (P.b + d) * Math.sin(th); const x = P.cx + u * SV[0] - v * SV[1], y = P.cy + u * SV[1] + v * SV[0]; if (z > topoZ(x, y) + 1) break; const p = V3(x, y, z + 0.4); if (prev) ramp.push(prev, p); prev = p; const per = Math.PI * (3 * (P.a + d + P.b + d) - Math.sqrt((3 * (P.a + d) + P.b + d) * (P.a + d + 3 * (P.b + d)))); const step = 2; th += step / per * Math.PI * 2; z += step * 0.1; } }
+  const L = (pts, color, op) => { const g = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), clipMat(new THREE.LineBasicMaterial({ color, transparent: true, opacity: op }))); grp.add(g); };
+  L(toe, 0x7AA9F8, 0.9); if (crest.length) L(crest, 0x3B82F6, 0.55); if (ramp.length) L(ramp, 0xF59E0B, 0.95);
+  G.pit = grp; scene.add(grp); applyLayerVis();
+}
+
+function buildInfill() {
+  disposeObj(G.infill); if (!S.infill.length) { G.infill = null; return; } const grp = new THREE.Group();
+  for (const h of S.infill) { const a = V3(...h.collar), b = V3(h.collar[0] + h.dir[0] * h.len, h.collar[1] + h.dir[1] * h.len, h.collar[2] + h.dir[2] * h.len); const g = new THREE.BufferGeometry().setFromPoints([a, b]); const ln = new THREE.Line(g, clipMat(new THREE.LineDashedMaterial({ color: 0x67E8F9, dashSize: 6, gapSize: 4 }))); ln.computeLineDistances(); grp.add(ln); const tg = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), clipMat(new THREE.MeshBasicMaterial({ color: 0x67E8F9, transparent: true, opacity: 0.6 }))); tg.position.copy(V3(...h.target)); grp.add(tg); }
+  G.infill = grp; scene.add(grp); applyLayerVis();
+}
+function buildSketch() {
+  disposeObj(G.sketch); const pts = S.sketch.pts; if (!pts.length) { G.sketch = null; return; } const grp = new THREE.Group();
+  const line = []; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; if (i === pts.length - 1 && !S.sketch.closed) break; for (let s = 0; s < 10; s++) { const f0 = s / 10, f1 = (s + 1) / 10; const p0 = [a[0] + (b[0] - a[0]) * f0, a[1] + (b[1] - a[1]) * f0], p1 = [a[0] + (b[0] - a[0]) * f1, a[1] + (b[1] - a[1]) * f1]; line.push(V3(p0[0], p0[1], topoZ(...p0) + 1), V3(p1[0], p1[1], topoZ(...p1) + 1)); } }
+  if (line.length) grp.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(line), new THREE.LineBasicMaterial({ color: 0xF59E0B })));
+  for (const p of pts) { const m = new THREE.Mesh(new THREE.SphereGeometry(2.5, 10, 8), new THREE.MeshBasicMaterial({ color: 0xF59E0B })); m.position.copy(V3(p[0], p[1], topoZ(p[0], p[1]) + 1)); grp.add(m); }
+  if (S.sketch.pad != null) { const pad = pts.map(p => V3(p[0], p[1], S.sketch.pad)); pad.push(pad[0]); grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pad), new THREE.LineDashedMaterial({ color: 0xFDE68A, dashSize: 4, gapSize: 3 }))); grp.children[grp.children.length - 1].computeLineDistances(); }
+  G.sketch = grp; scene.add(grp);
+}
+function applyLayerVis() {
+  const L = S.layers;
+  if (G.topo) { G.topo.visible = L.topo.vis; G.topoSolid.visible = L.topo.mode === 'solid'; G.topoWire.visible = true; G.topoWire.material.opacity = L.topo.mode === 'solid' ? 0.18 : 0.6; G.topoSolid.material.opacity = L.topo.op; }
+  if (G.dh) G.dh.visible = L.dh.vis;
+  if (G.ore) { G.ore.visible = L.ore.vis; G.oreSolid.material.opacity = L.ore.op; }
+  if (G.bm) { G.bm.visible = L.bm.vis; G.bm.material.opacity = L.bm.op; G.bm.material.transparent = L.bm.op < 1; }
+  if (G.pit) G.pit.visible = L.pit.vis;
+  if (G.infill) G.infill.visible = L.infill.vis;
+}
+function applySlice() {
+  const s = S.slice; clipPlanes.length = 0;
+  if (s.enabled) { if (s.axis === 'x') clipPlanes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), s.pos - OXc)); else if (s.axis === 'y') clipPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, 1), s.pos - OYc)); else clipPlanes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), s.pos - OZc)); }
+  clipMats.forEach(m => m.needsUpdate = true);
+  disposeObj(G.sliceFrame); G.sliceFrame = null;
+  if (s.enabled) {
+    let pts; const p = s.pos; if (s.axis === 'x') pts = [V3(p, 0, 120), V3(p, EXT, 120), V3(p, EXT, 360), V3(p, 0, 360)]; else if (s.axis === 'y') pts = [V3(0, p, 120), V3(EXT, p, 120), V3(EXT, p, 360), V3(0, p, 360)]; else pts = [V3(0, 0, p), V3(EXT, 0, p), V3(EXT, EXT, p), V3(0, EXT, p)];
+    pts.push(pts[0]); G.sliceFrame = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xF59E0B, transparent: true, opacity: 0.8 })); scene.add(G.sliceFrame);
+  }
+  const ax = { x: 'E', y: 'N', z: 'RL' }[s.axis];
+  $('#hudSlice').textContent = s.enabled ? `${ax} ≤ ${fmt(s.pos)} m` : t('off');
+  $('#slOn').checked = s.enabled; $('#slPos').value = s.pos; $('#slVal').textContent = fmt(s.pos) + ' m';
+  document.querySelectorAll('#slAxis button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ax === s.axis));
+  const r = s.axis === 'z' ? [120, 360] : [0, EXT]; $('#slPos').min = r[0]; $('#slPos').max = r[1];
+  const tl = document.querySelector('[data-tool=slicer]'); if (tl) tl.setAttribute('aria-pressed', s.enabled);
+}
+const passesClip = p => !clipPlanes.length || clipPlanes[0].distanceToPoint(p) >= 0;
+
+// ---------------------------------------------------------------- labels, gizmo, legend
+function renderLabels() {
+  const box = $('#labels'); const w = box.clientWidth, h = box.clientHeight; const items = [];
+  if (S.layers.dh.vis && S.layers.dh.labels) for (const hh of HOLES) items.push({ p: V3(hh.collar[0], hh.collar[1], hh.collar[2] + 4), txt: hh.id, cls: (hh.id === 'DH-08' && !S.topCut) ? 'flag' : '' });
+  if (S.layers.infill.vis) for (const hh of S.infill) items.push({ p: V3(hh.collar[0], hh.collar[1], hh.collar[2] + 4), txt: hh.id, cls: 'ph' });
+  if (box.childElementCount !== items.length) { box.innerHTML = items.map(() => '<span class="lbl"></span>').join(''); }
+  const v = new THREE.Vector3();
+  items.forEach((it, i) => { const el = box.children[i]; v.copy(it.p).project(camera); const vis = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && passesClip(it.p); el.hidden = !vis; if (!vis) return; el.style.left = ((v.x + 1) / 2 * w) + 'px'; el.style.top = ((1 - v.y) / 2 * h) + 'px'; if (el.textContent !== it.txt) el.textContent = it.txt; el.className = 'lbl ' + it.cls; });
+}
+function drawGizmo() {
+  const cv = $('#gizmo'), g = cv.getContext('2d'), s = cv.width, c = s / 2; g.clearRect(0, 0, s, s);
+  g.fillStyle = 'rgba(11,15,25,.72)'; g.strokeStyle = '#2B3648'; g.lineWidth = 2; g.beginPath(); g.arc(c, c, c - 3, 0, Math.PI * 2); g.fill(); g.stroke();
+  const qi = camera.quaternion.clone().invert();
+  const axes = [{ v: new THREE.Vector3(1, 0, 0), l: 'E', col: '#F87171' }, { v: new THREE.Vector3(0, 0, -1), l: 'N', col: '#34D399' }, { v: new THREE.Vector3(0, 1, 0), l: 'Z', col: '#7AA9F8' }].map(a => { a.p = a.v.clone().applyQuaternion(qi); return a; }).sort((a, b) => a.p.z - b.p.z);
+  g.font = '600 22px "JetBrains Mono",monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const a of axes) { const x = c + a.p.x * (c - 30), y = c - a.p.y * (c - 30); g.strokeStyle = a.col; g.lineWidth = 4; g.globalAlpha = a.p.z < -0.2 ? 0.45 : 1; g.beginPath(); g.moveTo(c, c); g.lineTo(x, y); g.stroke(); g.fillStyle = a.col; g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2); g.fill(); g.fillStyle = '#0B0F19'; g.fillText(a.l, x, y + 1); }
+  g.globalAlpha = 1;
+}
+function renderLegend() {
+  const el = $('#legend');
+  if (S.layers.dh.colorBy === 'lith') {
+    el.innerHTML = `<div class="hud-k">${S.lang === 'ar' ? 'الصخارة (الآبار)' : 'Lithology (holes)'}</div><div class="lith-key">${Object.entries(LITH).map(([k, v]) => `<span class="swatch" style="background:${v.c}"></span><span>${k} · ${v[S.lang]}</span>`).join('')}</div><div class="hud-k" style="margin-top:6px">Au g/t (blocks)</div><canvas width="344" height="20"></canvas><div class="ticks"><span>0</span><span>1</span><span>2</span><span>3+</span></div>`;
+  } else el.innerHTML = `<div class="hud-k">Au g/t · ${S.colormap}</div><canvas width="344" height="20"></canvas><div class="ticks"><span>0</span><span>1</span><span>2</span><span>3+</span></div>`;
+  const cv = el.querySelector('canvas'), g = cv.getContext('2d'); for (let x = 0; x < cv.width; x++) { const c = cmap(x / cv.width * GMAX); g.fillStyle = `rgb(${c.map(v => Math.round(v * 255)).join(',')})`; g.fillRect(x, 0, 1, cv.height); }
+  const cx = S.cutoff / GMAX * cv.width; g.fillStyle = 'rgba(11,15,25,.65)'; g.fillRect(0, 0, cx, cv.height); g.fillStyle = '#fff'; g.fillRect(cx - 1, 0, 2, cv.height);
+}
+
+// ---------------------------------------------------------------- KPIs
+let PE = null, prevK = null;
+function currentStats() { const st = pitStats(PE, S.cutoff); const ec = econ(st); return Object.assign(st, ec); }
+function updateKPIs() {
+  const k = currentStats(); const sr = k.oreT ? k.wasteT / k.oreT : 0;
+  const d = (cur, key, f, unit = '') => { if (!prevK) return ''; const dv = cur - prevK[key]; if (Math.abs(dv) < 1e-9 || !isFinite(dv)) return ''; return ` <span class="${dv > 0 ? 'delta-up' : 'delta-dn'}">${dv > 0 ? '▲' : '▼'}${f(Math.abs(dv))}${unit}</span>`; };
+  const items = [
+    { k: 'k_ore', v: `${fmt(k.oreT / 1e6, 2)} <small>Mt</small>`, s: `${fmt(k.oreT)} t` + d(k.oreT / 1e6, 'oreMt', v => fmt(v, 2), ' Mt') },
+    { k: 'k_grade', v: `${fmt(k.grade, 2)} <small>g/t Au</small>`, s: `≥ ${fmt(S.cutoff, 2)} g/t COG` + d(k.grade, 'grade', v => fmt(v, 2)) },
+    { k: 'k_metal', v: `${fmt(k.oz / 1e3, 1)} <small>koz Au</small>`, s: `${fmt(k.oz * S.recovery / 100 / 1e3, 1)} koz recovered` + d(k.oz / 1e3, 'koz', v => fmt(v, 1), ' koz') },
+    { k: 'k_waste', v: `${fmt(k.wasteT / 1e6, 2)} <small>Mt</small>`, s: `pit ${fmt((k.oreT + k.wasteT) / 1e6, 2)} Mt total` + d(k.wasteT / 1e6, 'wasteMt', v => fmt(v, 2), ' Mt') },
+    { k: 'k_sr', v: `${fmt(sr, 2)} <small>W:O</small>`, s: `${fmt(S.pit.slope, 0)}° · RL ${fmt(S.pit.zb)} floor` + d(sr, 'sr', v => fmt(v, 2)) },
+    { k: 'k_npv', v: `${k.npv < 0 ? '−' : ''}$${fmt(Math.abs(k.npv) / 1e6, 1)} <small>M</small>`, s: `${fmt(k.life, 1)} yr life · $${fmt(S.price)}/oz` + d(k.npv / 1e6, 'npv', v => '$' + fmt(v, 1), 'M'), cls: k.npv >= 0 ? 'hero' : 'neg' }
+  ];
+  $('#kpis').innerHTML = items.map(i => `<div class="kpi ${i.cls || ''}"><div class="kpi-k">${t(i.k)}</div><div class="kpi-v">${i.v}</div><div class="kpi-s">${i.s}</div></div>`).join('');
+  prevK = { oreMt: k.oreT / 1e6, grade: k.grade, koz: k.oz / 1e3, wasteMt: k.wasteT / 1e6, sr, npv: k.npv / 1e6 };
+  $('#visBlocks').textContent = `${fmt(G.bmCount || 0)} blocks`;
+  $('#cogVal').innerHTML = `${fmt(S.cutoff, 2)} <small>g/t Au</small>`; $('#cog').value = clamp(S.cutoff, 0.3, 2.5);
+  return k;
+}
+
+// ---------------------------------------------------------------- layer tree UI
+function layerTree() {
+  const L = S.layers, ar = S.lang === 'ar'; const ore = G.oreInfo || { volume: 0 };
+  const eye = on => `<i data-lucide="${on ? 'eye' : 'eye-off'}"></i>`;
+  const rows = [
+    { id: 'topo', name: 'Topography', sw: '#5b6b56', badge: `DTM · ${fmt(G.topoRange ? G.topoRange[0] : 0)}–${fmt(G.topoRange ? G.topoRange[1] : 0)} RL`, body: `
+      <label class="ctl"><span>${t('opacity')}</span><input type="range" min="0.1" max="1" step="0.05" value="${L.topo.op}" data-k="topo.op"><output>${Math.round(L.topo.op * 100)}%</output></label>
+      <div class="ctl"><span>${t('mode')}</span><div class="seg" data-seg="topo.mode"><button type="button" data-v="solid" aria-pressed="${L.topo.mode === 'solid'}">${t('solid')}</button><button type="button" data-v="wire" aria-pressed="${L.topo.mode === 'wire'}">${t('wire')}</button></div><span></span></div>` },
+    { id: 'dh', name: 'Drillholes', sw: '#F2C94C', badge: `${HOLES.length} ${ar ? 'بئر' : 'holes'} · ${fmt(HOLES.reduce((a, h) => a + h.len, 0))} m`, body: `
+      <div class="ctl"><span>${t('colorBy')}</span><div class="seg" data-seg="dh.colorBy"><button type="button" data-v="au" aria-pressed="${L.dh.colorBy === 'au'}">Au_gpt</button><button type="button" data-v="lith" aria-pressed="${L.dh.colorBy === 'lith'}">Lithology</button></div><span></span></div>
+      <label class="toggle"><input type="checkbox" data-k="dh.labels" ${L.dh.labels ? 'checked' : ''}>${t('labels')}</label>` },
+    { id: 'ore', name: 'Orebody_Solid', sw: '#10B981', badge: `${fmt(ore.volume / 1e3)} k m³ · ${fmt(ore.volume * S.density / 1e6, 2)} Mt`, body: `
+      <label class="ctl"><span>${t('opacity')}</span><input type="range" min="0.05" max="0.8" step="0.01" value="${L.ore.op}" data-k="ore.op"><output>${Math.round(L.ore.op * 100)}%</output></label>
+      <label class="ctl"><span>${t('iso')}</span><input type="range" min="0.2" max="2" step="0.05" value="${S.iso}" data-k="iso"><output>${fmt(S.iso, 2)} g/t</output></label>` },
+    { id: 'bm', name: 'Block_Model', sw: '#cf8a1c', badge: `${BM.bs}×${BM.bs}×${BM.bs} m · ${fmt(BM.N)}`, body: `
+      <label class="ctl"><span>${t('opacity')}</span><input type="range" min="0.2" max="1" step="0.05" value="${L.bm.op}" data-k="bm.op"><output>${Math.round(L.bm.op * 100)}%</output></label>
+      <div class="ctl"><span>${t('colormap')}</span><select class="sel" data-k="colormap">${Object.keys(CMAPS).map(c => `<option ${c === S.colormap ? 'selected' : ''}>${c}</option>`).join('')}</select><span></span></div>
+      <div class="ctl"><span>IDW power</span><div class="seg" data-seg="idwPower">${[1, 2, 3].map(p => `<button type="button" data-v="${p}" aria-pressed="${S.idwPower === p}">${p}</button>`).join('')}</div><span></span></div>` },
+    { id: 'pit', name: 'Ultimate_Pit_Shell', sw: '#3B82F6', badge: `${fmt(S.pit.slope)}° · ${S.benchH} m`, body: `
+      <label class="ctl"><span>${t('slope')}</span><input type="range" min="30" max="60" step="1" value="${S.pit.slope}" data-k="slope"><output>${fmt(S.pit.slope)}°</output></label>
+      <label class="ctl"><span>${t('bottom')}</span><input type="range" min="120" max="300" step="10" value="${S.pit.zb}" data-k="zb"><output>${fmt(S.pit.zb)}</output></label>
+      <label class="toggle"><input type="checkbox" data-k="pit.benches" ${L.pit.benches ? 'checked' : ''}>${t('benches')}</label>` }
+  ];
+  if (S.infill.length) rows.push({ id: 'infill', name: 'Infill_Proposed', sw: '#67E8F9', badge: `${S.infill.length} ${ar ? 'آبار مقترحة' : 'proposed'}`, body: `<p class="hint">${S.infill.map(h => `${h.id}: ${fmt(h.len)} m @ ${fmt(h.dip)}°/${fmt(h.az)}°`).join('<br>')}</p>` });
+  $('#layerTree').innerHTML = rows.map(r => `<div class="layer ${L[r.id].vis ? '' : 'off'}" data-layer="${r.id}"><div class="layer-row"><button class="eye" type="button" data-eye="${r.id}" aria-label="Toggle ${r.name}">${eye(L[r.id].vis)}</button><span class="swatch" style="background:${r.sw}"></span><span class="layer-name">${r.name}</span><span class="badge">${r.badge}</span></div><div class="layer-body">${r.body}</div></div>`).join('');
+  icons();
+}
+function bindLayerTree() {
+  const tree = $('#layerTree');
+  tree.addEventListener('click', e => {
+    const eb = e.target.closest('[data-eye]'); if (eb) { const L = S.layers[eb.dataset.eye]; L.vis = !L.vis; applyLayerVis(); layerTree(); return; }
+    const sb = e.target.closest('[data-seg] button'); if (sb) { const key = sb.parentElement.dataset.seg, v = sb.dataset.v; if (key === 'topo.mode') S.layers.topo.mode = v; else if (key === 'dh.colorBy') { S.layers.dh.colorBy = v; colorDrillholes(); renderLegend(); } else if (key === 'idwPower') { dispatch('run_idw', { power: +v }, 'ui'); return; } applyLayerVis(); layerTree(); }
+  });
+  tree.addEventListener('input', e => {
+    const k = e.target.dataset.k; if (!k) return; const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value; const out = e.target.parentElement.querySelector('output');
+    if (k === 'topo.op') { S.layers.topo.op = +v; out.textContent = Math.round(v * 100) + '%'; applyLayerVis(); }
+    else if (k === 'ore.op') { S.layers.ore.op = +v; out.textContent = Math.round(v * 100) + '%'; applyLayerVis(); }
+    else if (k === 'bm.op') { S.layers.bm.op = +v; out.textContent = Math.round(v * 100) + '%'; applyLayerVis(); }
+    else if (k === 'slope') { out.textContent = v + '°'; S.slope = +v; S.pit.slope = +v; refreshPit(); }
+    else if (k === 'zb') { out.textContent = v; S.pit.zb = +v; refreshPit(); }
+    else if (k === 'iso') { out.textContent = fmt(v, 2) + ' g/t'; }
+    else if (k === 'dh.labels') S.layers.dh.labels = v;
+    else if (k === 'pit.benches') { S.layers.pit.benches = v; buildPit(); }
+    else if (k === 'colormap') dispatch('filter_block_model', { cutoff_grade: S.cutoff, colormap: v }, 'ui');
+  });
+  tree.addEventListener('change', e => { if (e.target.dataset.k === 'iso') { S.iso = +e.target.value; buildOrebody(); layerTree(); } if (e.target.dataset.k === 'slope' || e.target.dataset.k === 'zb') { layerTree(); renderCards(); } });
+}
+let pitTimer = 0;
+function refreshPit() { PE = evalPit(S.pit, 5); updateKPIs(); clearTimeout(pitTimer); pitTimer = setTimeout(() => { buildPit(); }, 60); }
+
+// ---------------------------------------------------------------- ribbon
+const TABS = {
+  project: [['importDH', 'upload'], ['validate', 'shield-check'], ['save', 'save']],
+  terrain: [['sketch', 'pen-tool', true], ['dtm', 'mountain'], ['cutfill', 'layers']],
+  geology: [['slicer', 'scissors', true, 'sectionSlicer'], ['implicit', 'box'], ['boolean', 'boxes']],
+  block: [['voxel', 'grid'], ['idw', 'sigma'], ['gt', 'line-chart']],
+  pit: [['pitBottom', 'arrow-down'], ['benches', 'trending-up', true], ['strip', 'percent'], ['optPit', 'target']],
+  ai: []
+};
+let curTab = 'block';
+function renderRibbon() {
+  $('#tabs').innerHTML = Object.keys(TABS).map(k => `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${k === curTab}">${t('tab_' + k)}</button>`).join('');
+  let html = '';
+  if (curTab === 'ai') {
+    html = `<label class="tool" style="gap:8px"><i data-lucide="cpu"></i><select class="sel" id="engineSel" aria-label="AI engine">${[['gemini-2.5-pro', 'Gemini 2.5 Pro'], ['claude-sonnet', 'Claude Sonnet'], ['gpt-4o', 'GPT-4o']].map(([v, l]) => `<option value="${v}" ${S.engine === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <span class="tool" style="cursor:default"><i data-lucide="key"></i><span class="chip warn"><span class="dot"></span>${t('keyStatus')}</span></span><span class="tool-sep"></span>
+      <button class="tool" type="button" data-tool="schemas"><i data-lucide="file-text"></i>${t('schemas')}</button>`;
+  } else {
+    html = TABS[curTab].map(([k, ic, toggle, lk]) => {
+      const pressed = toggle ? (k === 'sketch' ? S.sketch.on : k === 'slicer' ? S.slice.enabled : k === 'benches' ? S.layers.pit.benches : false) : null;
+      let extra = ''; if (k === 'voxel') extra = ` <span class="mono" style="color:var(--fg-2)">${S.blockSize} m</span>`; if (k === 'idw') extra = ` <span class="mono" style="color:var(--fg-2)">p=${S.idwPower}</span>`;
+      return `<button class="tool" type="button" data-tool="${k}" ${toggle ? `aria-pressed="${pressed}"` : ''}><i data-lucide="${ic}"></i>${t(lk || k)}${extra}</button>`;
+    }).join('');
+  }
+  $('#tools').innerHTML = html; icons();
+  const es = $('#engineSel'); if (es) es.onchange = () => { S.engine = es.value; renderEngine(); toast(`${es.options[es.selectedIndex].text}: ${S.lang === 'ar' ? 'سيُرسل نفس مخطط الأدوات عند توفر مفتاح API' : 'the same tool schema is sent when an API key is configured'}`); };
+}
+function renderEngine() { const n = { 'gemini-2.5-pro': 'Gemini 2.5 Pro', 'claude-sonnet': 'Claude Sonnet', 'gpt-4o': 'GPT-4o' }[S.engine]; $('#engineTxt').textContent = `${n} · ${S.lang === 'ar' ? 'محلي' : 'local'}`; }
+function onTool(k) {
+  const ar = S.lang === 'ar';
+  switch (k) {
+    case 'importDH': $('#csvFile').click(); toast(ar ? 'الصيغة: hole_id,east,north,elev,azimuth,dip,from,to,au_gpt' : 'Format: hole_id,east,north,elev,azimuth,dip,from,to,au_gpt'); break;
+    case 'validate': dispatch('audit_drillholes', { apply_top_cut: S.topCut || 0, fix_overlaps: true }, 'ui'); break;
+    case 'save': showProjectFile(); break;
+    case 'sketch': S.sketch.on = !S.sketch.on; if (S.sketch.on) { S.sketch.pts = []; S.sketch.closed = false; S.sketch.pad = null; buildSketch(); } $('#view').classList.toggle('sketching', S.sketch.on); toast(S.sketch.on ? (ar ? 'انقر على السطح لإضافة نقاط المضلع، ثم اضغط "حجم القطع والردم".' : 'Click the terrain to add polygon vertices, then run Cut & Fill Volume.') : (ar ? 'تم إيقاف الرسم.' : 'Sketch mode off.')); renderRibbon(); break;
+    case 'dtm': { buildTopo(); S.layers.topo.vis = true; applyLayerVis(); layerTree(); botSay(ar ? `<b>سطح DTM</b>: شبكة 101×101 عقدة (10,201) و20,000 مثلث، خلية 6 م. المنسوب ${fmt(G.topoRange[0])}–${fmt(G.topoRange[1])} م.` : `<b>DTM generated</b>: 101×101 lattice (10,201 nodes, 20,000 triangles, 6 m cells). Elevation ${fmt(G.topoRange[0])}–${fmt(G.topoRange[1])} RL.`); break; }
+    case 'cutfill': cutFill(); break;
+    case 'slicer': dispatch('set_section_slice', { axis: S.slice.axis, position: S.slice.pos, enabled: !S.slice.enabled }, 'ui'); break;
+    case 'implicit': S.iso = Math.max(0.2, Math.round(S.cutoff * 20) / 20); buildOrebody(); layerTree(); botSay(ar ? `<b>جسم خام ضمني</b> عند ${fmt(S.iso, 2)} غ/طن: ${fmt(G.oreInfo.tris)} مثلث، حجم ${fmt(G.oreInfo.volume / 1e3)} ألف م³ (${fmt(G.oreInfo.volume * S.density / 1e6, 2)} مليون طن).` : `<b>Implicit orebody</b> rebuilt at the ${fmt(S.iso, 2)} g/t iso-shell of the IDW field: ${fmt(G.oreInfo.tris)} triangles, ${fmt(G.oreInfo.volume / 1e3)} k m³ (${fmt(G.oreInfo.volume * S.density / 1e6, 2)} Mt).`); break;
+    case 'boolean': booleans(); break;
+    case 'voxel': S.blockSize = S.blockSize === 5 ? 10 : 5; rebuildModel(); botSay(ar ? `<b>شبكة البلوكات</b>: ${S.blockSize}×${S.blockSize}×${S.blockSize} م، ${fmt(BM.N)} بلوك مقدَّر.` : `<b>Voxel grid</b> set to ${S.blockSize}×${S.blockSize}×${S.blockSize} m: ${fmt(BM.N)} estimated blocks.`); break;
+    case 'idw': dispatch('run_idw', { power: S.idwPower }, 'ui'); break;
+    case 'gt': showGT(); break;
+    case 'pitBottom': { const r = optimizePit(true); refreshPitFull(); botSay(ar ? `<b>قاع الحفرة</b> عند المنسوب ${fmt(S.pit.zb)} م (الأفضل لنفس المسقط). صافي القيمة الحالية ${usd(r.npv / 1e6)} مليون.` : `<b>Pit bottom</b> set to RL ${fmt(S.pit.zb)} (best NPV for the current footprint): ${usd(r.npv / 1e6)}M.`); break; }
+    case 'benches': S.layers.pit.benches = !S.layers.pit.benches; buildPit(); renderRibbon(); layerTree(); { const ber = S.benchH / Math.tan(S.pit.slope * D2R) - S.benchH / Math.tan(Math.max(S.batter, S.pit.slope) * D2R); if (S.layers.pit.benches) botSay(ar ? `<b>المصاطب</b>: ارتفاع ${S.benchH} م، ميل الوجه ${S.batter}°، عرض الرصيف ${fmt(ber, 1)} م، طريق بانحدار 10% (باللون الكهرماني).` : `<b>Benches</b>: ${S.benchH} m height, ${S.batter}° batter, ${fmt(ber, 1)} m berm, 10% ramp (amber).`); } break;
+    case 'strip': { const k = currentStats(); botSay(ar ? `<b>نسبة الكشف</b> ${fmt(k.wasteT / Math.max(k.oreT, 1), 2)} : 1 (نفايات ${fmt(k.wasteT / 1e6, 2)} مليون طن / خام ${fmt(k.oreT / 1e6, 2)} مليون طن).` : `<b>Stripping ratio</b> ${fmt(k.wasteT / Math.max(k.oreT, 1), 2)} : 1 (waste ${fmt(k.wasteT / 1e6, 2)} Mt / ore ${fmt(k.oreT / 1e6, 2)} Mt).`); break; }
+    case 'optPit': dispatch('run_pit_optimization', { slope_angle: S.slope, gold_price_oz: S.price, mining_cost_t: S.mineCost, processing_cost_t: S.procCost }, 'ui'); break;
+    case 'schemas': showSchemas(); break;
+  }
+}
+function refreshPitFull() { PE = evalPit(S.pit, 5); buildPit(); updateKPIs(); layerTree(); renderCards(); }
+
+// ---------------------------------------------------------------- terrain tools
+function cutFill() {
+  const ar = S.lang === 'ar', pts = S.sketch.pts;
+  if (pts.length < 3) { toast(ar ? 'ارسم مضلعاً من 3 نقاط على الأقل باستخدام "رسم ذكي".' : 'Draw a polygon of at least 3 points with Smart Sketch first.'); if (!S.sketch.on) onTool('sketch'); return; }
+  S.sketch.closed = true; S.sketch.on = false; $('#view').classList.remove('sketching');
+  const pad = pts.reduce((a, p) => a + topoZ(p[0], p[1]), 0) / pts.length; S.sketch.pad = pad;
+  const inside = (x, y) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+  let cut = 0, fill = 0, area = 0; const cs = 2.5;
+  for (let y = 0; y < EXT; y += cs) for (let x = 0; x < EXT; x += cs) { const cx = x + cs / 2, cy = y + cs / 2; if (!inside(cx, cy)) continue; const dz = topoZ(cx, cy) - pad; area += cs * cs; if (dz > 0) cut += dz * cs * cs; else fill -= dz * cs * cs; }
+  buildSketch(); renderRibbon();
+  botSay(ar ? `<b>القطع والردم</b> لمنصة أفقية عند المنسوب ${fmt(pad, 1)} م فوق ${fmt(area)} م²: قطع ${fmt(cut)} م³، ردم ${fmt(fill)} م³، الصافي ${fmt(cut - fill)} م³.` : `<b>Cut & fill</b> for a level pad at RL ${fmt(pad, 1)} over ${fmt(area)} m²: cut ${fmt(cut)} m³, fill ${fmt(fill)} m³, net ${cut - fill >= 0 ? '+' : '−'}${fmt(Math.abs(cut - fill))} m³.`);
+}
+function booleans() {
+  const ar = S.lang === 'ar', { dense, nx, ny, nz, x0, y0, bs } = BM; let inside = 0, below = 0;
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const v = dense[i + nx * (j + ny * k)]; if (v < S.iso) continue; const z = BM.z0 + (k + .5) * bs; if (z > PE.colF[i + nx * j]) inside++; else below++; }
+  const tt = n => n * bs ** 3 * S.density / 1e6;
+  botSay(ar ? `<b>تقاطع المجسمات</b> (جسم الخام ∩ الحفرة): ${fmt(tt(inside), 2)} مليون طن داخل الحفرة، و${fmt(tt(below), 2)} مليون طن تحتها (هدف للتعدين الجوفي). نسبة الاستغلال ${fmt(inside / Math.max(inside + below, 1) * 100, 0)}%.` : `<b>Boolean</b> Orebody_Solid ∩ Ultimate_Pit_Shell: ${fmt(tt(inside), 2)} Mt inside the pit, ${fmt(tt(below), 2)} Mt below it (underground target). Pit captures ${fmt(inside / Math.max(inside + below, 1) * 100, 0)}% of the solid.`);
+}
+
+// ---------------------------------------------------------------- model pipeline
+function rebuildModel() {
+  estimate(); buildBlocks(); buildOrebody(); if (!S.pit) optimizePit(); PE = evalPit(S.pit, 5); buildPit(); colorDrillholes();
+  updateKPIs(); layerTree(); renderLegend(); renderCards(); renderRibbon();
+}
+
+// ---------------------------------------------------------------- AI tools (function-calling schema)
+const TOOLS = [
+  { name: 'filter_block_model', description: 'Filter visible blocks by cut-off grade and set the grade colormap. Recomputes ore/waste KPIs.', parameters: { type: 'object', properties: { cutoff_grade: { type: 'number', description: 'g/t Au' }, colormap: { type: 'string', enum: ['gold', 'viridis', 'turbo'] } }, required: ['cutoff_grade'] } },
+  { name: 'run_pit_optimization', description: 'Nested-shell pit search maximising NPV for the given slope and economics.', parameters: { type: 'object', properties: { slope_angle: { type: 'number', description: 'overall slope, degrees' }, gold_price_oz: { type: 'number' }, mining_cost_t: { type: 'number' }, processing_cost_t: { type: 'number' } }, required: ['slope_angle'] } },
+  { name: 'audit_drillholes', description: 'QA/QC: apply an assay top-cut (0 = none) and optionally fix overlapping or duplicate intervals; re-estimates the block model.', parameters: { type: 'object', properties: { apply_top_cut: { type: 'number', description: 'g/t Au cap' }, fix_overlaps: { type: 'boolean' } }, required: ['apply_top_cut', 'fix_overlaps'] } },
+  { name: 'set_section_slice', description: 'Clip the 3D scene with a section plane.', parameters: { type: 'object', properties: { axis: { type: 'string', enum: ['x', 'y', 'z'] }, position: { type: 'number', description: 'easting, northing or RL in metres' }, enabled: { type: 'boolean' } }, required: ['axis', 'position', 'enabled'] } },
+  { name: 'generate_executive_report', description: 'Open the engineering & reserve report.', parameters: { type: 'object', properties: { project_name: { type: 'string' }, include_sensitivity: { type: 'boolean' } }, required: ['project_name'] } },
+  { name: 'plot_infill_holes', description: 'Propose infill drillholes where estimation uncertainty is highest.', parameters: { type: 'object', properties: { count: { type: 'integer' } }, required: ['count'] } },
+  { name: 'run_idw', description: 'Re-run inverse-distance estimation with the given power.', parameters: { type: 'object', properties: { power: { type: 'number' } }, required: ['power'] } }
+];
+
+function dispatch(name, args, src = 'ai') {
+  const ar = S.lang === 'ar'; let res = {};
+  switch (name) {
+    case 'filter_block_model': {
+      S.cutoff = clamp(+args.cutoff_grade, 0, 5); if (args.colormap && CMAPS[args.colormap]) S.colormap = args.colormap;
+      filterBlocks(); colorDrillholes(); renderLegend(); const k = updateKPIs(); if (src === 'ui') layerTree(); renderCards(); res = { visible_blocks: G.bmCount, ore_t: Math.round(k.oreT), grade: +k.grade.toFixed(2), waste_t: Math.round(k.wasteT), strip_ratio: +(k.wasteT / Math.max(k.oreT, 1)).toFixed(2), npv_musd: +(k.npv / 1e6).toFixed(1) }; break;
+    }
+    case 'run_pit_optimization': {
+      if (args.slope_angle) S.slope = clamp(+args.slope_angle, 25, 65); if (args.gold_price_oz) S.price = +args.gold_price_oz; if (args.mining_cost_t) S.mineCost = +args.mining_cost_t; if (args.processing_cost_t) S.procCost = +args.processing_cost_t;
+      syncEconInputs(); const before = currentStats(); const r = optimizePit(false); refreshPitFull(); const k = currentStats();
+      res = { slope_angle: S.slope, bottom_rl: S.pit.zb, footprint_m: [Math.round(2 * S.pit.a), Math.round(2 * S.pit.b)], ore_t: Math.round(k.oreT), waste_t: Math.round(k.wasteT), strip_ratio: +(k.wasteT / Math.max(k.oreT, 1)).toFixed(2), npv_musd: +(k.npv / 1e6).toFixed(1), npv_change_musd: +((k.npv - before.npv) / 1e6).toFixed(1) }; break;
+    }
+    case 'audit_drillholes': {
+      const before = currentStats(); const mx = maxAssay(); const cut = +args.apply_top_cut || 0; let fixed = { overlaps: 0, dups: 0, where: [] };
+      if (args.fix_overlaps) { fixed = fixOverlaps(); S.overlapsFixed = true; buildDrillholes(); }
+      let capped = 0; if (cut > 0) { for (const h of HOLES) for (const s of h.samples) if (s.au > cut) capped++; S.topCut = cut; }
+      rebuildModel(); const k = currentStats(); S.applied.topcut = !!S.topCut; renderDB(); renderCards();
+      res = { top_cut: cut || null, samples_capped: capped, max_raw_assay: { hole: mx.hole, au: mx.au, depth_m: mx.depth }, overlaps_fixed: fixed.overlaps, duplicates_removed: fixed.dups, holes_touched: fixed.where, contained_oz_before: Math.round(before.oz), contained_oz_after: Math.round(k.oz) }; break;
+    }
+    case 'set_section_slice': {
+      const ax = ['x', 'y', 'z'].includes(args.axis) ? args.axis : 'x'; S.slice = { axis: ax, pos: clamp(+args.position || (ax === 'z' ? 220 : 300), ax === 'z' ? 120 : 0, ax === 'z' ? 360 : EXT), enabled: args.enabled !== false };
+      applySlice(); res = { axis: ax, position: S.slice.pos, enabled: S.slice.enabled }; break;
+    }
+    case 'generate_executive_report': { showReport(args.project_name || 'Wadi Gold Project', args.include_sensitivity !== false); res = { opened: true }; break; }
+    case 'plot_infill_holes': { const r = proposeInfill(args.count || 2); S.applied.infill = true; buildInfill(); layerTree(); renderCards(); res = r; break; }
+    case 'run_idw': { S.idwPower = clamp(+args.power || 2, 1, 4); rebuildModel(); const k = currentStats(); res = { power: S.idwPower, blocks: BM.N, ore_t: Math.round(k.oreT), grade: +k.grade.toFixed(2) }; if (src === 'ui') botSay(ar ? `<b>IDW</b> بالأس ${S.idwPower}: ${fmt(BM.N)} بلوك، الخام في الحفرة ${fmt(k.oreT / 1e6, 2)} مليون طن بتركيز ${fmt(k.grade, 2)} غ/طن.` : `<b>IDW</b> power ${S.idwPower}: ${fmt(BM.N)} blocks; in-pit ore ${fmt(k.oreT / 1e6, 2)} Mt @ ${fmt(k.grade, 2)} g/t.`); break; }
+  }
+  if (src === 'ui' && name !== 'run_idw' && name !== 'generate_executive_report') logCall(name, args, res);
+  return res;
+}
+function logCall(name, args, res) { const ar = S.lang === 'ar'; addMsg('bot', `${callHTML(name, args)}${summarize(name, res, ar)}`); }
+function callHTML(name, args) { return `<div class="call"><span class="fn">${name}</span>(${esc(JSON.stringify(args, null, 0))})</div>`; }
+
+// ---------------------------------------------------------------- AI auditor: decision-support cards
+function cutoffScan() {
+  const out = []; for (let c = 0.2; c <= 2.501; c += 0.05) { const st = pitStats(PE, c); out.push({ c: +c.toFixed(2), st, npv: econ(st).npv }); } return out;
+}
+function proposeInfill(count = 2) {
+  const c = oreCentroid(); const sec = { NE: [], NW: [], SE: [], SW: [] };
+  for (let b = 0; b < BM.N; b++) { if (BM.bg[b] < Math.max(S.cutoff, 0.5)) continue; const k = (BM.by[b] >= c.y ? 'N' : 'S') + (BM.bx[b] >= c.x ? 'E' : 'W'); sec[k].push(b); }
+  let worst = 'NE', wv = -1; for (const k in sec) { if (sec[k].length < 20) continue; const m = sec[k].reduce((a, b) => a + BM.bnear[b], 0) / sec[k].length; if (m > wv) { wv = m; worst = k; } }
+  const cand = sec[worst].slice().sort((a, b) => BM.bnear[b] - BM.bnear[a]); const picks = [];
+  for (const b of cand) { if (picks.every(p => Math.hypot(BM.bx[p] - BM.bx[b], BM.by[p] - BM.by[b], BM.bz[p] - BM.bz[b]) > 40)) picks.push(b); if (picks.length >= count) break; }
+  S.infill = picks.map((b, i) => { const T = [BM.bx[b], BM.by[b], BM.bz[b]]; const r = collarFor(T, 330, 60); return { id: 'PH-' + String(i + 1).padStart(2, '0'), collar: r.collar, dir: r.dir, len: Math.round(r.L + 30), az: 330, dip: 60, target: T, gap: BM.bnear[b] }; });
+  return { sector: worst, mean_gap_m: +wv.toFixed(1), holes: S.infill.map(h => ({ id: h.id, collar_e: Math.round(h.collar[0]), collar_n: Math.round(h.collar[1]), length_m: h.len, target_rl: Math.round(h.target[2]) })) };
+}
+function sectorGap() { const c = oreCentroid(); const acc = {}; for (let b = 0; b < BM.N; b++) { if (BM.bg[b] < Math.max(S.cutoff, 0.5)) continue; const k = (BM.by[b] >= c.y ? 'N' : 'S') + (BM.bx[b] >= c.x ? 'E' : 'W'); (acc[k] = acc[k] || [0, 0]); acc[k][0] += BM.bnear[b]; acc[k][1]++; } let w = 'NE', v = -1; for (const k in acc) if (acc[k][1] >= 20 && acc[k][0] / acc[k][1] > v) { v = acc[k][0] / acc[k][1]; w = k; } return { sector: w, gap: v }; }
+const SECT_AR = { NE: 'الشمالي الشرقي', NW: 'الشمالي الغربي', SE: 'الجنوبي الشرقي', SW: 'الجنوبي الغربي' };
+
+function renderCards() {
+  if (!BM || !PE) return; const ar = S.lang === 'ar', cards = [];
+  // 1. outlier
+  const mx = maxAssay(), iss = holeIssues(), p99 = percentile(0.99);
+  if (!S.topCut) cards.push({ chip: ['crit', ar ? 'قيمة شاذة' : 'Outlier detected'], text: ar ? `البئر <b>${mx.hole}</b> يحتوي على قفزة تحليل متطرفة (<b>${fmt(mx.au, 1)} غ/طن</b> عند ${fmt(mx.depth)} م). تطبيق سقف عند <b>15 غ/طن</b> لمنع المبالغة في الاحتياطي؟` : `Drillhole <b>${mx.hole}</b> has an extreme assay spike (<b>${fmt(mx.au, 1)} g/t Au</b> at ${fmt(mx.depth)} m). Apply a top-cut at <b>15 g/t</b> to prevent reserve overestimation?`, sub: (ar ? `المئين 99 = ${fmt(p99, 2)} غ/طن` : `P99 of assays = ${fmt(p99, 2)} g/t`) + (iss.overlaps + iss.dups ? (ar ? ` · ${iss.overlaps + iss.dups} تداخل في ${iss.where.join('، ')}` : ` · ${iss.overlaps + iss.dups} interval overlaps in ${iss.where.join(', ')}`) : ''), btn: ar ? 'تطبيق السقف' : 'Apply Top-Cut', run: () => runAgent('audit_drillholes', { apply_top_cut: 15, fix_overlaps: true }) });
+  else cards.push({ done: true, chip: ['ok', 'QA/QC'], text: ar ? `تم تطبيق سقف ${fmt(S.topCut)} غ/طن${S.overlapsFixed ? ' وإصلاح التداخلات' : ''}.` : `Top-cut at ${fmt(S.topCut)} g/t applied${S.overlapsFixed ? ', interval overlaps fixed' : ''}.`, btn: t('applied') });
+  // 2. economic optimization
+  const scan = cutoffScan(); const cur = econ(pitStats(PE, S.cutoff)); const best = scan.reduce((a, b) => b.npv > a.npv ? b : a);
+  const curT = pitStats(PE, S.cutoff).oreT, dFeed = curT ? (best.st.oreT - curT) / curT * 100 : 0, dNpv = (best.npv - cur.npv) / 1e6;
+  if (Math.abs(best.c - S.cutoff) >= 0.05 && dNpv > 0.05) cards.push({ chip: ['info', ar ? 'تحسين اقتصادي' : 'Economic optimization'], text: ar ? `${best.c > S.cutoff ? 'رفع' : 'خفض'} حد القطع من <b>${fmt(S.cutoff, 2)}</b> إلى <b>${fmt(best.c, 2)} غ/طن</b> ${dFeed < 0 ? 'يقلل' : 'يزيد'} تغذية المصنع بنسبة ${fmt(Math.abs(dFeed), 0)}% ويرفع صافي القيمة الحالية بمقدار <b>+$${fmt(dNpv, 1)} مليون</b>.` : `${best.c > S.cutoff ? 'Raising' : 'Lowering'} cut-off from <b>${fmt(S.cutoff, 2)}</b> to <b>${fmt(best.c, 2)} g/t</b> ${dFeed < 0 ? 'reduces' : 'increases'} mill feed by ${fmt(Math.abs(dFeed), 0)}% while increasing NPV by <b>+$${fmt(dNpv, 1)}M</b>.`, sub: ar ? `مسح 47 حد قطع داخل الحفرة الحالية · سعر $${fmt(S.price)}` : `Scanned 47 cut-offs on the current pit · $${fmt(S.price)}/oz`, btn: ar ? 'تحسين حد القطع' : 'Optimize Cut-off', blue: true, run: () => runAgent('filter_block_model', { cutoff_grade: best.c, colormap: S.colormap }) });
+  else cards.push({ done: true, chip: ['ok', ar ? 'تحسين اقتصادي' : 'Economic optimization'], text: ar ? `حد القطع الحالي ${fmt(S.cutoff, 2)} غ/طن عند القيمة المثلى لصافي القيمة الحالية.` : `Current cut-off ${fmt(S.cutoff, 2)} g/t is at the NPV optimum for this pit.`, btn: t('applied') });
+  // 3. infill
+  const sg = sectorGap();
+  if (!S.applied.infill) cards.push({ chip: ['warn', ar ? 'هدف حفر تكميلي' : 'Infill drilling target'], text: ar ? `عدم يقين مرتفع في التقدير في القطاع <b>${SECT_AR[sg.sector]}</b> (متوسط المسافة لأقرب عينة ${fmt(sg.gap, 0)} م). يُوصى ببئرين تكميليين.` : `High estimation variance in the <b>${sg.sector}</b> sector (mean distance to nearest sample ${fmt(sg.gap, 0)} m). Recommend 2 infill drillholes.`, sub: ar ? 'مقياس بديل لتباين الكريجنغ: المسافة لأقرب عينة' : 'Kriging-variance proxy: nearest-sample distance per ore block', btn: ar ? 'رسم الآبار المقترحة' : 'Plot Proposed Holes', run: () => runAgent('plot_infill_holes', { count: 2 }) });
+  else cards.push({ done: true, chip: ['ok', ar ? 'حفر تكميلي' : 'Infill drilling'], text: ar ? `تم رسم ${S.infill.length} بئر مقترح (${S.infill.map(h => h.id).join('، ')}).` : `${S.infill.length} proposed holes plotted (${S.infill.map(h => h.id).join(', ')}).`, btn: t('applied') });
+  CARDS = cards;
+  $('#cards').innerHTML = cards.map((c, i) => `<div class="card ${c.done ? 'done' : ''}"><div class="card-top"><span class="chip ${c.chip[0]}"><span class="dot"></span>${c.chip[1]}</span></div><p>${c.text}</p>${c.sub ? `<div class="sub mono">${c.sub}</div>` : ''}<button class="act ${c.blue ? 'blue' : ''}" type="button" data-card="${i}" ${c.done ? 'disabled' : ''}>${c.done ? '✓ ' : ''}${c.btn}</button></div>`).join('');
+  $('#alertCount').textContent = `${cards.filter(c => !c.done).length} ${ar ? 'مفتوحة' : 'open'}`;
+}
+let CARDS = [];
+function runAgent(name, args) { const ar = S.lang === 'ar'; const res = dispatch(name, args, 'agent'); if (name !== 'generate_executive_report') addMsg('bot', `${callHTML(name, args)}${summarize(name, res, ar)}`); }
+
+// ---------------------------------------------------------------- chat: bilingual intent parser
+const AR_DIG = '٠١٢٣٤٥٦٧٨٩', FA_DIG = '۰۱۲۳۴۵۶۷۸۹';
+const norm = s => s.replace(/[٠-٩]/g, d => AR_DIG.indexOf(d)).replace(/[۰-۹]/g, d => FA_DIG.indexOf(d)).replace(/٫/g, '.').replace(/،/g, ',');
+const NUM = '(-?\\d+(?:[.,]\\d+)?)';
+const pn = s => parseFloat(String(s).replace(',', '.'));
+function numAfter(s, kw, span = 28) { const m = s.match(new RegExp('(?:' + kw + ')[^\\d\\-]{0,' + span + '}' + NUM, 'i')); return m ? pn(m[1]) : null; }
+function numBefore(s, unit) { const m = s.match(new RegExp(NUM + '\\s*(?:' + unit + ')', 'i')); return m ? pn(m[1]) : null; }
+function parse(text) {
+  const s = norm(text), lo = s.toLowerCase(), calls = []; let wantsSR = /strip|w:o|نسبة الكشف|الكشف/.test(lo);
+  const has = re => re.test(lo);
+  if (has(/report|تقرير/)) { const m = s.match(/["“«](.+?)["”»]/); calls.push(['generate_executive_report', { project_name: m ? m[1] : 'Wadi Gold Project', include_sensitivity: !has(/no sensitivity|without sensitivity|بدون حساسية/) }]); }
+  if (has(/infill|حفر (?:إضافي|اضافي|تكميلي)|آبار (?:إضافية|تكميلية|مقترحة)|تكثيف|propose.*hole|اقترح/)) { const n = numAfter(s, 'infill|propose|اقترح|حفر', 12) || numBefore(s, 'infill|holes|آبار|بئر'); calls.push(['plot_infill_holes', { count: clamp(Math.round(n || 2), 1, 5) }]); }
+  if (has(/top-?cut|cap |capping|outlier|audit|validat|qa\/?qc|تدقيق|شاذ|سقف|تحقق|overlap|تداخل/)) { const n = numAfter(s, 'top-?cut|cap|سقف|at|عند', 20); calls.push(['audit_drillholes', { apply_top_cut: n != null ? n : (has(/no top|without top|بدون سقف/) ? 0 : 15), fix_overlaps: !has(/keep overlaps|بدون إصلاح/) }]); }
+  if (has(/optim\w* (?:the )?(?:cut|cog)|best cut|optimal cut|حد القطع الأمثل|أمثل|افضل حد|أفضل حد|حسّن حد|تحسين حد/)) { const scan = cutoffScan(); const b = scan.reduce((a, x) => x.npv > a.npv ? x : a); calls.push(['filter_block_model', { cutoff_grade: b.c, colormap: S.colormap }]); }
+  else {
+    let cog = numBefore(s, 'g\\/?t|gpt|غ\\/?ط|جرام|غرام|جم\\/طن'); if (cog == null) cog = numAfter(s, 'cut-?off|cog|grade above|above|greater than|>|حد القطع|تركيز|يزيد|أعلى من|فوق', 24);
+    const cm = /colou?r|cmap|colormap|ألوان|تلوين|لون/.test(lo) ? (lo.match(/viridis|turbo|gold/) || [])[0] : null;
+    if (cog != null && cog < 20 && !calls.some(c => c[0] === 'audit_drillholes')) calls.push(['filter_block_model', { cutoff_grade: cog, colormap: cm || S.colormap }]);
+    else if (cm) calls.push(['filter_block_model', { cutoff_grade: S.cutoff, colormap: cm }]);
+  }
+  if (has(/\bpit\b|حفرة|الحفرة|منجم مفتوح|slope|ميل|زاوية|منحدر|gold price|سعر/) && !calls.some(c => c[0] === 'plot_infill_holes')) {
+    const a = { slope_angle: numBefore(s, '°|deg|degree|درجة') ?? numAfter(s, 'slope|ميل|زاوية|منحدر', 18) ?? S.slope };
+    const price = numAfter(s, 'price|سعر|\\$', 16) ?? numBefore(s, '\\$|usd|دولار'); if (price && price > 300) a.gold_price_oz = price; else a.gold_price_oz = S.price;
+    const mc = numAfter(s, 'mining cost|تكلفة التعدين|mining', 16); a.mining_cost_t = mc ?? S.mineCost;
+    const pc = numAfter(s, 'processing cost|process\\w*|تكلفة المعالجة|المعالجة', 16); a.processing_cost_t = pc ?? S.procCost;
+    if (a.slope_angle > 70 || a.slope_angle < 20) a.slope_angle = S.slope;
+    calls.push(['run_pit_optimization', a]);
+  }
+  if (has(/section|slice|clip|مقطع|شريحة|قطاع عرضي/)) {
+    const off = has(/\boff\b|disable|remove|clear|hide|أوقف|ألغ|إلغاء|أخف|أزل/); let axis = 'x';
+    if (has(/\bnorth|northing|\by\b|شمال/)) axis = 'y'; if (has(/\bz\b|\brl\b|elev|level|bench|منسوب|أفقي|مستوى/)) axis = 'z'; if (has(/\beast|easting|\bx\b|شرق/)) axis = 'x';
+    const pos = numAfter(s, 'at|@|=|east|north|rl|elevation|level|منسوب|عند|شرق|شمال|موقع', 14) ?? numBefore(s, 'm\\b|م\\b');
+    calls.push(['set_section_slice', { axis, position: pos ?? (axis === 'z' ? 220 : 300), enabled: !off }]);
+  }
+  const lay = [['topo', /topo|terrain|dtm|surface|طبوغراف|سطح|تضاريس/], ['dh', /drill ?holes?|holes|آبار|الآبار/], ['ore', /ore ?body|solid|wireframe|جسم الخام|المجسم/], ['bm', /block model|blocks|بلوك|كتل/], ['pit', /pit shell|الحفرة/]];
+  const hide = has(/\bhide\b|أخف|اخف|إخفاء|اخفاء/), show = has(/\bshow\b|اعرض|أظهر|اظهر|إظهار/);
+  const layerOps = []; if (hide || show) for (const [id, re] of lay) if (re.test(lo)) layerOps.push([id, show && !hide]);
+  if (/reset|إعادة ضبط|اعادة ضبط/.test(lo)) calls.push(['__reset', {}]);
+  return { calls, layerOps, wantsSR };
+}
+function summarize(name, r, ar) {
+  const M = v => fmt(v / 1e6, 2);
+  switch (name) {
+    case 'filter_block_model': return ar ? `يُعرض الآن <b>${fmt(r.visible_blocks)}</b> بلوك فوق ${fmt(S.cutoff, 2)} غ/طن. الخام داخل الحفرة ${M(r.ore_t)} مليون طن بتركيز ${fmt(r.grade, 2)} غ/طن، والنفايات ${M(r.waste_t)} مليون طن. <b>نسبة الكشف ${fmt(r.strip_ratio, 2)} : 1</b>، وصافي القيمة الحالية ${usd(r.npv_musd)} مليون.` : `Showing <b>${fmt(r.visible_blocks)}</b> blocks ≥ ${fmt(S.cutoff, 2)} g/t. In-pit ore ${M(r.ore_t)} Mt @ ${fmt(r.grade, 2)} g/t, waste ${M(r.waste_t)} Mt. <b>Stripping ratio ${fmt(r.strip_ratio, 2)} : 1</b>, NPV ${usd(r.npv_musd)}M.`;
+    case 'run_pit_optimization': return ar ? `أفضل غلاف: ميل ${fmt(r.slope_angle)}°، القاع عند المنسوب ${fmt(r.bottom_rl)} م، مسقط القاع ${r.footprint_m.join('×')} م. الخام ${M(r.ore_t)} مليون طن، النفايات ${M(r.waste_t)} مليون طن، نسبة الكشف ${fmt(r.strip_ratio, 2)}. <b>صافي القيمة الحالية ${usd(r.npv_musd)} مليون</b> (${r.npv_change_musd >= 0 ? '+' : ''}${fmt(r.npv_change_musd, 1)}).` : `Best shell: ${fmt(r.slope_angle)}° overall slope, floor at RL ${fmt(r.bottom_rl)}, ${r.footprint_m.join('×')} m base. Ore ${M(r.ore_t)} Mt, waste ${M(r.waste_t)} Mt, SR ${fmt(r.strip_ratio, 2)}. <b>NPV ${usd(r.npv_musd)}M</b> (${r.npv_change_musd >= 0 ? '+' : ''}${fmt(r.npv_change_musd, 1)}M).`;
+    case 'audit_drillholes': { const d = r.contained_oz_after - r.contained_oz_before; return ar ? `أعلى تحليل خام: ${r.max_raw_assay.hole} بقيمة ${fmt(r.max_raw_assay.au, 1)} غ/طن عند ${fmt(r.max_raw_assay.depth_m)} م. ${r.top_cut ? `تم تقييد ${r.samples_capped} عينة عند ${fmt(r.top_cut)} غ/طن.` : 'بدون سقف.'} ${r.overlaps_fixed + r.duplicates_removed ? `أُصلح ${r.overlaps_fixed} تداخل وحُذف ${r.duplicates_removed} مكرر (${r.holes_touched.join('، ')}).` : 'لا توجد تداخلات.'} المعدن داخل الحفرة: ${fmt(r.contained_oz_before)} ← <b>${fmt(r.contained_oz_after)} أونصة</b> (${d >= 0 ? '+' : ''}${fmt(d)}).` : `Max raw assay: ${r.max_raw_assay.hole} ${fmt(r.max_raw_assay.au, 1)} g/t at ${fmt(r.max_raw_assay.depth_m)} m. ${r.top_cut ? `${r.samples_capped} sample(s) capped at ${fmt(r.top_cut)} g/t.` : 'No top-cut.'} ${r.overlaps_fixed + r.duplicates_removed ? `Fixed ${r.overlaps_fixed} overlap(s), removed ${r.duplicates_removed} duplicate(s) in ${r.holes_touched.join(', ')}.` : 'No interval overlaps.'} In-pit metal ${fmt(r.contained_oz_before)} → <b>${fmt(r.contained_oz_after)} oz</b> (${d >= 0 ? '+' : '−'}${fmt(Math.abs(d))}). Block model re-estimated.`; }
+    case 'set_section_slice': return r.enabled ? (ar ? `المقطع مفعّل: ${{ x: 'الشرقي', y: 'الشمالي', z: 'المنسوب' }[r.axis]} ≤ ${fmt(r.position)} م.` : `Section on: ${{ x: 'Easting', y: 'Northing', z: 'RL' }[r.axis]} ≤ ${fmt(r.position)} m.`) : (ar ? 'تم إيقاف المقطع.' : 'Section slicer off.');
+    case 'plot_infill_holes': return ar ? `القطاع ${SECT_AR[r.sector]} لديه أعلى عدم يقين (متوسط ${fmt(r.mean_gap_m)} م لأقرب عينة). ${r.holes.map(h => `<b>${h.id}</b>: الطوق E${h.collar_e} N${h.collar_n}، الطول ${h.length_m} م، الهدف RL ${h.target_rl}`).join('؛ ')}.` : `The ${r.sector} sector has the highest uncertainty (mean ${fmt(r.mean_gap_m)} m to nearest sample). ${r.holes.map(h => `<b>${h.id}</b>: collar E${h.collar_e} N${h.collar_n}, ${h.length_m} m, target RL ${h.target_rl}`).join('; ')}. Shown as dashed cyan traces.`;
+    case 'run_idw': return ar ? `IDW بالأس ${r.power}: ${fmt(r.blocks)} بلوك. الخام ${M(r.ore_t)} مليون طن بتركيز ${fmt(r.grade, 2)} غ/طن.` : `IDW power ${r.power}: ${fmt(r.blocks)} blocks. Ore ${M(r.ore_t)} Mt @ ${fmt(r.grade, 2)} g/t.`;
+    case 'generate_executive_report': return ar ? 'تم فتح التقرير التنفيذي.' : 'Executive report opened.';
+  }
+  return '';
+}
+function handlePrompt(text) {
+  text = text.trim(); if (!text) return; const ar = isAr(text); addMsg('user', esc(text));
+  const { calls, layerOps, wantsSR } = parse(text);
+  setTimeout(() => {
+    let html = '';
+    for (const [id, vis] of layerOps) { S.layers[id].vis = vis; html += callHTML('set_layer_visibility', { layer: id, visible: vis }); }
+    if (layerOps.length) { applyLayerVis(); layerTree(); }
+    for (const [name, args] of calls) {
+      if (name === '__reset') { S.cutoff = 0.5; S.slice.enabled = false; applySlice(); dispatch('filter_block_model', { cutoff_grade: 0.5, colormap: 'gold' }, 'agent'); html += ar ? 'تمت إعادة ضبط العرض. ' : 'View reset. '; continue; }
+      const r = dispatch(name, args, 'agent'); html += callHTML(name, args) + summarize(name, r, ar) + '\n';
+    }
+    if (!calls.length && wantsSR) { const k = currentStats(); html += ar ? `نسبة الكشف الحالية <b>${fmt(k.wasteT / Math.max(k.oreT, 1), 2)} : 1</b> عند حد قطع ${fmt(S.cutoff, 2)} غ/طن.` : `Current stripping ratio <b>${fmt(k.wasteT / Math.max(k.oreT, 1), 2)} : 1</b> at ${fmt(S.cutoff, 2)} g/t cut-off.`; }
+    if (!calls.length && !layerOps.length && !wantsSR) html = ar ? 'لم أتعرف على أمر. جرّب: "اعرض البلوكات فوق 1.2 غ/طن"، "حسّن الحفرة بميل 50 درجة وسعر 2600"، "طبّق سقف 15 غ/طن"، "مقطع شرقي عند 320"، "اقترح آبار تكميلية"، "أنشئ التقرير التنفيذي".' : 'I could not map that to a tool. Try: "show blocks above 1.2 g/t", "optimize the pit at 50° with gold at $2600", "apply top-cut 15", "section east at 320", "propose infill holes", "generate executive report".';
+    addMsg('bot', html.trim());
+  }, 220);
+}
+function addMsg(who, html) { const m = document.createElement('div'); m.className = 'msg ' + who; m.setAttribute('dir', 'auto'); m.innerHTML = html; $('#msgs').appendChild(m); $('#msgs').scrollTop = 1e9; }
+const botSay = html => addMsg('bot', html);
+function renderSuggest() {
+  const items = S.lang === 'ar' ? ['اعرض فقط البلوكات التي يزيد تركيزها عن 1.2 جرام/طن واحسب نسبة الكشف', 'حسّن الحفرة بميل 50 درجة وسعر ذهب 2600', 'مقطع شمالي عند 300', 'أنشئ التقرير التنفيذي مع تحليل الحساسية'] : ['اعرض فقط البلوكات التي يزيد تركيزها عن 1.2 جرام/طن واحسب نسبة الكشف', 'Optimize the pit at 50° slope with gold at $2600', 'Section north at 300', 'Generate an executive reserve report with Grade-Tonnage curve.'];
+  $('#suggest').innerHTML = items.map(s => `<button class="sg" type="button" dir="auto">${esc(s)}</button>`).join('');
+}
+
+// ---------------------------------------------------------------- reports
+function gtData() { const out = []; for (let c = 0; c <= 3.0001; c += 0.05) { let rn = 0, rs = 0; for (let b = 0; b < BM.N; b++) if (BM.bg[b] >= c) { rn++; rs += BM.bg[b]; } const p = pitStats(PE, c); out.push({ c: +c.toFixed(2), rt: rn * BM.blockT, rg: rn ? rs / rn : 0, pt: p.oreT, pg: p.grade }); } return out; }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v || 1))); for (const m of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * p >= v) return m * p; return 10 * p; }
+function chartSVG(data, kind, ar) {
+  const W = 420, H = 210, m = { l: 46, r: 64, t: 10, b: 30 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const ya = kind === 't' ? ['rt', 'pt'] : ['rg', 'pg'], sc = kind === 't' ? 1e-6 : 1;
+  const ymax = niceMax(Math.max(...data.map(d => Math.max(d[ya[0]], d[ya[1]]) * sc)));
+  const X = c => m.l + c / 3 * iw, Y = v => m.t + ih - v / ymax * ih;
+  const path = key => data.filter(d => d[key] > 0 || kind === 't').map((d, i) => `${i ? 'L' : 'M'}${X(d.c).toFixed(1)},${Y(d[key] * sc).toFixed(1)}`).join('');
+  let g = ''; for (let i = 0; i <= 4; i++) { const v = ymax * i / 4, y = Y(v); g += `<line x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}" style="stroke:var(--line)"/><text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" style="fill:var(--muted);font:10px var(--f-mono)">${fmt(v, kind === 't' ? (ymax < 4 ? 1 : 0) : 1)}</text>`; }
+  for (let c = 0; c <= 3; c += 0.5) g += `<text x="${X(c)}" y="${H - 12}" text-anchor="middle" style="fill:var(--muted);font:10px var(--f-mono)">${fmt(c, 1)}</text>`;
+  g += `<text x="${m.l + iw / 2}" y="${H - 1}" text-anchor="middle" style="fill:var(--fg-2);font:10.5px var(--f-body)">${ar ? 'حد القطع (غ/طن)' : 'Cut-off grade (g/t Au)'}</text>`;
+  const la = data[kind === 't' ? 3 : 4], lb = la; const offA = kind === 't' ? -8 : 16, offB = kind === 't' ? 16 : -10;
+  const lblA = ar ? 'المورد' : 'Resource', lblB = ar ? 'داخل الحفرة' : 'In-pit';
+  return `<svg viewBox="0 0 ${W} ${H}" data-kind="${kind}" role="img" aria-label="${kind === 't' ? 'Tonnage' : 'Grade'} vs cut-off">${g}
+    <line x1="${X(S.cutoff)}" x2="${X(S.cutoff)}" y1="${m.t}" y2="${m.t + ih}" style="stroke:var(--warn);stroke-dasharray:3 3"/>
+    <text x="${X(S.cutoff) + 4}" y="${m.t + 10}" style="fill:var(--warn);font:10px var(--f-mono)">COG ${fmt(S.cutoff, 2)}</text>
+    <path d="${path(ya[0])}" style="fill:none;stroke:var(--series-a);stroke-width:2"/>
+    <path d="${path(ya[1])}" style="fill:none;stroke:var(--series-b);stroke-width:2;stroke-dasharray:6 3"/>
+    ${la ? `<text x="${X(la.c) + 4}" y="${Y(la[ya[0]] * sc) + offA}" style="fill:var(--fg-2);font:10.5px var(--f-body)">${lblA}</text>` : ''}
+    ${lb ? `<text x="${X(lb.c) + 4}" y="${Y(lb[ya[1]] * sc) + offB}" style="fill:var(--fg-2);font:10.5px var(--f-body)">${lblB}</text>` : ''}
+    <line class="xh" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" style="stroke:var(--fg-2);opacity:0"/>
+    <rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" style="fill:transparent"/></svg>`;
+}
+function chartsHTML(ar) {
+  const d = gtData(); GT_CACHE = d;
+  const leg = `<div class="chart-legend"><span><i style="background:var(--series-a)"></i>${ar ? 'المورد الكلي' : 'Global resource'}</span><span><i style="background:repeating-linear-gradient(90deg,var(--series-b) 0 6px,transparent 6px 9px)"></i>${ar ? 'داخل الحفرة' : 'In-pit'}</span></div>`;
+  return `<div class="charts"><div class="chart"><h4>${ar ? 'الحمولة فوق حد القطع (مليون طن)' : 'Tonnage above cut-off (Mt)'}</h4>${leg}${chartSVG(d, 't', ar)}</div><div class="chart"><h4>${ar ? 'متوسط التركيز فوق حد القطع (غ/طن)' : 'Average grade above cut-off (g/t Au)'}</h4>${leg}${chartSVG(d, 'g', ar)}</div></div>`;
+}
+let GT_CACHE = [];
+function bindChartHover(root) {
+  root.querySelectorAll('.chart').forEach(ch => {
+    const svg = ch.querySelector('svg'); if (!svg) return; const kind = svg.dataset.kind; const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; ch.appendChild(tip);
+    const hit = svg.querySelector('.hit'), xh = svg.querySelector('.xh');
+    hit.addEventListener('mousemove', e => { const r = svg.getBoundingClientRect(), vb = 420; const x = (e.clientX - r.left) / r.width * vb; const c = clamp(Math.round(((x - 46) / (420 - 46 - 64) * 3) / 0.05) * 0.05, 0, 3); const d = GT_CACHE.find(q => Math.abs(q.c - c) < 0.001); if (!d) return; const px = 46 + c / 3 * (420 - 110); xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.style.opacity = 0.6; tip.hidden = false; tip.innerHTML = kind === 't' ? `COG ${fmt(c, 2)} · Res ${fmt(d.rt / 1e6, 2)} Mt · Pit ${fmt(d.pt / 1e6, 2)} Mt` : `COG ${fmt(c, 2)} · Res ${fmt(d.rg, 2)} · Pit ${fmt(d.pg, 2)} g/t`; const cr = ch.getBoundingClientRect(); let lx = e.clientX - cr.left + 12; if (lx > cr.width - 200) lx = e.clientX - cr.left - 210; tip.style.left = Math.max(4, lx) + 'px'; tip.style.top = (e.clientY - cr.top - 34) + 'px'; });
+    hit.addEventListener('mouseleave', () => { tip.hidden = true; xh.style.opacity = 0; });
+  });
+}
+function gtTable(ar) {
+  const rows = [0.3, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5]; if (!rows.some(c => Math.abs(c - S.cutoff) < 0.001)) rows.push(+S.cutoff.toFixed(2)); rows.sort((a, b) => a - b);
+  const body = rows.map(c => { let rn = 0, rs = 0; for (let b = 0; b < BM.N; b++) if (BM.bg[b] >= c) { rn++; rs += BM.bg[b]; } const rt = rn * BM.blockT, rg = rn ? rs / rn : 0; const p = pitStats(PE, c), e = econ(p); return `<tr class="${Math.abs(c - S.cutoff) < 0.001 ? 'cur' : ''}"><td>${fmt(c, 2)}</td><td>${fmt(rt / 1e6, 2)}</td><td>${fmt(rg, 2)}</td><td>${fmt(rt * rg / 31.1035 / 1e3, 1)}</td><td>${fmt(p.oreT / 1e6, 2)}</td><td>${fmt(p.grade, 2)}</td><td>${fmt(e.oz / 1e3, 1)}</td><td>${fmt(p.wasteT / Math.max(p.oreT, 1), 2)}</td><td>${fmt(e.npv / 1e6, 1)}</td></tr>`; }).join('');
+  return `<div class="tbl-wrap"><table><thead><tr><th>${ar ? 'حد القطع' : 'COG g/t'}</th><th>${ar ? 'المورد مليون طن' : 'Resource Mt'}</th><th>g/t</th><th>koz</th><th>${ar ? 'الحفرة مليون طن' : 'In-pit Mt'}</th><th>g/t</th><th>koz</th><th>SR</th><th>NPV $M</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function sensitivity(ar) {
+  const f = [0.8, 0.9, 1, 1.1, 1.2]; const st = pitStats(PE, S.cutoff);
+  const row = (lbl, key) => `<tr><td>${lbl}</td>${f.map(x => { const v = econ(st, { [key]: x }).npv / 1e6; return `<td>${v < 0 ? '−' : ''}${fmt(Math.abs(v), 1)}</td>`; }).join('')}</tr>`;
+  return `<div class="tbl-wrap"><table><thead><tr><th>${ar ? 'المتغير (صافي القيمة $M)' : 'Variable (NPV $M)'}</th>${f.map(x => `<th>${x === 1 ? (ar ? 'الأساس' : 'Base') : (x > 1 ? '+' : '−') + Math.round(Math.abs(x - 1) * 100) + '%'}</th>`).join('')}</tr></thead><tbody>${row(ar ? 'سعر الذهب' : 'Gold price', 'priceF')}${row(ar ? 'تكاليف التشغيل' : 'Operating costs', 'costF')}</tbody></table></div>`;
+}
+let REPORT_MD = '';
+function showReport(name, sens) {
+  const ar = S.lang === 'ar', k = currentStats(), sr = k.wasteT / Math.max(k.oreT, 1), iss = holeIssues(), mx = maxAssay(), nS = HOLES.reduce((a, h) => a + h.samples.length, 0), m = HOLES.reduce((a, h) => a + h.len, 0);
+  const date = new Date().toISOString().slice(0, 10);
+  const recs = CARDS.filter(c => !c.done).map(c => c.text.replace(/<[^>]+>/g, ''));
+  if (sr > 8) recs.push(ar ? 'نسبة الكشف مرتفعة؛ قيّم زيادة ميل الجدار بعد دراسة جيوتقنية.' : 'Stripping ratio is high; evaluate steeper walls after a geotechnical study.');
+  if (!recs.length) recs.push(ar ? 'لا توجد إجراءات مفتوحة؛ النموذج جاهز لمراجعة الشخص المؤهل.' : 'No open actions; model is ready for Competent Person review.');
+  recs.push(ar ? 'استبدال IDW بالكريجنغ العادي بعد نمذجة التغاير (variogram) في محرك سطح المكتب.' : 'Replace IDW with ordinary kriging after variography in the desktop engine.');
+  const qa = [
+    [S.topCut ? 'ok' : 'crit', ar ? `السقف: ${S.topCut ? fmt(S.topCut) + ' غ/طن مطبق' : 'غير مطبق'} · أعلى تحليل خام ${fmt(mx.au, 1)} غ/طن (${mx.hole})` : `Top-cut: ${S.topCut ? fmt(S.topCut) + ' g/t applied' : 'not applied'} · max raw assay ${fmt(mx.au, 1)} g/t (${mx.hole})`],
+    [iss.overlaps + iss.dups ? 'warn' : 'ok', ar ? `تداخل الفترات: ${iss.overlaps + iss.dups ? `${iss.overlaps + iss.dups} مشكلة (${iss.where.join('، ')})` : 'لا يوجد'}` : `Interval integrity: ${iss.overlaps + iss.dups ? `${iss.overlaps + iss.dups} issue(s) in ${iss.where.join(', ')}` : 'clean'}`],
+    ['ok', ar ? `${HOLES.length} بئر، ${fmt(nS)} عينة، ${fmt(m)} م حفر` : `${HOLES.length} holes, ${fmt(nS)} assays, ${fmt(m)} m drilled`]
+  ];
+  const html = `<div class="rpt">
+    <div class="meta">${esc(name)} · ${date} · TerraMind Studio · ${ar ? 'بيانات تركيبية للعرض' : 'synthetic demonstration data'}</div>
+    <h3>${ar ? 'الملخص التنفيذي' : 'Executive summary'}</h3>
+    <p>${ar ? `عند حد قطع ${fmt(S.cutoff, 2)} غ/طن، تحتوي الحفرة المحسّنة (ميل ${fmt(S.pit.slope)}°، القاع عند المنسوب ${fmt(S.pit.zb)} م) على <b>${fmt(k.oreT / 1e6, 2)} مليون طن</b> من الخام بتركيز <b>${fmt(k.grade, 2)} غ/طن</b>، أي ${fmt(k.oz / 1e3, 1)} ألف أونصة ذهب، مع ${fmt(k.wasteT / 1e6, 2)} مليون طن نفايات (نسبة كشف ${fmt(sr, 2)}). صافي القيمة الحالية بخصم 8% هو <b>${usd(k.npv / 1e6)} مليون</b> عند سعر $${fmt(S.price)}/أونصة وعمر منجم ${fmt(k.life, 1)} سنة.` : `At a ${fmt(S.cutoff, 2)} g/t cut-off, the optimised pit (${fmt(S.pit.slope)}° overall slope, floor at RL ${fmt(S.pit.zb)}) contains <b>${fmt(k.oreT / 1e6, 2)} Mt</b> of ore at <b>${fmt(k.grade, 2)} g/t Au</b> for ${fmt(k.oz / 1e3, 1)} koz contained, with ${fmt(k.wasteT / 1e6, 2)} Mt of waste (SR ${fmt(sr, 2)}). NPV at 8% is <b>${usd(k.npv / 1e6)}M</b> at $${fmt(S.price)}/oz over a ${fmt(k.life, 1)}-year life.`}</p>
+    <div class="kgrid">${[[t('k_ore'), fmt(k.oreT / 1e6, 2) + ' Mt'], [t('k_grade'), fmt(k.grade, 2) + ' g/t'], [t('k_metal'), fmt(k.oz / 1e3, 1) + ' koz'], [t('k_sr'), fmt(sr, 2)], [t('k_npv'), usd(k.npv / 1e6) + 'M']].map(([a, b]) => `<div class="kbox"><div class="kpi-k">${a}</div><div class="kpi-v">${b}</div></div>`).join('')}</div>
+    <h3>${ar ? 'حالة ضبط الجودة QA/QC' : 'QA/QC status'}</h3>
+    <div class="qa">${qa.map(([c, x]) => `<div class="qa-row"><span class="chip ${c}"><span class="dot"></span>${c === 'ok' ? 'PASS' : c === 'warn' ? 'CHECK' : 'FLAG'}</span><span>${x}</span></div>`).join('')}</div>
+    <h3>${ar ? 'منحنى وجدول التركيز-الحمولة' : 'Grade-tonnage'}</h3>
+    ${chartsHTML(ar)}
+    <div style="height:10px"></div>${gtTable(ar)}
+    <p class="hint" style="margin-top:6px">${ar ? `نموذج IDW (أس ${S.idwPower})، بلوكات ${BM.bs} م، نصف قطر بحث ${S.searchR} م، كثافة ${S.density}.` : `IDW power ${S.idwPower}, ${BM.bs} m blocks, ${S.searchR} m search, SG ${S.density}. Highlighted row = active cut-off.`}</p>
+    <h3>${ar ? 'اقتصاديات الحفرة' : 'Pit economics'}</h3>
+    <div class="tbl-wrap"><table><tbody>
+      <tr><td>${ar ? 'الإيراد (بعد الاستخلاص)' : 'Revenue (recovered)'}</td><td>$${fmt(k.rev / 1e6, 1)}M</td></tr>
+      <tr><td>${ar ? 'تكاليف التعدين والمعالجة' : 'Mining + processing cost'}</td><td>$${fmt(k.cost / 1e6, 1)}M</td></tr>
+      <tr><td>${ar ? 'التدفق النقدي غير المخصوم' : 'Undiscounted cashflow'}</td><td>${usd(k.cash / 1e6)}M</td></tr>
+      <tr><td>${ar ? 'رأس المال' : 'Capex'}</td><td>$${fmt(S.capex / 1e6, 0)}M</td></tr>
+      <tr><td>${ar ? 'صافي القيمة الحالية 8%' : 'NPV @ 8%'}</td><td>${usd(k.npv / 1e6)}M</td></tr>
+      <tr><td>${ar ? 'الافتراضات' : 'Inputs'}</td><td>$${fmt(S.price)}/oz · ${fmt(S.mineCost, 2)} $/t mined · ${fmt(S.procCost, 1)} $/t milled · ${S.recovery}% rec.</td></tr>
+    </tbody></table></div>
+    ${sens ? `<h3>${ar ? 'تحليل الحساسية' : 'Sensitivity'}</h3>${sensitivity(ar)}` : ''}
+    <h3>${ar ? 'توصيات الذكاء الاصطناعي' : 'AI recommendations'}</h3>
+    <ol class="recs">${recs.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
+  </div>`;
+  REPORT_MD = `# ${name} — ${ar ? 'التقرير التنفيذي' : 'Executive Engineering & Reserve Report'}\n_${date} · synthetic data_\n\n## Summary\n- Cut-off: ${fmt(S.cutoff, 2)} g/t Au\n- Ore: ${fmt(k.oreT / 1e6, 2)} Mt @ ${fmt(k.grade, 2)} g/t (${fmt(k.oz / 1e3, 1)} koz)\n- Waste: ${fmt(k.wasteT / 1e6, 2)} Mt · SR ${fmt(sr, 2)}\n- NPV@8%: ${usd(k.npv / 1e6)}M · life ${fmt(k.life, 1)} yr\n- Pit: ${fmt(S.pit.slope)}° slope, floor RL ${fmt(S.pit.zb)}\n\n## QA/QC\n${qa.map(q => '- ' + q[1]).join('\n')}\n\n## Recommendations\n${recs.map((r, i) => `${i + 1}. ${r}`).join('\n')}\n`;
+  openModal(ar ? 'التقرير التنفيذي الهندسي والاحتياطي' : 'Executive Engineering & Reserve Report', html, [{ label: ar ? 'نسخ Markdown' : 'Copy as Markdown', icon: 'copy', fn: () => copyText(REPORT_MD) }]);
+}
+function showGT() { const ar = S.lang === 'ar'; openModal(t('gt'), `<div class="rpt">${chartsHTML(ar)}<div style="height:10px"></div>${gtTable(ar)}</div>`); }
+function showSchemas() { openModal(t('schemas'), `<p class="hint" style="margin-bottom:10px">${S.lang === 'ar' ? 'نفس المخطط يُرسل إلى Gemini وClaude وOpenAI. في هذا النموذج الأولي يحوّل المحلل المحلي النص إلى هذه الاستدعاءات.' : 'The same JSON schemas are sent to Gemini, Claude and OpenAI function calling. In this prototype a local bilingual parser produces the calls.'}</p><pre class="json">${esc(JSON.stringify(TOOLS, null, 2))}</pre>`, [{ label: 'Copy JSON', icon: 'copy', fn: () => copyText(JSON.stringify(TOOLS, null, 2)) }]); }
+function projectJSON() { return JSON.stringify({ format: 'TerraMind.tmd', version: 1, project: 'Wadi Gold', crs: 'local grid (m)', params: { cutoff: S.cutoff, colormap: S.colormap, price: S.price, mineCost: S.mineCost, procCost: S.procCost, recovery: S.recovery, slope: S.slope, benchH: S.benchH, topCut: S.topCut, idwPower: S.idwPower, blockSize: S.blockSize }, pit: S.pit, collars: HOLES.map(h => ({ id: h.id, e: +h.collar[0].toFixed(2), n: +h.collar[1].toFixed(2), z: +h.collar[2].toFixed(2), az: +h.az.toFixed(1), dip: +h.dip.toFixed(1), depth: h.len })), assays: HOLES.reduce((a, h) => a + h.samples.length, 0) + ' rows (stored as table `assays`)', tables: ['collars', 'surveys', 'assays', 'lithology', 'blocks', 'strings', 'wireframes', 'ai_log'] }, null, 2); }
+function showProjectFile() {
+  const ar = S.lang === 'ar', js = projectJSON();
+  openModal(t('save'), `<p class="hint" style="margin-bottom:10px">${ar ? 'ملف ‎.tmd واحد (DuckDB في نسخة سطح المكتب) يجمع كل الجداول. هذا هو البيان (manifest) للمشروع الحالي.' : 'One .tmd file (DuckDB in the desktop build) holds every table. This is the manifest of the current project.'}</p><pre class="json">${esc(js)}</pre>`, [{ label: ar ? 'نسخ' : 'Copy', icon: 'copy', fn: () => copyText(js) }, { label: ar ? 'تنزيل' : 'Download', icon: 'save', fn: () => { try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([js], { type: 'application/json' })); a.download = 'wadi-gold.tmd.json'; a.click(); } catch (e) { toast('Download blocked here; use Copy.'); } } }]);
+}
+function openModal(title, html, actions = []) {
+  $('#modalTitle').textContent = title; $('#modalBody').innerHTML = html;
+  $('#modalActions').innerHTML = actions.map((a, i) => `<button class="icon-btn" type="button" data-ma="${i}"><i data-lucide="${a.icon}"></i>${a.label}</button>`).join('');
+  $('#modalActions').querySelectorAll('[data-ma]').forEach(b => b.onclick = () => actions[+b.dataset.ma].fn());
+  $('#modal').hidden = false; icons(); bindChartHover($('#modalBody')); $('#modalClose').focus();
+}
+function closeModal() { $('#modal').hidden = true; }
+function copyText(s) { const ok = () => toast(S.lang === 'ar' ? 'تم النسخ' : 'Copied'); try { navigator.clipboard.writeText(s).then(ok, () => fallbackCopy(s)); } catch (e) { fallbackCopy(s); } }
+function fallbackCopy(s) { const pre = $('#modalBody pre') || $('#modalBody'); const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast(S.lang === 'ar' ? 'النص محدد، اضغط Ctrl+C' : 'Text selected — press Ctrl+C'); }
+
+// ---------------------------------------------------------------- CSV import
+function importCSV(text) {
+  const lines = text.trim().split(/\r?\n/); const hdr = lines.shift().toLowerCase().split(',').map(s => s.trim());
+  const ix = n => hdr.findIndex(h => h === n || h.startsWith(n)); const I = { id: ix('hole'), e: ix('east'), n: ix('north'), z: ix('elev'), az: ix('azi'), dip: ix('dip'), f: ix('from'), t: ix('to'), au: ix('au') };
+  if (Object.values(I).some(v => v < 0)) throw new Error('Missing columns. Expected hole_id,east,north,elev,azimuth,dip,from,to,au_gpt');
+  const map = new Map();
+  for (const ln of lines) { const c = ln.split(','); if (c.length < hdr.length) continue; const id = c[I.id].trim(); let h = map.get(id); if (!h) { const az = +c[I.az], dip = Math.abs(+c[I.dip]); h = { id, collar: [+c[I.e], +c[I.n], +c[I.z]], az, dip, dir: dirOf(az, dip), samples: [], len: 0 }; map.set(id, h); } h.samples.push({ from: +c[I.f], to: +c[I.t], au: +c[I.au], lith: 'GD' }); h.len = Math.max(h.len, +c[I.t]); }
+  HOLES = [...map.values()]; HOLES.forEach(h => { h.samples.sort((a, b) => a.from - b.from); placeSamples(h); h.samples.forEach(s => s.lith = lithAt(s.x, s.y, s.z)); });
+  S.topCut = null; S.overlapsFixed = false; S.infill = []; S.applied = {}; S.pit = null; buildInfill(); buildDrillholes(); rebuildModel(); renderDB();
+  return HOLES.length;
+}
+function renderDB() { const iss = holeIssues(); const bad = iss.overlaps + iss.dups > 0 || !S.topCut; const c = $('#dbChip'); c.className = 'chip ' + (bad ? 'warn' : 'ok'); c.querySelector('span:last-child').textContent = bad ? t('dbWarn') : t('dbOk'); }
+
+// ---------------------------------------------------------------- misc UI
+let toastT = 0; function toast(msg) { const el = $('#toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 3600); }
+function syncEconInputs() { $('#inPrice').value = S.price; $('#inMine').value = S.mineCost; $('#inProc').value = S.procCost; $('#inRec').value = S.recovery; }
+function applyLang() {
+  const ar = S.lang === 'ar'; document.documentElement.lang = S.lang; document.documentElement.dir = ar ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  $('#langBtn').textContent = ar ? 'English' : 'العربية'; $('#prompt').placeholder = t('prompt'); $('#loading').textContent = t('loading');
+  renderRibbon(); renderEngine(); renderSuggest(); if (BM) { layerTree(); updateKPIs(); renderCards(); renderLegend(); applySlice(); renderDB(); }
+}
+function inspect(html) { $('#inspector').innerHTML = html; }
+function inspectBlock(b) { const ar = S.lang === 'ar'; const inP = PE.inPit[b], ore = BM.bg[b] >= S.cutoff; inspect(`<dl><dt>Object</dt><dd>Block #${b}</dd><dt>E / N / RL</dt><dd>${fmt(BM.bx[b], 1)} / ${fmt(BM.by[b], 1)} / ${fmt(BM.bz[b], 1)}</dd><dt>Au (IDW)</dt><dd>${fmt(BM.bg[b], 3)} g/t</dd><dt>${ar ? 'الحمولة' : 'Tonnes'}</dt><dd>${fmt(BM.blockT)} t</dd><dt>${ar ? 'أقرب عينة' : 'Nearest sample'}</dt><dd>${fmt(BM.bnear[b], 1)} m</dd><dt>${ar ? 'التصنيف' : 'Class'}</dt><dd style="color:${inP && ore ? 'var(--em-ink)' : 'var(--fg-2)'}">${inP ? (ore ? (ar ? 'خام داخل الحفرة' : 'Ore · in pit') : (ar ? 'نفايات داخل الحفرة' : 'Waste · in pit')) : (ar ? 'خارج الحفرة' : 'Outside pit')}</dd></dl>`); }
+function inspectSample(h, s) { const ar = S.lang === 'ar'; inspect(`<dl><dt>Hole</dt><dd>${h.id}</dd><dt>${ar ? 'الفترة' : 'Interval'}</dt><dd>${fmt(s.from, 1)}–${fmt(s.to, 1)} m</dd><dt>Au raw</dt><dd style="color:${s.au > 15 ? 'var(--crit)' : 'inherit'}">${fmt(s.au, 2)} g/t</dd>${S.topCut && s.au > S.topCut ? `<dt>Au capped</dt><dd>${fmt(S.topCut, 2)} g/t</dd>` : ''}<dt>${ar ? 'الصخارة' : 'Lithology'}</dt><dd>${s.lith} · ${LITH[s.lith][S.lang]}</dd><dt>Collar</dt><dd>E${fmt(h.collar[0])} N${fmt(h.collar[1])} RL${fmt(h.collar[2])}</dd><dt>Az / Dip</dt><dd>${fmt(h.az, 1)}° / −${fmt(h.dip, 1)}°</dd><dt>${ar ? 'العمق' : 'Depth'}</dt><dd>${fmt(h.len)} m</dd></dl>`); }
+
+// pointer: hover HUD, click inspect / sketch
+const mouse = new THREE.Vector2(); let hoverPending = false, downAt = null;
+function pick(ev, objs) { const r = $('#gl').getBoundingClientRect(); mouse.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(mouse, camera); return raycaster.intersectObjects(objs.filter(o => o && o.visible !== false), false).filter(h => passesClip(h.point)); }
+function bindPointer() {
+  const cv = $('#gl');
+  cv.addEventListener('pointermove', ev => { if (hoverPending) return; hoverPending = true; requestAnimationFrame(() => { hoverPending = false; const objs = [S.layers.bm.vis && G.bm, S.layers.topo.vis && G.topoSolid].filter(Boolean); if (!S.layers.topo.vis) objs.push(G.topoSolid); const hit = pick(ev, objs)[0]; if (!hit) { $('#hudXYZ').textContent = 'E —  N —  Z —'; $('#hudHit').textContent = ''; return; } const p = toENZ(hit.point); $('#hudXYZ').textContent = `E ${fmt(p.e, 1)}  N ${fmt(p.n, 1)}  Z ${fmt(p.z, 1)}`; if (hit.object === G.bm && hit.instanceId != null) { const b = G.bmVisible[hit.instanceId]; $('#hudHit').textContent = `block · ${fmt(BM.bg[b], 2)} g/t Au`; } else $('#hudHit').textContent = 'topography'; }); });
+  cv.addEventListener('pointerdown', ev => downAt = [ev.clientX, ev.clientY]);
+  cv.addEventListener('pointerup', ev => {
+    if (!downAt || Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 4) return;
+    if (S.sketch.on) { const hit = pick(ev, [G.topoSolid])[0]; if (hit) { const p = toENZ(hit.point); S.sketch.pts.push([p.e, p.n]); buildSketch(); toast(`${S.sketch.pts.length} ${S.lang === 'ar' ? 'نقطة' : 'vertices'} · E${fmt(p.e)} N${fmt(p.n)}`); } return; }
+    const hits = pick(ev, [S.layers.bm.vis && G.bm, S.layers.dh.vis && G.dhMesh, G.topoSolid].filter(Boolean)); const h = hits[0]; if (!h) return;
+    if (h.object === G.bm) inspectBlock(G.bmVisible[h.instanceId]); else if (h.object === G.dhMesh) { const [hh, s] = G.dhIndex[h.instanceId]; inspectSample(hh, s); } else { const p = toENZ(h.point); inspect(`<dl><dt>Object</dt><dd>Topography</dd><dt>E / N</dt><dd>${fmt(p.e, 1)} / ${fmt(p.n, 1)}</dd><dt>RL</dt><dd>${fmt(p.z, 2)} m</dd><dt>${S.lang === 'ar' ? 'قاع الحفرة هنا' : 'Pit floor here'}</dt><dd>${fmt(Math.min(pitFloor(p.e, p.n, S.pit), p.z), 1)} m</dd></dl>`); }
+  });
+}
+
+function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); renderLabels(); drawGizmo(); }
+
+// ---------------------------------------------------------------- boot
+function boot() {
+  if (!window.THREE || !THREE.OrbitControls) { $('#loading').textContent = 'Three.js failed to load — check your connection.'; return; }
+  initScene(); bindLayerTree(); bindPointer(); applyLang();
+  $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) { curTab = b.dataset.tab; renderRibbon(); } });
+  $('#tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) onTool(b.dataset.tool); });
+  $('#langBtn').onclick = () => { S.lang = S.lang === 'en' ? 'ar' : 'en'; applyLang(); };
+  $('#cog').addEventListener('input', e => { S.cutoff = +e.target.value; filterBlocks(); renderLegend(); updateKPIs(); });
+  $('#cog').addEventListener('change', () => { renderCards(); colorDrillholes(); });
+  [['#inPrice', 'price'], ['#inMine', 'mineCost'], ['#inProc', 'procCost'], ['#inRec', 'recovery']].forEach(([id, k]) => $(id).addEventListener('change', e => { const v = parseFloat(e.target.value); if (isFinite(v) && v > 0) { S[k] = v; updateKPIs(); renderCards(); } }));
+  $('#slOn').onchange = e => { S.slice.enabled = e.target.checked; applySlice(); };
+  $('#slPos').oninput = e => { S.slice.pos = +e.target.value; applySlice(); };
+  $('#slAxis').onclick = e => { const b = e.target.closest('[data-ax]'); if (!b) return; S.slice.axis = b.dataset.ax; S.slice.pos = b.dataset.ax === 'z' ? 230 : 300; applySlice(); };
+  $('#cards').addEventListener('click', e => { const b = e.target.closest('[data-card]'); if (b && CARDS[+b.dataset.card] && CARDS[+b.dataset.card].run) CARDS[+b.dataset.card].run(); });
+  $('#reportBtn').onclick = () => { const ar = S.lang === 'ar'; const args = { project_name: 'Wadi Gold Project', include_sensitivity: true }; addMsg('bot', callHTML('generate_executive_report', args) + (ar ? 'تم فتح التقرير التنفيذي.' : 'Executive report opened.')); dispatch('generate_executive_report', args, 'agent'); };
+  $('#composer').addEventListener('submit', e => { e.preventDefault(); handlePrompt($('#prompt').value); $('#prompt').value = ''; });
+  $('#prompt').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#composer').requestSubmit(); } });
+  $('#suggest').addEventListener('click', e => { const b = e.target.closest('.sg'); if (b) handlePrompt(b.textContent); });
+  $('#modalClose').onclick = closeModal; $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+  $('#csvFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { try { const n = importCSV(rd.result); botSay(S.lang === 'ar' ? `<b>تم الاستيراد</b>: ${n} بئر. أُعيد تقدير نموذج البلوكات وتحسين الحفرة.` : `<b>Imported</b> ${n} drillholes. Block model re-estimated and pit re-optimised.`); } catch (err) { toast(err.message); } }; rd.readAsText(f); e.target.value = ''; });
+  setTimeout(() => {
+    makeHoles(); buildDrillholes(); rebuildModel(); applySlice(); renderDB(); $('#loading').hidden = true;
+    const ar = S.lang === 'ar';
+    botSay(ar ? `تم تحميل مشروع <b>وادي الذهب</b>: ${HOLES.length} بئراً، ${fmt(BM.nSamples)} تحليلاً، ${fmt(BM.N)} بلوكاً مقدَّراً بحجم ${BM.bs} م. رصد المدقق الذكي ${CARDS.filter(c => !c.done).length} ملاحظات أعلاه. اكتب أمراً بالعربية أو الإنجليزية، وسيتحول كل أمر إلى استدعاء أداة JSON يغيّر المشهد والمؤشرات.` : `Project <b>Wadi Gold</b> loaded: ${HOLES.length} drillholes, ${fmt(BM.nSamples)} assays, ${fmt(BM.N)} estimated ${BM.bs} m blocks. The AI auditor raised ${CARDS.filter(c => !c.done).length} items above. Type a command in English or Arabic — each one becomes a JSON tool call that changes the scene and KPIs.`);
+    loop();
+  }, 30);
+}
+icons(); boot();
+</script>
+</body>
+</html>
