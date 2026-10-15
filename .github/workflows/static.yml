@@ -3,7 +3,7 @@ name: Deploy web app to Pages
 
 on:
   push:
-    branches: ['main', 'claude/**']
+    branches: ['main'] # قواعد github-pages تسمح بالنشر من main فقط
     paths: ['src/**', 'web/**', '.github/workflows/static.yml']
   workflow_dispatch:
 
