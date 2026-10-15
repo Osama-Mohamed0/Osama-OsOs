@@ -1,7 +1,7 @@
 {
   "name": "injaz",
   "productName": "Injaz",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "إنجاز — تطبيق سطح مكتب لمتابعة المهام والإنتاجية والعادات",
   "main": "main.js",
   "author": "Osama Mohamed",
@@ -22,6 +22,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "sync-server.js",
       "src/**/*"
     ],
     "win": {
@@ -58,5 +59,8 @@
   "devDependencies": {
     "electron": "~43.7.11",
     "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }

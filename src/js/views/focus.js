@@ -15,7 +15,35 @@ const Focus = (() => {
   const settings = () => Store.state.settings;
   const minutesFor = (mode) => clamp(Number(settings()[MODES[mode].key]) || 1, 1, 180);
   const longEvery = () => clamp(Number(settings().longEvery) || 4, 2, 12);
-  const emit = (full = true) => subs.forEach((fn) => fn(full));
+  const TIMER_KEY = 'injaz-timer';
+  const emit = (full = true) => {
+    if (full) persist();
+    subs.forEach((fn) => fn(full));
+  };
+
+  // حفظ حالة المؤقت، فلا تضيع الجلسة إن أُغلق التطبيق (أو أوقفه أندرويد) أثناءها
+  function persist() {
+    try {
+      localStorage.setItem(TIMER_KEY, JSON.stringify(t));
+    } catch {
+      /* التخزين غير متاح */
+    }
+  }
+
+  function restore() {
+    let saved;
+    try {
+      saved = JSON.parse(localStorage.getItem(TIMER_KEY));
+    } catch {
+      saved = null;
+    }
+    if (!saved || !MODES[saved.mode]) return;
+    Object.assign(t, saved);
+    if (t.status === 'running') {
+      if (Date.now() >= t.endAt) complete();
+      else if (!timer) timer = setInterval(tick, 250);
+    }
+  }
 
   function remainingMs() {
     if (t.status === 'running') return Math.max(0, t.endAt - Date.now());
@@ -133,7 +161,8 @@ const Focus = (() => {
 
   function notify(title, body) {
     UI.toast(title, { type: 'success', timeout: 6000 });
-    if (settings().notifications) Store.api.notify(title, body);
+    // على أندرويد يُجدوَل إشعار نهاية المؤقت مسبقاً (يصل حتى والتطبيق في الخلفية)
+    if (settings().notifications && !Store.api.schedulesReminders) Store.api.notify(title, body);
   }
 
   // ---------- الصوت (WebAudio بلا ملفات) ----------
@@ -306,7 +335,7 @@ const Focus = (() => {
     }
   }
 
-  return { MODES, start, pause, toggle, reset, skip, setMode, setTask, startForTask, snapshot, subscribe, render, update };
+  return { MODES, start, pause, toggle, reset, skip, setMode, setTask, startForTask, snapshot, subscribe, render, update, restore };
 })();
 
 Views.focus = { render: Focus.render, update: Focus.update };

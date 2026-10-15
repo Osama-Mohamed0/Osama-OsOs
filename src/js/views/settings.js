@@ -3,6 +3,8 @@
 
 Views.settings = (() => {
   let info = null;
+  let syncListening = false;
+  const isDesktop = () => Store.api.platform === 'desktop';
 
   const row = (label, desc, control) => `
     <div class="setting-row">
@@ -32,18 +34,186 @@ Views.settings = (() => {
       <form class="cat-add" data-cat-add><input name="name" placeholder="تصنيف جديد…" autocomplete="off"><button class="btn ghost sm">${icon('plus')}إضافة</button></form>`;
   }
 
+  // ---------- المزامنة: بطاقة الكمبيوتر (رمز QR) ----------
+  function desktopSyncHtml(st) {
+    const head = `<h3>${icon('phone')}المزامنة مع الهاتف</h3>
+      ${row('المزامنة عبر الواي فاي', 'يتصل تطبيق الهاتف بهذا الكمبيوتر مباشرة عبر شبكة البيت. البيانات مشفّرة ولا تمر عبر الإنترنت.', `<label class="switch"><input type="checkbox" data-sync-toggle ${st.enabled ? 'checked' : ''}><span></span></label>`)}`;
+    if (!st.enabled) return head;
+    if (st.error) {
+      return `${head}<p class="notice danger">تعذّر تشغيل المزامنة${st.error === 'port-in-use' ? ` لأن المنفذ ${st.port} مستخدم من برنامج آخر` : ''}. أعد تشغيل إنجاز وحاول مجدداً.</p>`;
+    }
+    const addr = st.addresses[0];
+    return `${head}
+      ${addr ? '' : '<p class="notice">هذا الكمبيوتر غير متصل بأي شبكة حالياً. اتصل بشبكة الواي فاي في البيت.</p>'}
+      <div class="pair-box">
+        <img class="qr" src="${st.qr}" alt="رمز QR لربط الهاتف" width="196" height="196">
+        <div class="pair-info">
+          <ol class="steps">
+            <li>ثبّت تطبيق إنجاز على هاتفك الأندرويد.</li>
+            <li>افتح فيه: الإعدادات ← المزامنة مع الكمبيوتر ← <b>مسح رمز QR</b>.</li>
+            <li>وجّه الكاميرا إلى هذا الرمز. تتم المزامنة بعدها تلقائياً.</li>
+          </ol>
+          <p class="muted small">أو أدخل يدوياً — العنوان: <b dir="ltr">${esc(addr || '—')}</b> · الرمز: <b dir="ltr">${esc(st.code)}</b></p>
+          <p class="small sync-state ${st.lastSync ? 'ok' : ''}">${st.lastSync ? `${icon('check')}آخر مزامنة مع ${esc(st.lastSync.device)}: ${fmtAgo(st.lastSync.at)}` : 'لم يتصل أي هاتف بعد.'}</p>
+          <button class="btn ghost sm" data-sync-regen>${icon('reset')}تغيير رمز الربط</button>
+        </div>
+      </div>
+      <p class="muted small">💡 إن ظهرت نافذة «جدار حماية ويندوز» فاختر <b>السماح</b> (Allow access). وإن لم يتصل الهاتف، تأكد أن الواي فاي مضبوط كشبكة خاصة (Private) في إعدادات ويندوز.</p>`;
+  }
+
+  async function fillDesktopSync(card) {
+    try {
+      const st = await Store.api.syncStatus();
+      if (card.isConnected) card.innerHTML = desktopSyncHtml(st);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ---------- المزامنة: بطاقة الهاتف ----------
+  function phoneSyncHtml() {
+    const head = `<h3>${icon('sync')}المزامنة مع الكمبيوتر</h3>`;
+    if (!Sync.paired()) {
+      return `${head}
+        <p class="muted small">اربط الهاتف بتطبيق إنجاز على الكمبيوتر لتتزامن المهام والعادات وجلسات التركيز تلقائياً عبر الواي فاي في البيت — دون إنترنت أو حسابات.</p>
+        <ol class="steps">
+          <li>على الكمبيوتر: الإعدادات ← المزامنة مع الهاتف ← فعّل المزامنة.</li>
+          <li>هنا: اضغط «مسح رمز QR» ووجّه الكاميرا إلى الرمز.</li>
+        </ol>
+        <div class="btn-row">
+          <button class="btn primary" data-sync-scan>${icon('camera')}مسح رمز QR</button>
+          <button class="btn ghost" data-sync-manual>إدخال يدوي</button>
+        </div>`;
+    }
+    const c = Sync.config;
+    const st = Sync.status;
+    const state =
+      st === 'syncing'
+        ? `${icon('sync')}جارٍ المزامنة…`
+        : st === 'ok' || (!c.lastError && c.lastAt)
+          ? `${icon('check')}متزامن — ${c.lastAt ? fmtAgo(c.lastAt) : ''}`
+          : st === 'bad-code'
+            ? 'رمز الربط تغيّر على الكمبيوتر. امسح الرمز الجديد.'
+            : `غير متصل الآن. آخر مزامنة: ${c.lastAt ? fmtAgo(c.lastAt) : '—'}`;
+    return `${head}
+      ${row(`مرتبط بـ ${esc(c.pcName || 'الكمبيوتر')}`, '<span dir="ltr">' + esc(c.lastHost || c.hosts[0]) + '</span>', `<span class="small sync-state ${st === 'ok' ? 'ok' : st === 'syncing' ? '' : 'warn'}">${state}</span>`)}
+      ${st === 'offline' ? '<p class="muted small">تتم المزامنة تلقائياً عندما يكون الهاتف والكمبيوتر على نفس شبكة الواي فاي وإنجاز مفتوح على الكمبيوتر. تعديلاتك محفوظة على الهاتف حتى ذلك الحين.</p>' : ''}
+      <div class="btn-row">
+        <button class="btn primary sm" data-sync-now>${icon('sync')}مزامنة الآن</button>
+        ${st === 'bad-code' ? `<button class="btn ghost sm" data-sync-scan>${icon('camera')}مسح الرمز الجديد</button>` : ''}
+        <span class="spacer"></span>
+        <button class="btn ghost sm danger-text" data-sync-unpair>إلغاء الربط</button>
+      </div>`;
+  }
+
+  async function doPair(info) {
+    UI.toast('جارٍ الاتصال بالكمبيوتر…', { timeout: 2500 });
+    try {
+      const c = await Sync.pair(info);
+      UI.toast(`تم الربط مع ${c.pcName} ✓ ستتزامن بياناتك تلقائياً.`, { type: 'success', timeout: 6000 });
+      App.render();
+    } catch (err) {
+      UI.toast(Sync.messageFor(err.message), { type: 'error', timeout: 9000 });
+    }
+  }
+
+  function manualPair() {
+    UI.modal({
+      title: 'ربط يدوي بالكمبيوتر',
+      size: 'sm',
+      body: `<form class="form" data-manual-form>
+          <p class="muted small">ستجد العنوان والرمز في إنجاز على الكمبيوتر: الإعدادات ← المزامنة مع الهاتف.</p>
+          <label class="field"><span>عنوان الكمبيوتر</span><input name="host" dir="ltr" inputmode="decimal" placeholder="192.168.1.5" autocomplete="off" autofocus></label>
+          <label class="field"><span>رمز الربط</span><input name="code" dir="ltr" placeholder="ABCD-EFGH-JK" autocapitalize="characters" autocomplete="off"></label>
+        </form>`,
+      footer: `<button class="btn ghost" data-close>إلغاء</button><button class="btn primary" data-pair>ربط</button>`,
+      onMount(box, close) {
+        const form = $('[data-manual-form]', box);
+        const go = (e) => {
+          if (e) e.preventDefault();
+          const host = form.elements.host.value.trim();
+          const code = form.elements.code.value;
+          if (!host) return UI.toast('اكتب عنوان الكمبيوتر', { type: 'error' });
+          close();
+          doPair({ hosts: [host.replace(/:\d+$/, '')], code });
+        };
+        form.addEventListener('submit', go);
+        $('[data-pair]', box).addEventListener('click', go);
+      },
+    });
+  }
+
+  async function scanQr() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.jsQR) return manualPair();
+    let stream = null;
+    let timer = null;
+    let closed = false;
+    const close = UI.modal({
+      title: 'مسح رمز الربط',
+      size: 'md',
+      body: `<p class="muted small">وجّه الكاميرا إلى رمز QR الظاهر في إعدادات إنجاز على الكمبيوتر.</p>
+        <div class="scanner"><video playsinline muted></video><span class="scan-frame"></span></div>`,
+      footer: `<button class="btn ghost" data-manual>إدخال يدوي</button><span class="spacer"></span><button class="btn ghost" data-close>إلغاء</button>`,
+      onMount(box, closeFn) {
+        $('[data-manual]', box).addEventListener('click', () => {
+          closeFn();
+          manualPair();
+        });
+      },
+      onClose() {
+        closed = true;
+        clearInterval(timer);
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+      },
+    });
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    } catch {
+      close();
+      UI.toast('لم يُسمح باستخدام الكاميرا. يمكنك الربط يدوياً.', { type: 'error' });
+      return manualPair();
+    }
+    if (closed) return stream.getTracks().forEach((t) => t.stop());
+    const video = $('.scanner video');
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    timer = setInterval(() => {
+      if (!video.videoWidth) return;
+      const w = 480;
+      const h = Math.round((video.videoHeight * w) / video.videoWidth);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+      const found = window.jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+      if (!found) return;
+      let parsed;
+      try {
+        parsed = Sync.parseQr(found.data);
+      } catch {
+        return;
+      }
+      close();
+      doPair(parsed);
+    }, 250);
+  }
+
   function render(root) {
     const s = Store.state.settings;
+    const desktop = isDesktop();
+    const syncCard = desktop ? !!Store.api.syncStatus : Sync.isEnabled();
     const page = document.createElement('div');
     page.className = 'page narrow';
     page.innerHTML = `
       <header class="page-head"><div><h1>الإعدادات</h1><p class="sub">خصّص إنجاز ليناسب طريقتك في العمل.</p></div></header>
+      ${syncCard ? `<section class="card settings-card sync-card" data-sync-card>${desktop ? `<h3>${icon('phone')}المزامنة مع الهاتف</h3>` : phoneSyncHtml()}</section>` : ''}
 
       <section class="card settings-card">
         <h3>عام</h3>
         ${row('اسمك', 'يظهر في رسالة الترحيب.', `<input data-set="name" value="${esc(s.name)}" placeholder="اختياري" class="text-input">`)}
         ${row('المظهر', '', select('theme', s.theme, [['system', 'حسب النظام'], ['light', 'فاتح'], ['dark', 'داكن']]))}
-        ${row('حجم الواجهة', 'أو اضغط <kbd>Ctrl</kbd> مع <kbd>+</kbd> أو <kbd>−</kbd>', select('zoom', s.zoom, [[0.9, '90%'], [1, '100%'], [1.1, '110%'], [1.25, '125%'], [1.4, '140%']]))}
+        ${row('حجم الواجهة', desktop ? 'أو اضغط <kbd>Ctrl</kbd> مع <kbd>+</kbd> أو <kbd>−</kbd>' : '', select('zoom', s.zoom, [[0.9, '90%'], [1, '100%'], [1.1, '110%'], [1.25, '125%'], [1.4, '140%']]))}
         ${row('بداية الأسبوع', 'تُستخدم في سجل العادات والإحصائيات.', select('weekStart', s.weekStart, [[6, 'السبت'], [0, 'الأحد'], [1, 'الاثنين']]))}
       </section>
 
@@ -65,7 +235,7 @@ Views.settings = (() => {
 
       <section class="card settings-card">
         <h3>التنبيهات</h3>
-        ${row('إشعارات ويندوز', 'تذكير المهام ذات الوقت المحدد وانتهاء المؤقت.', toggle('notifications', s.notifications))}
+        ${row(desktop ? 'إشعارات ويندوز' : 'الإشعارات', 'تذكير المهام ذات الوقت المحدد وانتهاء المؤقت.', toggle('notifications', s.notifications))}
         ${row('تذكير يومي بالعادات', 'إشعار إن بقيت عادات لم تُنجز.', `${toggle('habitReminder', s.habitReminder)}<input type="time" data-set="habitReminderTime" value="${esc(s.habitReminderTime)}" ${s.habitReminder ? '' : 'disabled'}>`)}
       </section>
 
@@ -74,26 +244,26 @@ Views.settings = (() => {
         ${categoriesHtml()}
       </section>
 
-      <section class="card settings-card">
+      ${desktop ? `<section class="card settings-card">
         <h3>النظام</h3>
         ${row('التشغيل مع بدء ويندوز', 'يفتح إنجاز تلقائياً عند تشغيل الجهاز.', toggle('openAtLogin', info && info.openAtLogin))}
-        ${row('البقاء في شريط المهام عند الإغلاق', 'زر الإغلاق يخفي النافذة ويبقي التذكيرات والمؤقت تعمل (أيقونة بجانب الساعة).', toggle('closeToTray', s.closeToTray))}
-      </section>
+        ${row('البقاء في شريط المهام عند الإغلاق', 'زر الإغلاق يخفي النافذة ويبقي التذكيرات والمؤقت تعمل والمزامنة متاحة (أيقونة بجانب الساعة).', toggle('closeToTray', s.closeToTray))}
+      </section>` : ''}
 
       <section class="card settings-card">
         <h3>البيانات والنسخ الاحتياطي</h3>
-        <p class="muted small">تُحفظ بياناتك على جهازك فقط، مع نسخة احتياطية تلقائية يومية (آخر 14 يوماً).</p>
-        ${info ? `<p class="path" dir="ltr">${esc(info.dataPath)}</p>` : ''}
+        <p class="muted small">${desktop ? 'تُحفظ بياناتك على جهازك فقط، مع نسخة احتياطية تلقائية يومية (آخر 14 يوماً).' : 'تُحفظ بياناتك على هاتفك فقط، وتُنسخ إلى الكمبيوتر عند المزامنة.'}</p>
+        ${info && desktop ? `<p class="path" dir="ltr">${esc(info.dataPath)}</p>` : ''}
         <div class="btn-row">
           <button class="btn ghost" data-export>${icon('download')}تصدير نسخة احتياطية</button>
           <button class="btn ghost" data-import>${icon('upload')}استيراد نسخة</button>
-          <button class="btn ghost" data-folder>${icon('folder')}فتح مجلد البيانات</button>
+          ${desktop ? `<button class="btn ghost" data-folder>${icon('folder')}فتح مجلد البيانات</button>` : ''}
           <span class="spacer"></span>
           <button class="btn ghost danger-text" data-reset>${icon('trash')}مسح كل البيانات</button>
         </div>
       </section>
 
-      <section class="card settings-card">
+      ${desktop ? `<section class="card settings-card">
         <h3>اختصارات لوحة المفاتيح</h3>
         <div class="shortcuts">
           <span><kbd>Ctrl</kbd>+<kbd>N</kbd> مهمة جديدة</span>
@@ -103,11 +273,18 @@ Views.settings = (() => {
           <span><kbd>Esc</kbd> إغلاق النافذة المنبثقة</span>
           <span><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> تكبير/تصغير الواجهة</span>
         </div>
-      </section>
+      </section>` : ''}
       <p class="muted small center">إنجاز ${info ? `v${esc(info.version)}` : ''} · بياناتك ملكك ولا تغادر جهازك.</p>`;
 
     page.addEventListener('change', async (e) => {
       const el = e.target;
+      if (el.matches('[data-sync-toggle]')) {
+        el.disabled = true;
+        const st = await Store.api.syncConfigure({ enabled: el.checked });
+        $('[data-sync-card]', page).innerHTML = desktopSyncHtml(st);
+        if (st.enabled && !st.error) UI.toast('المزامنة مفعّلة — امسح الرمز من تطبيق الهاتف', { type: 'success' });
+        return;
+      }
       const key = el.dataset.set;
       if (key) {
         let value = el.type === 'checkbox' ? el.checked : el.value;
@@ -145,6 +322,22 @@ Views.settings = (() => {
     });
 
     page.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-sync-scan]')) return scanQr();
+      if (e.target.closest('[data-sync-manual]')) return manualPair();
+      if (e.target.closest('[data-sync-now]')) return Sync.syncNow({ quiet: false });
+      if (e.target.closest('[data-sync-unpair]')) {
+        const ok = await UI.confirm({ title: 'إلغاء الربط', message: 'سيتوقف الهاتف عن المزامنة مع الكمبيوتر. بياناتك تبقى على الجهازين.', ok: 'إلغاء الربط', danger: true });
+        if (ok) {
+          Sync.unpair();
+          App.render();
+        }
+        return;
+      }
+      if (e.target.closest('[data-sync-regen]')) {
+        const ok = await UI.confirm({ title: 'تغيير رمز الربط', message: 'سيتوقف أي هاتف مرتبط حالياً عن المزامنة حتى تمسح الرمز الجديد.', ok: 'تغيير الرمز' });
+        if (ok) $('[data-sync-card]', page).innerHTML = desktopSyncHtml(await Store.api.syncConfigure({ regenerate: true }));
+        return;
+      }
       const colorBtn = e.target.closest('[data-cat-color]');
       if (colorBtn) {
         const id = colorBtn.closest('[data-cat]').dataset.cat;
@@ -192,6 +385,19 @@ Views.settings = (() => {
     });
 
     root.replaceChildren(page);
+
+    const card = $('[data-sync-card]', page);
+    if (card && desktop) {
+      fillDesktopSync(card);
+      const poll = setInterval(() => (card.isConnected ? fillDesktopSync(card) : clearInterval(poll)), 8000);
+    }
+    if (card && !desktop && !syncListening) {
+      syncListening = true;
+      Sync.subscribe(() => {
+        const c = $('[data-sync-card]');
+        if (c) c.innerHTML = phoneSyncHtml();
+      });
+    }
 
     if (!info) {
       Store.api.info().then((res) => {

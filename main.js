@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Notification, Tray, Menu, shell, nativeTheme, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { createSyncServer } = require('./sync-server');
 
 const APP_ID = 'com.osama.injaz';
 const APP_NAME = 'إنجاز';
@@ -16,6 +17,9 @@ let tray = null;
 let quitting = false;
 const prefs = { closeToTray: false };
 const liveNotifications = new Set(); // يمنع جمع الإشعارات قبل النقر عليها
+let sync = null;
+const pendingMerges = new Map();
+let mergeSeq = 0;
 
 // ---------- التخزين ----------
 const dataDir = () => app.getPath('userData');
@@ -275,6 +279,32 @@ ipcMain.on('app:attention', () => {
   if (win && !win.isFocused()) win.flashFrame(true);
 });
 
+// ---------- المزامنة مع الهاتف ----------
+// الدمج يتم في الواجهة (حيث تعيش البيانات)، والخادم ينتظر النتيجة ليعيدها للهاتف
+function requestMerge(stateJson) {
+  return new Promise((resolve, reject) => {
+    if (!win) return reject(new Error('window-closed'));
+    const id = ++mergeSeq;
+    const timer = setTimeout(() => {
+      pendingMerges.delete(id);
+      reject(new Error('timeout'));
+    }, 15000);
+    pendingMerges.set(id, { resolve, reject, timer });
+    win.webContents.send('sync:merge', id, stateJson);
+  });
+}
+
+ipcMain.on('sync:merged', (_e, id, result) => {
+  const p = pendingMerges.get(id);
+  if (!p) return;
+  clearTimeout(p.timer);
+  pendingMerges.delete(id);
+  if (result && result.ok) p.resolve(result.data);
+  else p.reject(new Error((result && result.error) || 'merge-failed'));
+});
+ipcMain.handle('sync:status', () => sync.status());
+ipcMain.handle('sync:configure', (_e, opts) => sync.configure(opts || {}));
+
 // ---------- دورة حياة التطبيق ----------
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -283,12 +313,15 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
   app.whenReady().then(() => {
     bootPrefs();
+    sync = createSyncServer({ configPath: path.join(dataDir(), 'sync.json'), onMerge: requestMerge });
+    sync.init().catch((err) => console.error('sync init failed', err));
     const startHidden = process.argv.includes('--hidden') && prefs.closeToTray;
     createWindow(!startHidden);
     ensureTray();
   });
   app.on('before-quit', () => {
     quitting = true;
+    if (sync) sync.stop();
   });
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

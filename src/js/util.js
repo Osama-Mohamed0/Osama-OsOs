@@ -107,6 +107,16 @@ function fmtClock(ms) {
   return `${D.pad(Math.floor(total / 60))}:${D.pad(total % 60)}`;
 }
 
+// منذ متى: «الآن»، «قبل 5 د»، «قبل 3 س»، أو التاريخ
+function fmtAgo(ts) {
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'الآن';
+  if (m < 60) return `قبل ${m} د`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `قبل ${h} س`;
+  return D.short(D.key(new Date(ts)));
+}
+
 const fmtNum = (n) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(n);
 
 // ---------- الأيقونات ----------
@@ -148,6 +158,9 @@ const ICONS = {
   coffee: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17M7 2v3M11 2v3"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
   restore: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/>',
+  phone: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
+  sync: '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
 };
 
 function icon(name, cls = '') {

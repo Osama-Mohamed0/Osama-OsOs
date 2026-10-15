@@ -15,4 +15,20 @@ contextBridge.exposeInMainWorld('api', {
   progress: (value, tooltip) => ipcRenderer.send('app:progress', { value, tooltip }),
   attention: () => ipcRenderer.send('app:attention'),
   setZoom: (factor) => webFrame.setZoomFactor(factor),
+  platform: 'desktop',
+  syncStatus: () => ipcRenderer.invoke('sync:status'),
+  syncConfigure: (opts) => ipcRenderer.invoke('sync:configure', opts),
+  // يستقبل بيانات الهاتف من خادم المزامنة، يدمجها، ويعيد النتيجة
+  onSyncRequest: (handler) => {
+    ipcRenderer.removeAllListeners('sync:merge');
+    ipcRenderer.on('sync:merge', async (_e, id, json) => {
+      let result;
+      try {
+        result = { ok: true, data: await handler(json) };
+      } catch (err) {
+        result = { ok: false, error: String((err && err.message) || err) };
+      }
+      ipcRenderer.send('sync:merged', id, result);
+    });
+  },
 });

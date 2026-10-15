@@ -87,6 +87,12 @@ const App = (() => {
       <div class="side-foot">
         <button class="btn ghost sm theme-btn" data-theme-toggle title="تبديل المظهر">${icon(dark ? 'sun' : 'moon')}${dark ? 'المظهر الفاتح' : 'المظهر الداكن'}</button>
       </div>`;
+    // شريط التنقل السفلي (يظهر على الشاشات الصغيرة والهاتف فقط)
+    const SHORT = { stats: 'الإحصاء', settings: 'الإعدادات' };
+    $('#bottom-nav').innerHTML = NAV.map(
+      (n) => `<button class="bnav-item ${current === n.id ? 'active' : ''}" data-nav="${n.id}" aria-label="${n.label}">
+        ${icon(n.icon)}<span class="bnav-label">${SHORT[n.id] || n.label}</span>${badges[n.id] ? `<span class="badge">${badges[n.id]}</span>` : ''}</button>`
+    ).join('');
     updateTimerUi();
   }
 
@@ -103,6 +109,11 @@ const App = (() => {
       }
     }
     document.title = active ? `${fmtClock(s.remaining)} · ${s.label} — إنجاز` : 'إنجاز';
+    const bnavFocus = $('#bottom-nav [data-nav="focus"] .bnav-label');
+    if (bnavFocus) {
+      bnavFocus.textContent = active ? fmtClock(s.remaining) : 'التركيز';
+      bnavFocus.parentElement.classList.toggle('timing', active);
+    }
     const second = active ? Math.floor(s.remaining / 1000) : -1;
     if (second !== lastProgressSecond) {
       lastProgressSecond = second;
@@ -143,7 +154,8 @@ const App = (() => {
   // ---------- التذكيرات ----------
   function notify(title, body) {
     UI.toast(`${title} — ${body}`, { timeout: 8000 });
-    Store.api.notify(title, body);
+    // على أندرويد يجدول النظام هذه الإشعارات مسبقاً، فلا نكررها
+    if (!Store.api.schedulesReminders) Store.api.notify(title, body);
   }
 
   function checkReminders() {
@@ -180,6 +192,13 @@ const App = (() => {
 
   // ---------- الأحداث العامة ----------
   function bindGlobal() {
+    $('#bottom-nav').addEventListener('click', (e) => {
+      const nav = e.target.closest('[data-nav]');
+      if (!nav) return;
+      if (nav.dataset.nav === 'tasks') Tasks.view.category = null;
+      go(nav.dataset.nav);
+    });
+
     $('#sidebar').addEventListener('click', (e) => {
       const nav = e.target.closest('[data-nav]');
       if (nav) {
@@ -268,8 +287,12 @@ const App = (() => {
     bindGlobal();
     Store.subscribe(render);
     Focus.subscribe(onFocusChange);
+    Focus.restore();
     render();
     Store.api.applySettings(nativeSettings());
+    // المزامنة: الكمبيوتر يستقبل طلبات الهاتف، والهاتف يتصل بالكمبيوتر
+    if (Store.api.onSyncRequest) Store.api.onSyncRequest((json) => Store.mergeRemote(json).json);
+    if (window.Sync && Sync.isEnabled()) Sync.start();
     if (res.recoveredFrom) UI.toast('كان ملف البيانات تالفاً، فاستُعيدت بياناتك من آخر نسخة احتياطية.', { timeout: 9000 });
     checkReminders();
     setInterval(checkReminders, 20000);

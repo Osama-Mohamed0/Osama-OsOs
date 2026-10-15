@@ -18,6 +18,7 @@ const Habits = (() => {
     { name: 'بدون هاتف قبل النوم', icon: '📵', color: 'red' },
   ];
 
+  const touchUi = () => window.matchMedia('(pointer: coarse)').matches;
   const orderedDays = () => Array.from({ length: 7 }, (_, i) => (Store.state.settings.weekStart + i) % 7);
 
   function freqText(h) {
@@ -209,7 +210,7 @@ const Habits = (() => {
         <div class="tiles four" data-tiles>${tiles()}</div>
         <h4 class="list-title">السجل</h4>
         <div class="chart-box heat-box" data-heat></div>
-        <p class="muted small">💡 انقر على أي يوم في السجل لتسجيله أو إلغائه، والنقر الأيمن للإنقاص.</p>`,
+        <p class="muted small">💡 ${touchUi() ? 'اضغط على أي يوم في السجل لتسجيله، واضغط مطولاً للإنقاص.' : 'انقر على أي يوم في السجل لتسجيله أو إلغائه، والنقر الأيمن للإنقاص.'}</p>`,
       footer: `<button class="btn ghost danger-text" data-del>${icon('trash')}حذف</button>
         <button class="btn ghost" data-arch>${icon(h.archived ? 'restore' : 'archive')}${h.archived ? 'استعادة' : 'أرشفة'}</button>
         <span class="spacer"></span>
@@ -285,11 +286,11 @@ const Habits = (() => {
         <div class="habit-row head">
           <span class="col-h start">العادة</span>
           ${days.map((k) => `<span class="hcol day-head ${k === today ? 'today' : ''}"><b>${k === today ? 'اليوم' : DAY_SHORT[D.weekday(k)]}</b><small>${D.parse(k).getDate()}</small></span>`).join('')}
-          <span class="col-h">السلسلة</span><span class="col-h">30 يوماً</span><span></span>
+          <span class="col-h">السلسلة</span><span class="col-h col-rate">30 يوماً</span><span></span>
         </div>
         ${active.map((h) => habitRow(h, days)).join('')}
       </section>
-      <p class="muted small hint">💡 انقر على الخانة لتسجيل الإنجاز (للعادات ذات العدد: كل نقرة +1)، والنقر الأيمن للإنقاص.</p>` : `
+      <p class="muted small hint">💡 ${touchUi() ? 'اضغط على الخانة لتسجيل الإنجاز (للعادات ذات العدد: كل ضغطة +1)، واضغط مطولاً للإنقاص.' : 'انقر على الخانة لتسجيل الإنجاز (للعادات ذات العدد: كل نقرة +1)، والنقر الأيمن للإنقاص.'}</p>` : `
       <section class="card">
         ${UI.empty('🌱', 'ابدأ أول عادة', 'اختر من الاقتراحات أو أنشئ عادتك الخاصة.')}
         <div class="templates center">${TEMPLATES.map((t, i) => `<button class="chip-btn" data-quick-tpl="${i}">${t.icon} ${esc(t.name)}</button>`).join('')}</div>

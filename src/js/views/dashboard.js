@@ -45,7 +45,11 @@ Views.dashboard = {
     page.className = 'page';
     page.innerHTML = `
       <header class="page-head">
-        <div><h1>${greet}${name} 👋</h1><p class="sub">${esc(D.long(today))}</p></div>
+        <div><h1>${greet}${name} 👋</h1><p class="sub">${esc(D.long(today))}${
+          window.Sync && Sync.paired()
+            ? ` · <button class="link dash-sync" data-go="settings">${icon('sync')}${Sync.status === 'offline' || Sync.status === 'bad-code' ? 'غير متصل بالكمبيوتر' : `متزامن ${Sync.config.lastAt ? fmtAgo(Sync.config.lastAt) : ''}`}</button>`
+            : ''
+        }</p></div>
         <div class="head-actions">
           <button class="btn ghost" data-go="focus">${icon('focus')}جلسة تركيز</button>
           <button class="btn primary" data-new-task>${icon('plus')}مهمة جديدة</button>

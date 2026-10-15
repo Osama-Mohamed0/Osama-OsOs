@@ -364,7 +364,7 @@ const Tasks = (() => {
           <p class="sub">${c.all ? `لديك ${pTasks(c.all)} غير منجزة${c.today ? `، منها ${c.today} لليوم` : ''}` : 'لا مهام مفتوحة — عمل رائع!'}</p>
         </div>
         <div class="head-actions">
-          <label class="search">${icon('search')}<input id="task-search" type="search" placeholder="بحث في المهام… (Ctrl+F)" value="${esc(view.search)}"></label>
+          <label class="search">${icon('search')}<input id="task-search" type="search" placeholder="بحث في المهام…${Store.api.platform === 'desktop' ? ' (Ctrl+F)' : ''}" value="${esc(view.search)}"></label>
           <button class="btn primary" data-new>${icon('plus')}مهمة جديدة</button>
         </div>
       </header>

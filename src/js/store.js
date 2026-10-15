@@ -8,6 +8,17 @@ const Store = (() => {
   let saveTimer = null;
   let dirty = false;
   let cache = null;
+  let lastStamp = 0;
+  let localVersion = 0; // يزيد مع كل تعديل محلي (لا يشمل ما يأتي من المزامنة)
+
+  // ختم زمني متزايد دائماً، يحدد أي تعديل أحدث عند المزامنة بين الأجهزة
+  const stamp = () => (lastStamp = Math.max(Date.now(), lastStamp + 1));
+  const touch = (x) => {
+    x.updatedAt = stamp();
+    return x;
+  };
+  // إعدادات تتزامن بين الأجهزة (المظهر والحجم وغيرها تبقى خاصة بكل جهاز)
+  const SYNCED_SETTINGS = ['name', 'weekStart', 'goalTasks', 'goalFocus', 'focusMin', 'shortMin', 'longMin', 'longEvery', 'autoBreak', 'habitReminder', 'habitReminderTime'];
 
   // بديل عند فتح الواجهة في متصفح عادي (للتجربة) — يحفظ في localStorage
   function browserApi() {
@@ -56,6 +67,7 @@ const Store = (() => {
       },
       openDataFolder: async () => {},
       info: async () => ({ version: 'web', dataPath: 'localStorage', openAtLogin: false, platform: 'web' }),
+      platform: 'web',
       applySettings: async () => ({ openAtLogin: false }),
       notify(title, body) {
         if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
@@ -87,8 +99,10 @@ const Store = (() => {
       createdAt: Date.now(),
       remindedAt: null,
       nextId: null,
+      updatedAt: 0,
       ...p,
     };
+    if (!t.updatedAt) t.updatedAt = t.doneAt || t.createdAt || Date.now();
     if (!Array.isArray(t.subtasks)) t.subtasks = [];
     if (!PRIORITIES[t.priority]) t.priority = 'none';
     if (!REPEATS[t.repeat]) t.repeat = 'none';
@@ -108,8 +122,12 @@ const Store = (() => {
       startKey: D.today(),
       archived: false,
       log: {},
+      logTs: {},
+      updatedAt: 0,
       ...p,
     };
+    if (!h.updatedAt) h.updatedAt = h.createdAt || Date.now();
+    if (!h.logTs || typeof h.logTs !== 'object') h.logTs = {};
     if (!Array.isArray(h.days) || !h.days.length) h.days = [0, 1, 2, 3, 4, 5, 6];
     if (!h.log || typeof h.log !== 'object') h.log = {};
     h.target = clamp(parseInt(h.target, 10) || 1, 1, 99);
@@ -118,11 +136,12 @@ const Store = (() => {
 
   function defaults() {
     const today = D.today();
+    const now = Date.now();
     const cats = [
-      { id: uid(), name: 'عمل', color: 'blue' },
-      { id: uid(), name: 'شخصي', color: 'aqua' },
-      { id: uid(), name: 'دراسة', color: 'violet' },
-      { id: uid(), name: 'صحة', color: 'green' },
+      { id: uid(), name: 'عمل', color: 'blue', updatedAt: now, seed: true },
+      { id: uid(), name: 'شخصي', color: 'aqua', updatedAt: now, seed: true },
+      { id: uid(), name: 'دراسة', color: 'violet', updatedAt: now, seed: true },
+      { id: uid(), name: 'صحة', color: 'green', updatedAt: now, seed: true },
     ];
     return {
       schema: SCHEMA,
@@ -147,7 +166,7 @@ const Store = (() => {
       },
       categories: cats,
       tasks: [
-        makeTask({ title: 'مرحباً بك في إنجاز 👋 اضغط على الدائرة لإنجاز هذه المهمة', due: today, priority: 'medium', categoryId: cats[1].id }),
+        makeTask({ title: 'مرحباً بك في إنجاز 👋 اضغط على الدائرة لإنجاز هذه المهمة', due: today, priority: 'medium', categoryId: cats[1].id, seed: true }),
         makeTask({
           title: 'اكتب مهام اليوم في شريط الإضافة السريعة',
           due: today,
@@ -156,11 +175,14 @@ const Store = (() => {
             { id: uid(), title: 'اضغط على المهمة لفتح التفاصيل', done: false },
             { id: uid(), title: 'حدّد موعداً ووقتاً للتذكير', done: false },
           ],
+          seed: true,
         }),
-        makeTask({ title: 'جرّب جلسة تركيز لمدة 25 دقيقة', due: today, priority: 'low', categoryId: cats[0].id }),
+        makeTask({ title: 'جرّب جلسة تركيز لمدة 25 دقيقة', due: today, priority: 'low', categoryId: cats[0].id, seed: true }),
       ],
       habits: [],
       sessions: [],
+      deleted: {}, // معرّف العنصر المحذوف ← وقت حذفه (ليُحذف من الأجهزة الأخرى أيضاً)
+      settingsAt: 0,
       meta: { lastHabitReminder: null },
     };
   }
@@ -172,10 +194,12 @@ const Store = (() => {
       schema: SCHEMA,
       createdAt: d.createdAt || Date.now(),
       settings: { ...base.settings, ...(d.settings || {}) },
-      categories: Array.isArray(d.categories) ? d.categories.filter((c) => c && c.id) : base.categories,
-      tasks: Array.isArray(d.tasks) ? d.tasks.filter((t) => t && t.id).map(makeTask) : [],
-      habits: Array.isArray(d.habits) ? d.habits.filter((h) => h && h.id).map(makeHabit) : [],
-      sessions: Array.isArray(d.sessions) ? d.sessions.filter((s) => s && s.start && s.minutes > 0) : [],
+      categories: Array.isArray(d.categories) ? d.categories.filter((c) => c && c.id).map((c) => ({ ...c, updatedAt: c.updatedAt || 0 })) : base.categories,
+      tasks: Array.isArray(d.tasks) ? d.tasks.filter((t) => t && t.id).map((t) => makeTask(t)) : [],
+      habits: Array.isArray(d.habits) ? d.habits.filter((h) => h && h.id).map((h) => makeHabit(h)) : [],
+      sessions: Array.isArray(d.sessions) ? d.sessions.filter((x) => x && x.start && x.minutes > 0).map((x) => ({ ...x, updatedAt: x.updatedAt || x.end || x.start })) : [],
+      deleted: d.deleted && typeof d.deleted === 'object' ? { ...d.deleted } : {},
+      settingsAt: d.settingsAt || 0,
       meta: { ...base.meta, ...(d.meta || {}) },
     };
   }
@@ -222,7 +246,8 @@ const Store = (() => {
     }
   }
 
-  function commit() {
+  function commit(fromSync = false) {
+    if (!fromSync) localVersion++;
     cache = null;
     dirty = true;
     clearTimeout(saveTimer);
@@ -239,7 +264,7 @@ const Store = (() => {
   const getTask = (id) => state.tasks.find((t) => t.id === id);
 
   function addTask(p) {
-    const t = makeTask({ ...p, title: String(p.title || '').trim() });
+    const t = makeTask({ ...p, title: String(p.title || '').trim(), updatedAt: stamp() });
     state.tasks.unshift(t);
     commit();
     return t;
@@ -250,6 +275,7 @@ const Store = (() => {
     if (!t) return;
     if (('due' in patch && patch.due !== t.due) || ('time' in patch && patch.time !== t.time)) patch.remindedAt = null;
     Object.assign(t, patch);
+    touch(t);
     commit();
   }
 
@@ -294,6 +320,7 @@ const Store = (() => {
           time: t.time,
           due: nextDue(t),
           subtasks: t.subtasks.map((s) => ({ id: uid(), title: s.title, done: false })),
+          updatedAt: stamp(),
         });
         state.tasks.splice(state.tasks.indexOf(t), 0, next);
         t.nextId = next.id;
@@ -303,10 +330,14 @@ const Store = (() => {
       t.doneAt = null;
       if (t.nextId) {
         const n = getTask(t.nextId);
-        if (n && !n.done) state.tasks.splice(state.tasks.indexOf(n), 1);
+        if (n && !n.done) {
+          state.tasks.splice(state.tasks.indexOf(n), 1);
+          state.deleted[n.id] = stamp();
+        }
         t.nextId = null;
       }
     }
+    touch(t);
     commit();
     return t;
   }
@@ -315,12 +346,14 @@ const Store = (() => {
     const index = state.tasks.findIndex((t) => t.id === id);
     if (index < 0) return null;
     const [task] = state.tasks.splice(index, 1);
+    state.deleted[id] = stamp();
     commit();
     return { task, index };
   }
 
   function restoreTask({ task, index }) {
-    state.tasks.splice(Math.min(index, state.tasks.length), 0, task);
+    delete state.deleted[task.id];
+    state.tasks.splice(Math.min(index, state.tasks.length), 0, touch(task));
     commit();
   }
 
@@ -345,7 +378,7 @@ const Store = (() => {
   const getCategory = (id) => state.categories.find((c) => c.id === id);
 
   function addCategory(name, color) {
-    const c = { id: uid(), name: String(name).trim(), color };
+    const c = { id: uid(), name: String(name).trim(), color, updatedAt: stamp() };
     state.categories.push(c);
     commit();
     return c;
@@ -355,13 +388,17 @@ const Store = (() => {
     const c = getCategory(id);
     if (!c) return;
     Object.assign(c, patch);
+    touch(c);
     commit();
   }
 
   function deleteCategory(id) {
     state.categories = state.categories.filter((c) => c.id !== id);
+    state.deleted[id] = stamp();
     state.tasks.forEach((t) => {
-      if (t.categoryId === id) t.categoryId = null;
+      if (t.categoryId !== id) return;
+      t.categoryId = null;
+      touch(t);
     });
     commit();
   }
@@ -370,7 +407,7 @@ const Store = (() => {
   const getHabit = (id) => state.habits.find((h) => h.id === id);
 
   function addHabit(p) {
-    const h = makeHabit({ ...p, name: String(p.name || '').trim() });
+    const h = makeHabit({ ...p, name: String(p.name || '').trim(), updatedAt: stamp() });
     state.habits.push(h);
     commit();
     return h;
@@ -381,6 +418,7 @@ const Store = (() => {
     if (!h) return;
     Object.assign(h, patch);
     h.target = clamp(parseInt(h.target, 10) || 1, 1, 99);
+    touch(h);
     commit();
   }
 
@@ -388,12 +426,14 @@ const Store = (() => {
     const index = state.habits.findIndex((h) => h.id === id);
     if (index < 0) return null;
     const [habit] = state.habits.splice(index, 1);
+    state.deleted[id] = stamp();
     commit();
     return { habit, index };
   }
 
   function restoreHabit({ habit, index }) {
-    state.habits.splice(Math.min(index, state.habits.length), 0, habit);
+    delete state.deleted[habit.id];
+    state.habits.splice(Math.min(index, state.habits.length), 0, touch(habit));
     commit();
   }
 
@@ -407,6 +447,7 @@ const Store = (() => {
     count = clamp(count, 0, 99);
     if (count) h.log[k] = count;
     else delete h.log[k];
+    h.logTs[k] = stamp(); // كل يوم له ختمه الخاص، فلا تضيع علامات يوم سُجّلت على جهاز آخر
     if (count && k < h.startKey) h.startKey = k;
     commit();
   }
@@ -468,7 +509,7 @@ const Store = (() => {
 
   // ---------- جلسات التركيز ----------
   function addSession(s) {
-    const session = { id: uid(), taskId: null, ...s, minutes: Math.round(s.minutes) };
+    const session = { id: uid(), taskId: null, ...s, minutes: Math.round(s.minutes), updatedAt: stamp() };
     if (session.minutes < 1) return null;
     state.sessions.push(session);
     commit();
@@ -477,6 +518,7 @@ const Store = (() => {
 
   function deleteSession(id) {
     state.sessions = state.sessions.filter((s) => s.id !== id);
+    state.deleted[id] = stamp();
     commit();
   }
 
@@ -530,6 +572,7 @@ const Store = (() => {
   // ---------- الإعدادات والبيانات ----------
   function setSettings(patch) {
     Object.assign(state.settings, patch);
+    if (Object.keys(patch).some((k) => SYNCED_SETTINGS.includes(k))) state.settingsAt = stamp();
     commit();
   }
 
@@ -540,9 +583,101 @@ const Store = (() => {
     saveTimer = setTimeout(flush, 400);
   }
 
+  // استبدال كل البيانات (استيراد أو مسح): ما لم يعد موجوداً يُعلَّم محذوفاً ليُحذف من الأجهزة المرتبطة أيضاً
   function replaceAll(data) {
-    state = migrate(data);
+    const next = migrate(data);
+    const keep = new Set([...next.tasks, ...next.habits, ...next.categories, ...next.sessions].map((x) => x.id));
+    const now = stamp();
+    for (const x of [...state.tasks, ...state.habits, ...state.categories, ...state.sessions]) {
+      if (!keep.has(x.id)) next.deleted[x.id] = now;
+    }
+    next.settingsAt = stamp();
+    state = next;
     commit();
+  }
+
+  // ---------- المزامنة: دمج بيانات جهاز آخر ----------
+  const syncedView = (s) => JSON.stringify([s.categories, s.tasks, s.habits, s.sessions, s.deleted, s.settingsAt, SYNCED_SETTINGS.map((k) => s.settings[k])]);
+
+  function mergeHabit(x, y) {
+    const newer = (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x;
+    const h = { ...newer, log: {}, logTs: {} };
+    const keys = new Set([...Object.keys(x.log), ...Object.keys(y.log), ...Object.keys(x.logTs), ...Object.keys(y.logTs)]);
+    for (const k of keys) {
+      const tx = x.logTs[k] || 0;
+      const ty = y.logTs[k] || 0;
+      const src = ty > tx ? y : tx > ty ? x : (y.log[k] || 0) > (x.log[k] || 0) ? y : x;
+      if (src.log[k]) h.log[k] = src.log[k];
+      if (tx || ty) h.logTs[k] = Math.max(tx, ty);
+    }
+    h.startKey = x.startKey < y.startKey ? x.startKey : y.startKey;
+    return h;
+  }
+
+  // دمج دون فقدان: لكل عنصر تُعتمد النسخة الأحدث، والحذف يغلب التعديلات الأقدم منه
+  function mergeState(local, remote) {
+    const deleted = { ...local.deleted };
+    for (const [id, ts] of Object.entries(remote.deleted || {})) deleted[id] = Math.max(deleted[id] || 0, ts);
+    const cutoff = Date.now() - 400 * 86400000;
+    for (const id of Object.keys(deleted)) if (deleted[id] < cutoff) delete deleted[id];
+    const merge = (a, b, combine) => {
+      const map = new Map(a.map((x) => [x.id, x]));
+      for (const y of b) {
+        const x = map.get(y.id);
+        map.set(y.id, !x ? y : combine ? combine(x, y) : (y.updatedAt || 0) > (x.updatedAt || 0) ? y : x);
+      }
+      return [...map.values()].filter((x) => !(deleted[x.id] >= (x.updatedAt || 0)));
+    };
+    const remoteNewer = (remote.settingsAt || 0) > (local.settingsAt || 0);
+    const settings = { ...local.settings };
+    if (remoteNewer) SYNCED_SETTINGS.forEach((k) => (settings[k] = remote.settings[k]));
+    return {
+      ...local,
+      categories: merge(local.categories, remote.categories),
+      tasks: merge(local.tasks, remote.tasks).sort((a, b) => b.createdAt - a.createdAt),
+      habits: merge(local.habits, remote.habits, mergeHabit).sort((a, b) => a.createdAt - b.createdAt),
+      sessions: merge(local.sessions, remote.sessions).sort((a, b) => a.start - b.start),
+      deleted,
+      settings,
+      settingsAt: Math.max(local.settingsAt || 0, remote.settingsAt || 0),
+    };
+  }
+
+  // عند أول ربط بجهاز آخر: نحذف مهام الترحيب التي لم تُعدَّل، ونوحّد التصنيفات الافتراضية
+  // مع تصنيفات الجهاز الآخر بالاسم، حتى لا تتكرر على الجهازين
+  function adoptRemoteDefaults(remoteData) {
+    const remote = migrate(typeof remoteData === 'string' ? JSON.parse(remoteData) : remoteData);
+    const byName = new Map(remote.categories.map((c) => [String(c.name).trim(), c.id]));
+    const remap = {};
+    state.categories = state.categories.filter((c) => {
+      const target = c.seed && byName.get(String(c.name).trim());
+      if (target && target !== c.id) remap[c.id] = target;
+      return !(target && target !== c.id);
+    });
+    state.tasks = state.tasks.filter((t) => !(t.seed && !t.done && t.updatedAt === t.createdAt));
+    state.tasks.forEach((t) => {
+      if (!remap[t.categoryId]) return;
+      t.categoryId = remap[t.categoryId];
+      touch(t);
+    });
+    commit();
+  }
+
+  // يدمج بيانات جهاز آخر في البيانات المحلية، ويعيد النتيجة لإرسالها إليه
+  function mergeRemote(remoteData) {
+    const remote = migrate(typeof remoteData === 'string' ? JSON.parse(remoteData) : remoteData);
+    // نتقدّم بساعتنا المنطقية بعد أحدث ختم رأيناه، حتى لو كانت ساعة الجهاز الآخر متقدمة
+    const seen = [remote.settingsAt, ...Object.values(remote.deleted)];
+    for (const x of [...remote.tasks, ...remote.categories, ...remote.sessions, ...remote.habits]) seen.push(x.updatedAt || 0);
+    for (const h of remote.habits) seen.push(...Object.values(h.logTs));
+    for (const v of seen) if (Number.isFinite(v) && v > lastStamp) lastStamp = v;
+    const merged = mergeState(state, remote);
+    const changed = syncedView(merged) !== syncedView(state);
+    if (changed) {
+      state = merged;
+      commit(true);
+    }
+    return { changed, json: JSON.stringify(state) };
   }
 
   const looksLikeBackup = (d) => d && typeof d === 'object' && Array.isArray(d.tasks) && Array.isArray(d.habits);
@@ -596,5 +731,10 @@ const Store = (() => {
     setMeta,
     replaceAll,
     looksLikeBackup,
+    mergeRemote,
+    adoptRemoteDefaults,
+    get localVersion() {
+      return localVersion;
+    },
   };
 })();
