@@ -122,7 +122,7 @@
   if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
     if (!C.mode || /input|textarea|select/i.test(document.activeElement.tagName)) return;
     if (e.key === 'Escape') { C.setMode(null); C.select(null); }
-    if (e.key === 'Delete' && C.sel) { TM.Undo.push(L('Delete', 'حذف')); if (C.vi >= 0) { C.sel.pts.splice(C.vi, 1); if (C.sel.pts.length < 2) TM.P.strings = TM.P.strings.filter(x => x !== C.sel); } else TM.P.strings = TM.P.strings.filter(x => x !== C.sel); TM.touch('strings'); C.select(null); }
+    if (false && e.key === 'Delete' && C.sel) { TM.Undo.push(L('Delete', 'حذف')); if (C.vi >= 0) { C.sel.pts.splice(C.vi, 1); if (C.sel.pts.length < 2) TM.P.strings = TM.P.strings.filter(x => x !== C.sel); } else TM.P.strings = TM.P.strings.filter(x => x !== C.sel); TM.touch('strings'); C.select(null); }
   });
   TM.on('geometryRestored', () => { if (C.sel && !TM.P.strings.includes(C.sel)) C.select(null); });
 })(typeof window !== 'undefined' ? window.TM : globalThis.TM);

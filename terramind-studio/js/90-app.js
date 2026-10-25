@@ -85,9 +85,9 @@
 
   const CMD = {
     async newP() { if (TM.rt.dirty && !(await App.confirm(L('Discard unsaved changes?', 'تجاهل التغييرات غير المحفوظة؟')))) return; const f = UI.form([{ id: 'name', label: L('Project name', 'اسم المشروع'), value: L('New project', 'مشروع جديد') }, { id: 'crs', label: L('Coordinate system', 'نظام الإحداثيات'), value: 'Local grid (m)' }], 1); UI.modal({ title: L('New project', 'مشروع جديد'), body: f, actions: [{ label: L('Create', 'إنشاء'), primary: true, fn: () => { const v = f.values(); const P = TM.newProject(v.name); P.crs = v.crs; TM.setProject(P); UI.closeModal(); App.afterLoad(); } }] }); },
-    async openP() { const f = await pickFile('.tmd,.json'); if (!f) return; await UI.run(L('Opening project…', 'جارٍ فتح المشروع…'), () => TM.openProjectFile(f)); App.afterLoad(); UI.toast(L('Opened ', 'تم فتح ') + f.name); },
-    async saveP() { const n = await TM.saveProjectFile(false); if (n) UI.toast(L('Saved ', 'تم الحفظ ') + n); },
-    async saveAs() { const n = await TM.saveProjectFile(true); if (n) UI.toast(L('Saved ', 'تم الحفظ ') + n); },
+    async openP() { if (TM.rt.dirty && !(await App.confirm(L('Discard unsaved changes?', 'تجاهل التغييرات غير المحفوظة؟')))) return; const f = await pickFile('.tmd,.json'); if (!f) return; await UI.run(L('Opening project…', 'جارٍ فتح المشروع…'), () => TM.openProjectFile(f)); App.afterLoad(); TM.Menu.addRecent(TM.P.name, f.path || null); UI.toast(L('Opened ', 'تم فتح ') + f.name); },
+    async saveP() { const n = await TM.saveProjectFile(false); if (n) { TM.Menu.addRecent(TM.P.name, TM.native ? n : null); UI.toast(L('Saved ', 'تم الحفظ ') + n); } },
+    async saveAs() { const n = await TM.saveProjectFile(true); if (n) { TM.Menu.addRecent(TM.P.name, TM.native ? n : null); UI.toast(L('Saved ', 'تم الحفظ ') + n); } },
     undo() { const l = TM.Undo.undo(); UI.toast(l ? L('Undone: ', 'تم التراجع: ') + l : L('Nothing to undo', 'لا شيء للتراجع')); App.refreshAll(false); VP.buildStrings(); VP.buildSolids(); VP.buildSurfaces(); VP.buildDesign(); VP.buildBlast(); },
     redo() { const l = TM.Undo.redoOne(); UI.toast(l ? L('Redone: ', 'أُعيد: ') + l : L('Nothing to redo', 'لا شيء للإعادة')); App.refreshAll(false); VP.buildStrings(); VP.buildSolids(); VP.buildSurfaces(); VP.buildDesign(); VP.buildBlast(); },
     select() { App.cadMode('select'); }, move() { App.cadMode('move'); }, insert() { App.cadMode('insert'); }, delVert() { App.cadMode('delete'); }, measure() { App.cadMode('measure'); },
@@ -138,6 +138,22 @@
     schemas() { UI.modal({ title: L('AI tool schemas (JSON)', 'مخططات أدوات الذكاء (JSON)'), wide: true, body: `<p class="hint">${L('The same schemas are sent to Claude, OpenAI and Gemini function calling; the offline parser emits the same calls.', 'تُرسل نفس المخططات إلى Claude وOpenAI وGemini؛ والمحلل المحلي يصدر نفس الاستدعاءات.')}</p><pre class="json">${esc(JSON.stringify(AI.TOOLS, null, 2))}</pre>` }); },
     report() { TM.Report.open({ name: TM.P.name, sensitivity: true }); },
     viewTop() { VP.view('top'); }, viewIso() { VP.view('iso'); },
+    // ---- menu bar commands
+    importDatamine() { App.importDatamine(); },
+    reportPdf() { const r = TM.Report.build({ name: TM.P.name, sensitivity: true }); TM.Report.print(r.el); },
+    exit() { if (TM.native) window.close(); else UI.toast(L('Close this browser tab to exit (your work is autosaved).', 'أغلق تبويب المتصفح للخروج (العمل محفوظ تلقائياً).')); },
+    selectAll() { need(TM.P.strings.length, L('No strings.', 'لا توجد خطوط.')); TM.CAD.multi = TM.P.strings.filter(s => !VP.hidden.has(s.id)); TM.CAD.select(TM.CAD.multi[TM.CAD.multi.length - 1]); UI.toast(L(`${TM.CAD.multi.length} strings selected — Delete removes them, Edit → Clean works on them.`, `تم تحديد ${TM.CAD.multi.length} خطاً — Delete للحذف.`)); },
+    deselect() { TM.CAD.multi = null; if (TM.CAD.mode) TM.CAD.setMode(null); TM.CAD.select(null); if (VP.sketch) App.finishSketch(true); App.renderRibbon(); },
+    async deleteSel() { const C = TM.CAD; if (C.multi && C.multi.length > 1) { if (!(await App.confirm(L(`Delete ${C.multi.length} strings?`, `حذف ${C.multi.length} خطاً؟`)))) return; TM.Undo.push(L('Delete', 'حذف')); const del = new Set(C.multi); TM.P.strings = TM.P.strings.filter(x => !del.has(x)); C.multi = null; C.select(null); TM.touch('strings'); return; } need(C.sel, L('Select a string first (CAD → Select).', 'حدّد خطاً أولاً.')); TM.Undo.push(L('Delete', 'حذف')); if (C.vi >= 0) { C.sel.pts.splice(C.vi, 1); if (C.sel.pts.length < 2) TM.P.strings = TM.P.strings.filter(x => x !== C.sel); } else TM.P.strings = TM.P.strings.filter(x => x !== C.sel); C.select(null); TM.touch('strings'); },
+    cleanStrings() { need(TM.P.strings.length, L('No strings.', 'لا توجد خطوط.')); const f = UI.form([{ id: 'tol', label: L('Duplicate vertex tolerance (m)', 'سماحية النقاط المكررة (م)'), type: 'number', value: 0.01, step: 0.01 }, { id: 'closeTol', label: L('Close a string when its ends are within (m)', 'إغلاق الخط إذا كانت نهايتاه أقرب من (م)'), type: 'number', value: 1, step: 0.1 }, { id: 'only', label: L('Only the selected strings', 'الخطوط المحددة فقط'), type: 'check', value: !!(TM.CAD.multi || TM.CAD.sel) }], 1); UI.modal({ title: L('Clean & close strings', 'تنظيف وإغلاق الخطوط'), body: f, actions: [{ label: L('Clean', 'تنظيف'), primary: true, fn: () => { const v = f.values(); const ids = v.only ? (TM.CAD.multi || [TM.CAD.sel]).filter(Boolean).map(s => s.id) : null; const r = WF.cleanStrings({ tol: v.tol, closeTol: v.closeTol, ids }); UI.closeModal(); say(L(`<b>Cleaned</b> ${r.strings_checked} strings: ${r.vertices_removed} duplicate/spike vertices removed, ${r.strings_closed} strings closed, ${r.strings_dropped} degenerate strings dropped.`, `<b>تم التنظيف</b>: ${r.strings_checked} خطاً، حُذفت ${r.vertices_removed} نقطة مكررة، أُغلق ${r.strings_closed} خطاً، وأُزيل ${r.strings_dropped} خطاً تالفاً.`)); } }] }); },
+    fixDH() { const r = TM.Drill.fix(); WF.validate(); say(L(`Fixed ${r.overlaps} overlaps, ${r.duplicates} duplicates, clipped ${r.clipped} intervals.`, `أُصلح ${r.overlaps} تداخل و${r.duplicates} مكرر، وقُصّت ${r.clipped} فترة.`)); App.refreshAll(false); },
+    viewNorth() { VP.view('north'); }, viewSouth() { VP.view('south'); }, viewEast() { VP.view('east'); }, viewWest() { VP.view('west'); },
+    zoomExt() { VP.fit(); }, toggleGrid() { VP.vis.grid = VP.vis.grid === false; VP.applyVis(); },
+    toggleAxes() { $('#app').classList.toggle('no-axes'); }, toggleLayers() { $('#app').classList.toggle('no-left'); setTimeout(() => VP.resize(), 30); }, toggleAI() { $('#app').classList.toggle('no-right'); setTimeout(() => VP.resize(), 30); },
+    fullscreen() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => UI.toast(L('Full screen is blocked here.', 'ملء الشاشة غير متاح هنا.'))); },
+    guide() { App.guide(); }, shortcuts() { App.shortcutList(); },
+    dbCheck() { const r = WF.integrityCheck(); const ico = { ok: '✓', warn: '⚠', error: '✗' }; UI.modal({ title: L('Project integrity check', 'فحص سلامة المشروع'), wide: true, body: UI.table([{ label: '', get: x => ico[x.sev] }, { label: L('Area', 'القسم'), key: 'area' }, { label: L('Result', 'النتيجة'), key: 'msg' }], r.map(x => Object.assign({ _cls: x.sev === 'ok' ? '' : 'sev-' + x.sev }, x))), actions: [{ label: L('Open validation report', 'فتح تقرير التحقق'), fn: () => App.showIssues() }] }); },
+    about() { UI.modal({ title: L('About TerraMind Studio', 'حول البرنامج'), body: `<div class="help-doc"><h3>TerraMind Studio ${TM.version}</h3><p>${L('Mining geology, resource estimation, open-pit and underground mine design, drill & blast and scheduling — with a bilingual AI copilot.', 'الجيولوجيا وتقدير الموارد وتصميم المناجم السطحية والتحت سطحية والحفر والتفجير والجدولة — مع مساعد ذكي ثنائي اللغة.')}</p><p>${L('Engines: minimum-curvature desurvey, ordinary kriging, RBF implicit modelling, Lerchs-Grossmann by max-flow, bench-by-bench pushback scheduling, stope optimiser, ring & face-round design.', 'المحركات: تصحيح المسار بالانحناء الأدنى، الكريجنغ العادي، النمذجة الضمنية RBF، Lerchs-Grossmann بالتدفق الأعظم، جدولة المصاطب والمراحل، محسّن الغرف، تصميم التفجير المروحي وواجهات الأنفاق.')}</p><p>${L('Libraries: three.js, Delaunator, SheetJS, Lucide (licences in vendor/LICENSES.txt).', 'المكتبات: three.js وDelaunator وSheetJS وLucide (التراخيص في vendor/LICENSES.txt).')}</p></div>` }); },
     shot() { const a = document.createElement('a'); a.href = VP.screenshot(); a.download = 'terramind_view.png'; a.click(); }
   };
   App.CMD = CMD;
@@ -217,12 +233,13 @@
 
   // ---------------------------------------------------------------- surfaces & strings
   App.importSurfaceDialog = async function () {
-    const files = await pickFile('.csv,.txt,.xyz,.str,.dxf,.obj', true); if (!files || !files.length) return;
+    const files = await pickFile('.csv,.txt,.xyz,.str,.dxf,.obj,.stl', true); if (!files || !files.length) return;
     for (const file of files) {
       const n = file.name.toLowerCase(), base = file.name.replace(/\.[^.]+$/, '');
       try {
         if (n.endsWith('.str')) { const ss = TM.IO.readSTR(await file.text(), base); TM.P.strings.push(...ss); TM.touch('strings'); say(L(`${ss.length} string(s) from ${file.name}. Use Terrain → Build DTM to triangulate them.`, `${ss.length} خط من ${file.name}.`)); }
         else if (n.endsWith('.dxf')) { const r = TM.IO.readDXF(await file.text()); r.strings.forEach(s => TM.P.strings.push({ id: TM.uid('str'), name: s.name, closed: s.closed, pts: s.pts, color: '#F59E0B', strNo: 1 })); if (r.faces.length) { const m = TM.IO.facesToMesh(r.faces, base); TM.P.solids.push(TM.Solid.make(base, m, { source: 'DXF', color: '#A78BFA' })); TM.touch('solids'); } if (r.points.length > 3) { const s = { id: TM.uid('srf'), name: base, role: TM.P.surfaces.some(x => x.role === 'topo') ? 'surface' : 'topo', pts: new Float64Array(r.points.flat()), tri: null }; TM.Surf.ensureTri(s); TM.P.surfaces.push(s); TM.touch('surfaces'); } TM.touch('strings'); say(`${file.name}: ${r.strings.length} ${L('strings', 'خطوط')}, ${r.faces.length} ${L('faces', 'أوجه')}, ${r.points.length} ${L('points', 'نقاط')}.`); }
+        else if (n.endsWith('.stl')) { const m = TM.IO.readSTL(await file.arrayBuffer(), base); TM.P.solids.push(TM.Solid.make(base, m, { source: 'STL', color: '#A78BFA' })); TM.touch('solids'); say(`${file.name}: ${fmt(m.idx.length / 3)} ${L('triangles', 'مثلث')}.`); }
         else if (n.endsWith('.obj')) { const m = TM.IO.readOBJ(await file.text(), base); TM.P.solids.push(TM.Solid.make(base, m, { source: 'OBJ', color: '#A78BFA' })); TM.touch('solids'); say(`${file.name}: ${fmt(m.idx.length / 3)} ${L('triangles', 'مثلث')}.`); }
         else { const t = TM.IO.parseCSV(await file.text()); const m = TM.IO.autoMap(t.header, ['x', 'y', 'z']); const hasHdr = m.x >= 0 && m.y >= 0 && m.z >= 0; const rows = hasHdr ? t.rows : [t.header].concat(t.rows); const ix = hasHdr ? [m.x, m.y, m.z] : [0, 1, 2]; const pts = []; for (const r of rows) { const v = ix.map(i => TM.IO.num(r[i])); if (v.every(isFinite)) pts.push(...v); }
           need(pts.length >= 9, L('Need at least 3 XYZ points.', 'تحتاج 3 نقاط على الأقل.')); const s = { id: TM.uid('srf'), name: base, role: TM.P.surfaces.some(x => x.role === 'topo') ? 'surface' : 'topo', pts: TM.Surf.dedupe(pts), tri: null, color: '#6b7d5e' }; TM.Surf.ensureTri(s); TM.P.surfaces.push(s); TM.touch('surfaces'); say(L(`DTM <b>${base}</b>: ${fmt(s.pts.length / 3)} points, ${fmt(s.tri.length / 3)} triangles${s.role === 'topo' ? ' (set as topography)' : ''}.`, `سطح <b>${base}</b>: ${fmt(s.pts.length / 3)} نقطة، ${fmt(s.tri.length / 3)} مثلث.`)); }
@@ -336,7 +353,7 @@
     const ar = TM.lang === 'ar'; document.documentElement.lang = TM.lang; document.documentElement.dir = ar ? 'rtl' : 'ltr';
     document.querySelectorAll('[data-en]').forEach(el => el.textContent = ar ? el.dataset.ar : el.dataset.en);
     $('#langBtn').textContent = ar ? 'English' : 'العربية'; $('#prompt').placeholder = L('Type a command in English or Arabic…', 'اكتب أمراً بالعربية أو الإنجليزية…');
-    App.renderSuggest(); App.renderEngine(); if (TM.P) { App.refreshAll(false); UI.inspect(null); App.syncSlicer(); }
+    TM.Menu.render(); App.renderSuggest(); App.renderEngine(); if (TM.P) { App.refreshAll(false); UI.inspect(null); App.syncSlicer(); }
   };
   App.renderSuggest = function () { const items = TM.lang === 'ar' ? ['اعرض فقط البلوكات التي يزيد تركيزها عن 1.2 جرام/طن واحسب نسبة الكشف', 'حسّن الحفرة بميل 48 درجة وسعر ذهب 2600', 'جدول الإنتاج', 'أنشئ التقرير التنفيذي مع تحليل الحساسية'] : ['Run kriging with 5 m blocks', 'Optimise the pit at 48° with gold at $2600', 'Show blocks above 1.2 g/t and the strip ratio', 'Generate an executive reserve report with the grade-tonnage curve']; $('#suggest').innerHTML = items.map(s => `<button class="sg" type="button" dir="auto">${esc(s)}</button>`).join(''); };
 
@@ -425,6 +442,34 @@
 
   App.showStopes = function (r) { UI.modal({ title: L(`Stope reserves @ ${fmt(r.cutoff, 2)} g/t`, `احتياطي الأعمال عند ${fmt(r.cutoff, 2)} غ/طن`), wide: true, body: (() => { const b = document.createElement('div'); b.appendChild(UI.html(`<div class="kgrid">${[[L('Ore stopes', 'أعمال خام'), `${r.ore_stopes} / ${r.stopes}`], [L('Ore', 'الخام'), fmt(r.ore_t / 1e6, 3) + ' Mt'], [L('Grade', 'التركيز'), fmt(r.grade, 2) + ' g/t'], [L('Contained', 'المحتوى'), fmt(r.oz / 1e3, 1) + ' koz'], [L('Operating margin', 'هامش التشغيل'), TM.usd(r.operating_margin_musd) + 'M']].map(([a, c]) => `<div class="kbox"><div class="kpi-k">${a}</div><div class="kpi-v">${c}</div></div>`).join('')}</div>`)); b.appendChild(UI.table([{ label: L('Stope', 'العمل'), key: 'stope' }, { label: 'm³', get: x => fmt(x.volume), num: true }, { label: 't', get: x => fmt(x.tonnes), num: true }, { label: 'g/t', get: x => fmt(x.grade, 2), num: true }, { label: 'oz', get: x => fmt(x.oz), num: true }, { label: L('Status', 'الحالة'), key: 'status' }], r.rows.map(x => Object.assign({ _cls: x.status === 'ore' ? 'cur' : '' }, x)))); return b; })(), actions: [{ label: 'CSV', icon: 'download', fn: () => TM.IO.download(TM.IO.toCSV(['stope', 'volume_m3', 'tonnes', 'au_gpt', 'oz', 'status'], r.rows.map(x => [x.stope, x.volume, x.tonnes, x.grade, x.oz, x.status])), 'stope_reserves.csv', 'text/csv') }] }); };
 
+  // ---------------------------------------------------------------- menu dialogs: Datamine import, quick guide, shortcuts
+  App.importDatamine = async function () {
+    const files = await pickFile('.csv,.txt', true); if (!files || !files.length) return;
+    for (const file of files) { try { const base = file.name.replace(/\.[^.]+$/, ''); const r = TM.IO.readDatamine(await file.text(), base); if (r.strings.length) { TM.P.strings.push(...r.strings); TM.touch('strings'); } if (r.points.length >= 9) { const s = { id: TM.uid('srf'), name: base, role: TM.P.surfaces.some(x => x.role === 'topo') ? 'surface' : 'topo', pts: TM.Surf.dedupe(r.points), tri: null, color: '#6b7d5e' }; TM.Surf.ensureTri(s); TM.P.surfaces.push(s); TM.touch('surfaces'); } say(L(`Datamine <b>${file.name}</b>: ${r.strings.length} strings, ${fmt(r.points.length / 3)} points.`, `ملف Datamine <b>${file.name}</b>: ${r.strings.length} خطاً و${fmt(r.points.length / 3)} نقطة.`)); } catch (e) { UI.toast(`${file.name}: ${e.message}`, 'err'); } }
+    App.refreshAll(true);
+  };
+  App.shortcutList = function () { UI.modal({ title: L('Keyboard shortcuts', 'اختصارات لوحة المفاتيح'), body: UI.table([{ label: L('Command', 'الأمر'), key: 'label' }, { label: L('Shortcut', 'الاختصار'), get: r => `<span class="kbd">${esc(r.key)}</span>`, html: true }], TM.Menu.shortcuts().concat([{ label: L('Close dialog', 'إغلاق النافذة'), key: 'Esc' }, { label: L('Run the dialog\'s main action', 'تنفيذ الإجراء الرئيسي للنافذة'), key: 'Enter' }, { label: L('Snap to vertex (CAD)', 'الالتقاط إلى نقطة'), key: 'Shift' }, { label: L('Drape on surface (CAD)', 'الإسقاط على السطح'), key: 'Alt' }])) }); };
+  App.guide = function () {
+    const ar = TM.lang === 'ar'; const steps = ar ? [
+      ['1. ابدأ', 'ملف ← جديد أو فتح ‎.tmd، أو مساعدة ← تحميل المشروع التجريبي. اضبط الأسعار والتكاليف وطاقة المصنع من ملف ← المشروع والاقتصاديات (Ctrl+,).'],
+      ['2. البيانات', 'ملف ← استيراد شامل ← آبار. ثم أدوات هندسية ← تقرير التحقق، وتبويب بيانات الآبار ← الإحصاء والسقف. يعيد البرنامج حساب الإحصاء والتباين بعد السقف.'],
+      ['3. الجيولوجيا', 'استورد أو ابنِ مجسمات الخام (RBF أو من المقاطع)، وعرّف الفوالق ونوع الحدود (صلبة/مرنة) من تبويب الجيولوجيا.'],
+      ['4. النموذج', 'التباين المكاني ← التقدير (مع البلوكات الفرعية على حواف المجسم والطبوغرافيا) ← التصنيف.'],
+      ['5. المنجم السطحي', 'تحسين الحفرة (LG) ← غلافاً بغلاف ← تصميم الحفرة من القاع مع الطريق ← المكب ← الجدولة مصطبة بمصطبة ← المطابقة الشهرية.'],
+      ['6. المنجم التحت سطحي', 'محسّن الغرف ← المنحدر الحلزوني والأنفاق ← تفجير المراوح وواجهات الأنفاق ← نقطة التحول من سطحي إلى تحت سطحي.'],
+      ['7. التقارير', 'ملف ← تصدير شامل ← التقرير التنفيذي PDF أو لوحات المسقط والمقطع (F7).'],
+      ['نصائح', 'كل نافذة قابلة للسحب من عنوانها ولتغيير الحجم من الحواف، وEnter ينفّذ وEsc يغلق. اكتب أوامرك للمساعد بالعربية.']] : [
+      ['1. Start', 'File → New or Open .tmd, or Help → Load demo project. Set prices, costs and mill capacity in File → Project & economics (Ctrl+,).'],
+      ['2. Data', 'File → Import → Drillholes. Then Tools → QA/QC validation and Drillhole Data → Statistics & top-cut. Statistics and the variogram are recomputed after capping.'],
+      ['3. Geology', 'Import or build ore solids (RBF or sections) and define faults with hard or soft boundaries in Geology & Solids.'],
+      ['4. Block model', 'Variography → Estimate (with sub-blocks on solid and topography edges) → Classify.'],
+      ['5. Open pit', 'Optimise pit (LG) → Pit-by-pit → Pit design from toe with ramp → Dump → Bench-by-bench schedule → Monthly reconciliation.'],
+      ['6. Underground', 'Stope optimiser → Spiral decline & tunnels → Ring and face-round blasting → Open-pit to underground transition.'],
+      ['7. Reports', 'File → Export → Executive report PDF, or plan/section sheets (F7).'],
+      ['Tips', 'Every dialog can be dragged by its title and resized from its edges; Enter runs it and Esc closes it. Type commands to the AI copilot in Arabic or English.']];
+    UI.modal({ title: L('Quick user guide', 'دليل المستخدم السريع'), wide: true, body: `<div class="help-doc">${steps.map(([h, p]) => `<h3>${esc(h)}</h3><p>${esc(p)}</p>`).join('')}</div>`, actions: [{ label: L('Keyboard shortcuts', 'اختصارات لوحة المفاتيح'), icon: 'keyboard', fn: () => App.shortcutList() }] });
+  };
+
   // ---------------------------------------------------------------- desktop integration
   App.native = function () {
     const N = TM.native; if (!N) return;
@@ -435,7 +480,7 @@
     });
     const upd = () => N.setTitle(`${TM.P ? TM.P.name : ''}${TM.rt && TM.rt.dirty ? ' •' : ''} — TerraMind Studio`); TM.on('changed', upd); TM.on('project', upd); TM.on('saved', upd);
   };
-  App.openNativeFile = async function (f) { const file = new File([f.data], f.name); file.path = f.path; await TM.openProjectFile(file); App.afterLoad(); UI.toast(L('Opened ', 'تم فتح ') + f.name); };
+  App.openNativeFile = async function (f) { const file = new File([f.data], f.name); file.path = f.path; await TM.openProjectFile(file); App.afterLoad(); TM.Menu.addRecent(TM.P.name, f.path || null); UI.toast(L('Opened ', 'تم فتح ') + f.name); };
 
   // ---------------------------------------------------------------- boot
   App.boot = async function () {
@@ -457,17 +502,14 @@
     $('#composer').addEventListener('submit', e => { e.preventDefault(); const v = $('#prompt').value; $('#prompt').value = ''; AI.ask(v); });
     $('#prompt').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#composer').requestSubmit(); } });
     $('#suggest').addEventListener('click', e => { const b = e.target.closest('.sg'); if (b) AI.ask(b.textContent); });
-    $('#modalClose').onclick = () => UI.closeModal(); $('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') UI.closeModal(); });
+    UI.bindModal(); TM.Menu.bind();
     $('#engineChip').onclick = () => App.cmd('aiSettings');
     document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => VP.view(b.dataset.view));
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { if (!$('#modal').hidden) UI.closeModal(); else if (VP.sketch) App.finishSketch(true); }
-      if (e.key === 'Enter' && VP.sketch && document.activeElement === document.body) App.finishSketch();
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); App.cmd('saveP'); }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') { e.preventDefault(); App.cmd('openP'); }
-      if ((e.ctrlKey || e.metaKey) && !/input|textarea/i.test(document.activeElement.tagName) && e.key.toLowerCase() === 'z') { e.preventDefault(); App.cmd('undo'); }
-      if ((e.ctrlKey || e.metaKey) && !/input|textarea/i.test(document.activeElement.tagName) && e.key.toLowerCase() === 'y') { e.preventDefault(); App.cmd('redo'); }
-      if (e.key === 'F7') { e.preventDefault(); App.cmd('plot'); }
+      if (UI.modalKey(e)) return;
+      if (e.key === 'Escape' && VP.sketch) { App.finishSketch(true); return; }
+      if (e.key === 'Enter' && VP.sketch && document.activeElement === document.body) { App.finishSketch(); return; }
+      TM.Menu.onKey(e);
     });
     window.addEventListener('beforeunload', e => { if (TM.rt.dirty) { e.preventDefault(); e.returnValue = ''; } });
     App.applyLang(); App.native();

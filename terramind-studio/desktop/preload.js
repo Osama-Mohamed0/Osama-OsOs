@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('tmNative', {
   save: (name, data, filters, path) => ipcRenderer.invoke('tm:save', { name, data, filters, path }),
   open: (filters, multiple) => ipcRenderer.invoke('tm:open', { filters, multiple }),
   pendingOpen: () => ipcRenderer.invoke('tm:pendingOpen'),
+  openPath: p => ipcRenderer.invoke('tm:openPath', p),
   setTitle: t => ipcRenderer.send('tm:title', t),
   confirmClose: () => ipcRenderer.send('tm:confirmClose'),
   onMenu: fn => ipcRenderer.on('tm:menu', (e, cmd) => fn(cmd))

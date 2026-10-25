@@ -187,6 +187,34 @@
     return { cutoff: cog, stopes: rows.length, ore_stopes: ore.length, ore_t: Math.round(t), grade: t ? +(m / t).toFixed(2) : 0, oz: Math.round(m / 31.1035), operating_margin_musd: +(val / 1e6).toFixed(1), rows };
   };
 
+  // ---------------------------------------------------------------- string hygiene & project integrity
+  WF.cleanStrings = function ({ tol = 0.01, closeTol = 1.0, ids = null } = {}) {
+    const list = TM.P.strings.filter(s => !ids || ids.includes(s.id)); let removed = 0, closed = 0, dropped = 0; TM.Undo && TM.Undo.push(TM.L('Clean strings', 'تنظيف الخطوط'));
+    const keep = [];
+    for (const s of TM.P.strings) {
+      if (!list.includes(s)) { keep.push(s); continue; }
+      const out = []; for (const p of s.pts) { if (!p.every(isFinite)) { removed++; continue; } const q = out[out.length - 1]; if (q && Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) < tol) { removed++; continue; } out.push(p); }
+      // drop collinear duplicates that fold back (spikes)
+      for (let i = 1; i + 1 < out.length; i++) { const a = out[i - 1], b = out[i], c = out[i + 1]; if (Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]) < tol) { out.splice(i, 2); removed += 2; i = Math.max(0, i - 2); } }
+      if (out.length > 3) { const f = out[0], l = out[out.length - 1], d = Math.hypot(f[0] - l[0], f[1] - l[1], f[2] - l[2]); if (d < tol) { out.pop(); removed++; if (!s.closed) { s.closed = true; closed++; } } else if (!s.closed && d <= closeTol) { s.closed = true; closed++; } }
+      if (out.length < 2) { dropped++; continue; } s.pts = out; keep.push(s);
+    }
+    TM.P.strings = keep; TM.touch('strings'); return { strings_checked: list.length, vertices_removed: removed, strings_closed: closed, strings_dropped: dropped };
+  };
+  WF.integrityCheck = function () {
+    const P = TM.P, out = []; const add = (sev, area, msg) => out.push({ sev, area, msg });
+    const v = TM.Drill.validate(); const e = v.filter(i => i.sev === 'error').length, w = v.filter(i => i.sev === 'warn').length; add(e ? 'error' : w ? 'warn' : 'ok', TM.L('Drillholes', 'الآبار'), TM.L(`${P.db.collars.length} holes · ${e} errors · ${w} warnings`, `${P.db.collars.length} بئراً · ${e} خطأ · ${w} تحذير`));
+    const ids = new Set(P.db.collars.map(c => c.id)); const orphan = P.db.assays.filter(a => !ids.has(a.id)).length + P.db.surveys.filter(a => !ids.has(a.id)).length; if (orphan) add('error', TM.L('Drillholes', 'الآبار'), TM.L(`${orphan} assay/survey rows reference missing collars`, `${orphan} سجل تحليل/مسح بلا طوق`));
+    const badStr = P.strings.filter(s => s.pts.some(p => !p.every(isFinite)) || s.pts.length < 2).length; add(badStr ? 'warn' : 'ok', TM.L('Strings', 'الخطوط'), TM.L(`${P.strings.length} strings · ${badStr} with invalid vertices`, `${P.strings.length} خطاً · ${badStr} بنقاط غير صالحة`));
+    const open = P.solids.filter(s => !s.closed).length; add(open ? 'warn' : 'ok', TM.L('Solids', 'المجسمات'), TM.L(`${P.solids.length} solids · ${open} not closed (volumes unreliable)`, `${P.solids.length} مجسماً · ${open} غير مغلق`));
+    for (const s of P.surfaces) { const bad = s.tri && [...s.tri].some(i => i * 3 >= s.pts.length); if (bad) add('error', TM.L('Surfaces', 'الأسطح'), `${s.name}: ${TM.L('triangle index out of range', 'فهرس مثلث خارج النطاق')}`); }
+    add(P.surfaces.some(s => s.role === 'topo') ? 'ok' : 'warn', TM.L('Topography', 'الطبوغرافيا'), P.surfaces.some(s => s.role === 'topo') ? TM.L('topography surface set', 'السطح الطبوغرافي محدد') : TM.L('no topography surface: pit and partial blocks use the collar envelope', 'لا يوجد سطح طبوغرافي'));
+    if (P.bm) { const bm = P.bm, n = bm.N; const okLen = ['grade', 'kv', 'ns', 'cls', 'frac'].every(k => bm[k] && bm[k].length === n); add(okLen ? 'ok' : 'error', TM.L('Block model', 'نموذج البلوكات'), okLen ? TM.L(`${TM.fmt(bm.estimated)} estimated of ${TM.fmt(n)} cells`, `${TM.fmt(bm.estimated)} بلوك مقدّر من ${TM.fmt(n)}`) : TM.L('attribute arrays have inconsistent lengths', 'مصفوفات الحقول غير متسقة')); if (bm.topCut !== S().topCut) add('warn', TM.L('Block model', 'نموذج البلوكات'), TM.L('top-cut changed after estimation — re-estimate', 'تغيّر السقف بعد التقدير — أعد التقدير')); }
+    if (P.pit) add(P.pit.stale ? 'warn' : 'ok', TM.L('Pit', 'الحفرة'), P.pit.stale ? TM.L('pit optimisation is out of date (inputs changed)', 'تحسين الحفرة قديم (تغيّرت المدخلات)') : TM.L(`${P.pit.shells.length} shells, shell ${P.pit.selected + 1} selected`, `${P.pit.shells.length} غلافاً، المختار ${P.pit.selected + 1}`));
+    const s = S(); const bad = ['density', 'price', 'recovery', 'millRate', 'mineRate'].filter(k => !(s[k] > 0)); add(bad.length ? 'error' : 'ok', TM.L('Settings', 'الإعدادات'), bad.length ? TM.L('invalid: ', 'غير صالح: ') + bad.join(', ') : TM.L('economic inputs valid', 'المدخلات الاقتصادية سليمة'));
+    return out;
+  };
+
   // ---------------------------------------------------------------- summary for the AI and the report
   WF.summary = function () {
     const P = TM.P, bm = P.bm, pit = P.pit, s = S();

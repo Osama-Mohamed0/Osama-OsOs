@@ -156,5 +156,24 @@
     o.push(`endsolid ${m.name || 'mesh'}`); return o.join('\n');
   };
 
+  // STL (ASCII or binary) → indexed mesh with merged vertices
+  IO.readSTL = function (buf, name) {
+    const u = new Uint8Array(buf); const faces = []; const head = new TextDecoder().decode(u.subarray(0, Math.min(u.length, 512)));
+    const nBin = u.length >= 84 ? new DataView(u.buffer, u.byteOffset, u.byteLength).getUint32(80, true) : 0;
+    if (u.length >= 84 && 84 + nBin * 50 === u.length) { const dv = new DataView(u.buffer, u.byteOffset, u.byteLength); for (let t = 0; t < nBin; t++) { const o = 84 + t * 50 + 12, v = k => [dv.getFloat32(o + k * 12, true), dv.getFloat32(o + k * 12 + 4, true), dv.getFloat32(o + k * 12 + 8, true)]; const a = v(0), b = v(1), c = v(2); faces.push([a, b, c, c]); } }
+    else if (/^\s*solid/i.test(head)) { const vs = []; for (const m of new TextDecoder().decode(u).matchAll(/vertex\s+(\S+)\s+(\S+)\s+(\S+)/g)) vs.push([+m[1], +m[2], +m[3]]); for (let i = 0; i + 2 < vs.length; i += 3) faces.push([vs[i], vs[i + 1], vs[i + 2], vs[i + 2]]); }
+    if (!faces.length) throw new Error('No triangles found in STL');
+    return IO.facesToMesh(faces, name);
+  };
+  // Datamine ASCII export (CSV with XP, YP, ZP and optional PVALUE / PTN / PVALUE-grouped strings)
+  IO.readDatamine = function (text, name) {
+    const t = IO.parseCSV(text), H = t.header.map(h => String(h).trim().toUpperCase()); const c = k => H.indexOf(k);
+    const ix = c('XP') >= 0 ? c('XP') : c('X'), iy = c('YP') >= 0 ? c('YP') : c('Y'), iz = c('ZP') >= 0 ? c('ZP') : c('Z'), ip = c('PVALUE'), it = c('PTN');
+    if (ix < 0 || iy < 0 || iz < 0) throw new Error('Datamine file needs XP, YP, ZP columns');
+    if (ip < 0) { const pts = []; for (const r of t.rows) { const v = [IO.num(r[ix]), IO.num(r[iy]), IO.num(r[iz])]; if (v.every(isFinite)) pts.push(...v); } return { strings: [], points: pts }; }
+    const groups = new Map(); for (const r of t.rows) { const v = [IO.num(r[ix]), IO.num(r[iy]), IO.num(r[iz])]; if (!v.every(isFinite)) continue; const k = String(r[ip]).trim(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push({ n: it >= 0 ? IO.num(r[it]) : groups.get(k).length, p: v }); }
+    const strings = []; for (const [k, arr] of groups) { arr.sort((a, b) => a.n - b.n); const pts = arr.map(a => a.p); const f = pts[0], l = pts[pts.length - 1]; const closed = pts.length > 3 && Math.hypot(f[0] - l[0], f[1] - l[1], f[2] - l[2]) < 1e-3; if (closed) pts.pop(); if (pts.length >= 2) strings.push({ id: TM.uid('str'), name: `${name}_${k}`, strNo: +k || 1, closed, pts, color: '#22D3EE' }); }
+    return { strings, points: [] };
+  };
   IO.download = (text, filename, type = 'text/plain') => TM.saveBlob(new Blob([text], { type }), filename);
 })(typeof window !== 'undefined' ? window.TM : globalThis.TM);

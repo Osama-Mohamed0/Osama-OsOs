@@ -17,6 +17,7 @@
   <header class="panel ribbon">
     <div class="rib-top">
       <div class="brand"><div class="brand-mark"><span></span></div>TerraMind Studio <span class="proj" id="projName"></span></div>
+      <nav class="menubar" id="menubar" role="menubar"></nav>
       <nav class="tabs" role="tablist" id="tabs"></nav>
       <div class="rib-end">
         <span class="save-state" id="saveState"></span>
@@ -95,8 +96,9 @@
 
 <div class="modal" id="modal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="sheet-h"><h2 id="modalTitle"></h2><span class="sheet-a" id="modalActions"></span><button class="icon-btn" id="modalClose" type="button" aria-label="Close"><i data-lucide="x"></i></button></div>
-    <div class="sheet-b" id="modalBody"></div>
+    <div class="sheet-h" id="modalHead"><i data-lucide="grip-vertical" class="grip"></i><h2 id="modalTitle"></h2><button class="icon-btn" id="modalMax" type="button" aria-label="Maximise"><i data-lucide="maximize-2"></i></button><button class="icon-btn" id="modalClose" type="button" aria-label="Close"><i data-lucide="x"></i></button></div>
+    <div class="sheet-b" id="modalBody" tabindex="-1"></div>
+    <div class="sheet-f" id="modalFoot"><span class="sheet-hint" id="modalHint"></span><span class="sheet-a" id="modalActions"></span></div>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -125,6 +127,7 @@
 <script src="js/75-plot.js"></script>
 <script src="js/80-ai.js"></script>
 <script src="js/85-report.js"></script>
+<script src="js/88-menu.js"></script>
 <script src="js/90-app.js"></script>
 <script>TM.UI.icons(); TM.App.boot();</script>
 </body>

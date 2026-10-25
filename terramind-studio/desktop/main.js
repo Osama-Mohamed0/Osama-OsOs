@@ -46,7 +46,8 @@ function buildMenu() {
       { label: 'User guide', click: () => shell.openPath(path.join(__dirname, '..', 'README.md')) },
       { label: 'About TerraMind Studio', click: () => dialog.showMessageBox(win, { type: 'info', title: 'TerraMind Studio', message: `TerraMind Studio ${app.getVersion()}`, detail: 'Mining geology, resource estimation and mine design.' }) }] }
   ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(t));
+  // The in-app menu bar (js/88-menu.js) replaces the native one; keep a hidden native menu only for macOS edit shortcuts.
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate(t) : null);
 }
 
 // ---- native file I/O (exposed through preload) ----
@@ -60,6 +61,7 @@ ipcMain.handle('tm:open', async (e, { filters, multiple }) => {
   if (r.canceled) return [];
   return r.filePaths.map(p => ({ path: p, name: path.basename(p), data: fs.readFileSync(p) }));
 });
+ipcMain.handle('tm:openPath', (e, p) => { if (!p || !/\.(tmd|json)$/i.test(p) || !fs.existsSync(p)) return null; return { path: p, name: path.basename(p), data: fs.readFileSync(p) }; });
 ipcMain.handle('tm:pendingOpen', () => { if (!pendingOpen || !fs.existsSync(pendingOpen)) return null; const p = pendingOpen; pendingOpen = null; return { path: p, name: path.basename(p), data: fs.readFileSync(p) }; });
 ipcMain.on('tm:title', (e, t) => win && win.setTitle(t));
 ipcMain.on('tm:confirmClose', () => { if (win) { win.__forceClose = true; win.close(); } });

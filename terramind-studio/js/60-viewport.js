@@ -188,6 +188,7 @@
       else if (k === 'infill') o.visible = v.infill;
       else if (k === 'designSurf' || k === 'designStr') o.visible = v.designP !== false;
       else if (k === 'blast') o.visible = v.blast !== false;
+      else if (k === 'grid') o.visible = v.grid !== false;
     }
   };
 

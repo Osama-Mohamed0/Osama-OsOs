@@ -8,14 +8,56 @@
   // ---------------------------------------------------------------- toast / modal / progress
   let toastT = 0;
   UI.toast = function (msg, kind = '') { const el = $('#toast'); el.textContent = msg; el.className = 'toast ' + kind; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 4200); };
-  UI.modal = function ({ title, body, actions = [], wide = false, onClose }) {
-    const m = $('#modal'); $('#modalTitle').textContent = title; const b = $('#modalBody'); b.innerHTML = ''; if (typeof body === 'string') b.innerHTML = body; else if (body) b.appendChild(body);
-    m.querySelector('.sheet').classList.toggle('wide', !!wide);
-    const A = $('#modalActions'); A.innerHTML = ''; actions.forEach(a => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ' + (a.primary ? 'primary' : ''); btn.innerHTML = (a.icon ? `<i data-lucide="${a.icon}"></i>` : '') + esc(a.label); btn.onclick = () => a.fn(btn); A.appendChild(btn); });
-    m.hidden = false; UI._onClose = onClose; UI.icons(); setTimeout(() => { const f = b.querySelector('input,select,textarea,button'); (f || $('#modalClose')).focus(); }, 30);
+  // Modal: sticky header (drag handle) · scrollable body · sticky footer (actions). Draggable, resizable from any edge/corner,
+  // position and size remembered per dialog title for the session. Esc closes, Enter runs the primary action.
+  const geo = new Map(); let modalKey = null, modalPrimary = null;
+  UI.modal = function ({ title, body, actions = [], wide = false, onClose, hint = '' }) {
+    const m = $('#modal'), sh = m.querySelector('.sheet'); $('#modalTitle').textContent = title; const b = $('#modalBody'); b.innerHTML = ''; if (typeof body === 'string') b.innerHTML = body; else if (body) b.appendChild(body);
+    sh.classList.toggle('wide', !!wide); sh.classList.remove('max');
+    const A = $('#modalActions'); A.innerHTML = ''; modalPrimary = null;
+    actions.forEach(a => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ' + (a.primary ? 'primary' : ''); btn.innerHTML = (a.icon ? `<i data-lucide="${a.icon}"></i>` : '') + esc(a.label); btn.onclick = () => a.fn(btn); A.appendChild(btn); if (a.primary && !modalPrimary) modalPrimary = btn; });
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'btn'; cancel.textContent = actions.length ? L('Cancel', 'إلغاء') : L('Close', 'إغلاق'); cancel.onclick = () => UI.closeModal(); if (!actions.some(a => /cancel|إلغاء/i.test(a.label))) A.insertBefore(cancel, A.firstChild);
+    $('#modalHint').textContent = hint || (modalPrimary ? L('Enter = ', 'Enter = ') + modalPrimary.textContent.trim() + ' · Esc' : 'Esc');
+    modalKey = (wide ? 'w:' : 'n:') + title; const g = geo.get(modalKey);
+    sh.style.left = sh.style.top = sh.style.width = sh.style.height = sh.style.maxHeight = ''; sh.classList.toggle('placed', !!g);
+    if (g) { sh.style.left = g.x + 'px'; sh.style.top = g.y + 'px'; if (g.w) { sh.style.width = g.w + 'px'; sh.style.height = g.h + 'px'; sh.style.maxHeight = 'none'; } UI.keepOnScreen(sh); }
+    m.hidden = false; b.scrollTop = 0; UI._onClose = onClose; UI.icons(); setTimeout(() => { const f = b.querySelector('input:not([type=hidden]),select,textarea'); (f || b).focus({ preventScroll: true }); }, 30);
     return b;
   };
   UI.closeModal = function (silent) { $('#modal').hidden = true; const f = UI._onClose; UI._onClose = null; if (f && silent !== true) f(); };
+  UI.modalOpen = () => !$('#modal').hidden;
+  UI.modalKey = function (e) {
+    if (!UI.modalOpen()) return false;
+    if (e.key === 'Escape') { e.preventDefault(); UI.closeModal(); return true; }
+    if (e.key === 'Enter' && !e.shiftKey && modalPrimary) { const t = e.target; if (/textarea/i.test(t.tagName) || (t.tagName === 'SELECT' && t.multiple) || t.tagName === 'BUTTON' || t.closest('.composer')) return false; e.preventDefault(); modalPrimary.click(); return true; }
+    return false;
+  };
+  UI.keepOnScreen = function (sh) { const r = sh.getBoundingClientRect(), W = innerWidth, H = innerHeight; let x = Math.min(Math.max(r.left, 8 - r.width + 120), W - 120), y = Math.min(Math.max(r.top, 0), H - 48); sh.style.left = x + 'px'; sh.style.top = y + 'px'; };
+  UI.bindModal = function () {
+    const m = $('#modal'), sh = m.querySelector('.sheet'), head = $('#modalHead'), EDGE = 7; let op = null;
+    const save = () => { const r = sh.getBoundingClientRect(); geo.set(modalKey, { x: r.left, y: r.top, w: sh.style.width ? r.width : 0, h: sh.style.height ? r.height : 0 }); };
+    const place = () => { if (sh.classList.contains('placed')) return; const r = sh.getBoundingClientRect(); sh.classList.add('placed'); sh.style.left = r.left + 'px'; sh.style.top = r.top + 'px'; };
+    const zone = e => { const r = sh.getBoundingClientRect(); let z = ''; if (e.clientY - r.top < EDGE) z += 'n'; else if (r.bottom - e.clientY < EDGE) z += 's'; if (e.clientX - r.left < EDGE) z += 'w'; else if (r.right - e.clientX < EDGE) z += 'e'; return z; };
+    sh.addEventListener('pointermove', e => { if (op || sh.classList.contains('max')) return; const z = zone(e); sh.style.cursor = z ? z + '-resize' : ''; });
+    sh.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || sh.classList.contains('max')) return; const z = zone(e); const onHead = !z && head.contains(e.target) && !e.target.closest('button');
+      if (!z && !onHead) return; e.preventDefault(); place(); const r = sh.getBoundingClientRect(); op = { z, x: e.clientX, y: e.clientY, r }; sh.setPointerCapture(e.pointerId); document.body.classList.add('dragging');
+    });
+    sh.addEventListener('pointermove', e => {
+      if (!op) return; const dx = e.clientX - op.x, dy = e.clientY - op.y, r = op.r, minW = 360, minH = 200;
+      if (!op.z) { sh.style.left = Math.min(Math.max(r.left + dx, 120 - r.width), innerWidth - 120) + 'px'; sh.style.top = Math.min(Math.max(r.top + dy, 0), innerHeight - 48) + 'px'; return; }
+      let { left, top, width, height } = r;
+      if (op.z.includes('e')) width = Math.max(minW, r.width + dx); if (op.z.includes('s')) height = Math.max(minH, r.height + dy);
+      if (op.z.includes('w')) { width = Math.max(minW, r.width - dx); left = r.right - width; } if (op.z.includes('n')) { height = Math.max(minH, r.height - dy); top = r.bottom - height; }
+      Object.assign(sh.style, { left: left + 'px', top: Math.max(0, top) + 'px', width: width + 'px', height: Math.min(height, innerHeight - Math.max(0, top)) + 'px', maxHeight: 'none' });
+    });
+    const end = () => { if (!op) return; op = null; document.body.classList.remove('dragging'); save(); };
+    sh.addEventListener('pointerup', end); sh.addEventListener('pointercancel', end);
+    head.addEventListener('dblclick', e => { if (!e.target.closest('button')) $('#modalMax').click(); });
+    $('#modalMax').onclick = () => sh.classList.toggle('max');
+    $('#modalClose').onclick = () => UI.closeModal();
+    addEventListener('resize', () => { if (!m.hidden && sh.classList.contains('placed')) UI.keepOnScreen(sh); });
+  };
   UI.progress = function (label) {
     const el = $('#progress'); el.hidden = false; el.querySelector('span').textContent = label; const bar = el.querySelector('i'); bar.style.width = '0%';
     return { set(p, l) { bar.style.width = Math.round(p * 100) + '%'; if (l) el.querySelector('span').textContent = l; }, done() { el.hidden = true; } };
