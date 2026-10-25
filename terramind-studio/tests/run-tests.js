@@ -64,6 +64,13 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     for (let id = 0; id < lg.N; id++) { if (!mined[id]) continue; const i = id % nx, j = Math.floor(id / nx) % ny, k = Math.floor(id / (nx * ny)); if (k + 1 >= nz) continue; const up = i + nx * (j + ny * (k + 1)); if (lg.T[up] > 0 && !mined[up]) viol++; }
     ok(viol === 0, 'vertical precedence respected', viol + ' violations'); }
   const pbp = TM.Mine.pitByPit(lg, res); ok(pbp[6].best >= pbp[6].worst - 1, 'pit-by-pit best ≥ worst', `best $${(pbp[6].best / 1e6).toFixed(1)}M, worst $${(pbp[6].worst / 1e6).toFixed(1)}M`);
+  ok(new Set(pbp.map(p => Math.round(p.best / 1e5))).size > 3, 'NPV best differs shell by shell', pbp.map(p => (p.best / 1e6).toFixed(1)).join(' '));
+  { const s0 = TM.P.settings, keep = { cutoff: s0.cutoff, millRate: s0.millRate };
+    const pb = TM.Mine.panels(lg, res.shellOf, 6); const tot = pb.flat().reduce((a, b) => a + b.ore + b.low + b.waste, 0); ok(Math.abs(tot - (res.shells[6].ore + res.shells[6].waste)) < 1, 'panels conserve shell tonnage', (tot / 1e6).toFixed(2) + ' Mt');
+    s0.cutoff = 1.25; const r = TM.Mine.scheduleP(pb, s0); const mined = r.total.ore + r.total.low + r.total.waste; ok(Math.abs(mined - tot) < 1 && r.total.feed <= r.total.ore + r.total.low + 1, 'schedule mines every bench; feed = ore + reclaimed LG', `${r.life} yr, ore ${(r.total.ore / 1e6).toFixed(2)} LG ${(r.total.low / 1e6).toFixed(2)}`);
+    ok(r.years.every(y => y.feed <= s0.millRate + 1 && y.moved <= s0.mineRate + 1), 'annual mill and mining capacities respected');
+    s0.millRate = keep.millRate * 3; const r3 = TM.Mine.scheduleP(pb, s0); ok(r3.life < r.life || r.life === 1, 'higher mill rate shortens mine life', `${r.life} → ${r3.life} yr`);
+    Object.assign(s0, keep); }
 
   console.log('Schedule / NPV');
   { const s = Object.assign(TM.defaultSettings(), { capex: 100, closure: 0, discount: 10, millRate: 1e12, mineRate: 1e12, mineCost: 0, procCost: 0, gaCost: 0, sellCost: 0, price: 31.1035, recovery: 100 });

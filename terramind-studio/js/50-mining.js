@@ -11,7 +11,7 @@
   // Cash-flow model for a sequence of increments [{ore, waste, metal(g)}]
   M.schedule = function (incs, s = TM.P.settings, o = {}) {
     const pf = o.priceF || 1, cf = o.costF || 1; const rec = s.recovery / 100; const years = []; let q = incs.map(x => Object.assign({}, x)); let qi = 0, y = 0;
-    while (qi < q.length && y < 60) {
+    while (qi < q.length && y < 300) {
       let mill = s.millRate, mine = s.mineRate; const yr = { year: y + 1, ore: 0, waste: 0, metal: 0 };
       while (qi < q.length && mill > 1e-6 && mine > 1e-6) {
         const c = q[qi]; const tot = c.ore + c.waste; if (tot < 1e-9) { qi++; continue; }
@@ -23,13 +23,74 @@
       yr.revenue = yr.oz * (s.price * pf - s.sellCost); yr.cost = ((yr.ore + yr.waste) * s.mineCost + yr.ore * (s.procCost + s.gaCost)) * cf; yr.cash = yr.revenue - yr.cost;
       years.push(yr); y++;
     }
+    const fin = M.finance(years, s);
+    const tot = years.reduce((a, v) => ({ ore: a.ore + v.ore, waste: a.waste + v.waste, metal: a.metal + v.metal, oz: a.oz + v.oz, revenue: a.revenue + v.revenue, cost: a.cost + v.cost, cash: a.cash + v.cash }), { ore: 0, waste: 0, metal: 0, oz: 0, revenue: 0, cost: 0, cash: 0 });
+    return { years, npv: fin.npv, irr: fin.irr, payback: fin.payback, life: years.length, total: tot, flows: fin.flows };
+  };
+  // Discounted cash flow: capex at t0, closure with the last year. NPV, IRR (bisection) and payback.
+  M.finance = function (years, s) {
     const r = s.discount / 100; const flows = [-s.capex].concat(years.map(v => v.cash)); if (years.length) flows[flows.length - 1] -= s.closure;
     const npv = flows.reduce((a, c, t) => a + c / Math.pow(1 + r, t), 0);
     let irr = null; { const f = rr => flows.reduce((a, c, t) => a + c / Math.pow(1 + rr, t), 0); let lo, hi; if (f(0) > 0) { lo = 0; hi = 20; } else { lo = -0.6; hi = 0; } if ((f(lo) > 0) !== (f(hi) > 0)) { const up = f(lo) > 0; for (let k = 0; k < 80; k++) { const m = (lo + hi) / 2; if ((f(m) > 0) === up) lo = m; else hi = m; } irr = (lo + hi) / 2; } }
     let cum = -s.capex, payback = null; years.forEach((v, i) => { const prev = cum; cum += v.cash; if (payback == null && cum >= 0 && v.cash > 0) payback = i + (-prev) / v.cash; });
-    const tot = years.reduce((a, v) => ({ ore: a.ore + v.ore, waste: a.waste + v.waste, metal: a.metal + v.metal, oz: a.oz + v.oz, revenue: a.revenue + v.revenue, cost: a.cost + v.cost, cash: a.cash + v.cash }), { ore: 0, waste: 0, metal: 0, oz: 0, revenue: 0, cost: 0, cash: 0 });
-    return { years, npv, irr, payback, life: years.length, total: tot, flows };
+    return { npv, irr, payback, flows };
   };
+
+  // ---------------------------------------------------------------- material classes and bench-by-bench pushback scheduling
+  // ore = grade ≥ operating cut-off (settings.cutoff) → mill; low grade = marginal cut-off ≤ grade < operating cut-off → stockpile; rest = waste
+  M.cutoffs = function (s = TM.P.settings) { const marg = M.econ(s).marginalCOG, op = Math.max(0, +s.cutoff || 0); return { marginal: marg, operating: op, lgFrom: op > marg ? marg : Infinity }; };
+  // One pass over the regularised model: tonnes and metal per (shell, bench) for each material class
+  M.panelTable = function (lg, shellOf, s = TM.P.settings) {
+    const c = M.cutoffs(s), key = [c.operating, c.lgFrom, lg.N].join('|');
+    if (lg._rtPT && lg._rtPT.key === key && lg._rtPT.shellOf === shellOf) return lg._rtPT;
+    let nSh = 0; for (let id = 0; id < lg.N; id++) if (shellOf[id] > nSh) nSh = shellOf[id];
+    const nz = lg.nz, sz = nSh * nz, ore = new Float64Array(sz), oreM = new Float64Array(sz), low = new Float64Array(sz), lowM = new Float64Array(sz), waste = new Float64Array(sz), plane = lg.nx * lg.ny;
+    for (let id = 0; id < lg.N; id++) { const sh = shellOf[id]; if (!sh) continue; const t = lg.T[id]; if (!(t > 0)) continue; const g = lg.G[id], k = Math.floor(id / plane), q = (sh - 1) * nz + k; if (g >= c.operating) { ore[q] += t; oreM[q] += t * g; } else if (g >= c.lgFrom) { low[q] += t; lowM[q] += t * g; } else waste[q] += t; }
+    return (lg._rtPT = { key, shellOf, nSh, nz, ore, oreM, low, lowM, waste });
+  };
+  // Pushbacks for shells 1..upTo+1. merge=true → a single pushback (the whole pit mined bench by bench from the top).
+  M.panels = function (lg, shellOf, upTo, { merge = false } = {}) {
+    const T = M.panelTable(lg, shellOf), out = []; const last = Math.min(upTo + 1, T.nSh);
+    const bench = (shs, k) => { const b = { k, rl: lg.zBot + k * lg.benchH, ore: 0, oreM: 0, low: 0, lowM: 0, waste: 0 }; for (const sh of shs) { const q = (sh - 1) * T.nz + k; b.ore += T.ore[q]; b.oreM += T.oreM[q]; b.low += T.low[q]; b.lowM += T.lowM[q]; b.waste += T.waste[q]; } return b; };
+    const groups = merge ? [Array.from({ length: last }, (_, i) => i + 1)] : Array.from({ length: last }, (_, i) => [i + 1]);
+    for (const shs of groups) { const pb = []; for (let k = T.nz - 1; k >= 0; k--) { const b = bench(shs, k); if (b.ore + b.low + b.waste > 1e-6) pb.push(b); } if (pb.length) out.push(pb); }
+    return out;
+  };
+  // Panels for a pit defined by a floor function over the estimation block model (pit designs): one pushback, benches top-down
+  M.panelsFromBM = function (bm, floorAt, benchH, s = TM.P.settings) {
+    const c = M.cutoffs(s), d = bm.def, rows = new Map();
+    for (let id = 0; id < bm.N; id++) { if (!bm.frac[id]) continue; const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const z = d.z0 + (k + .5) * d.dz; const f = floorAt(d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy); if (!(z > f)) continue; const t = TM.Est.blockTonnes(bm, id), g = isFinite(bm.grade[id]) ? bm.grade[id] : 0, rl = Math.floor(z / benchH) * benchH; let b = rows.get(rl); if (!b) rows.set(rl, b = { rl, ore: 0, oreM: 0, low: 0, lowM: 0, waste: 0 }); if (g >= c.operating) { b.ore += t; b.oreM += t * g; } else if (g >= c.lgFrom) { b.low += t; b.lowM += t * g; } else b.waste += t; }
+    return [[...rows.values()].sort((a, b) => b.rl - a.rl)];
+  };
+  // Annual schedule: benches consumed in sequence, limited by total mining capacity and by mill capacity (ore only).
+  // Low-grade goes to a stockpile that is reclaimed whenever the mill has spare capacity and after mining ends.
+  M.scheduleP = function (pushbacks, s = TM.P.settings, o = {}) {
+    const pf = o.priceF || 1, cf = o.costF || 1, rec = s.recovery / 100, rh = s.rehandle != null ? s.rehandle : 1, useLG = s.processLG !== false;
+    const q = []; pushbacks.forEach((pb, pi) => pb.forEach(b => q.push(Object.assign({ pb: pi + 1 }, b))));
+    const years = [], stock = { t: 0, m: 0 }; let qi = 0;
+    for (let y = 0; y < 300; y++) {
+      if (qi >= q.length && (!useLG || stock.t < 1e-6)) break;
+      let mine = s.mineRate, mill = s.millRate; const yr = { year: y + 1, ore: 0, oreM: 0, low: 0, waste: 0, feed: 0, metal: 0, reclaim: 0, pushbacks: new Set(), rlFrom: -Infinity, rlTo: Infinity };
+      while (qi < q.length && mine > 1e-6 && mill > 1e-6) {
+        const c = q[qi], tot = c.ore + c.low + c.waste; if (tot < 1e-9) { qi++; continue; }
+        const f = Math.min(1, mine / tot, c.ore > 0 ? mill / c.ore : Infinity);
+        yr.ore += c.ore * f; yr.oreM += c.oreM * f; yr.low += c.low * f; yr.waste += c.waste * f; stock.t += c.low * f; stock.m += c.lowM * f;
+        mill -= c.ore * f; mine -= tot * f; yr.pushbacks.add(c.pb); yr.rlFrom = Math.max(yr.rlFrom, c.rl); yr.rlTo = Math.min(yr.rlTo, c.rl);
+        c.ore -= c.ore * f; c.oreM -= c.oreM * f; c.low -= c.low * f; c.lowM -= c.lowM * f; c.waste -= c.waste * f; if (f >= 1 - 1e-9) qi++;
+      }
+      yr.feed = yr.ore; yr.metal = yr.oreM;
+      if (useLG && mill > 1e-6 && stock.t > 1e-6) { const r = Math.min(mill, stock.t), g = stock.m / stock.t; yr.reclaim = r; yr.feed += r; yr.metal += r * g; stock.t -= r; stock.m -= r * g; }
+      if (yr.ore + yr.low + yr.waste + yr.reclaim < 1e-6) break;
+      yr.moved = yr.ore + yr.low + yr.waste; yr.grade = yr.feed ? yr.metal / yr.feed : 0; yr.sr = yr.ore + yr.low ? yr.waste / (yr.ore + yr.low) : null; yr.oz = yr.metal / 31.1035 * rec; yr.stockpile = stock.t;
+      yr.revenue = yr.oz * (s.price * pf - s.sellCost); yr.cost = (yr.moved * s.mineCost + yr.feed * (s.procCost + s.gaCost) + yr.reclaim * rh) * cf; yr.cash = yr.revenue - yr.cost;
+      yr.pushbacks = [...yr.pushbacks].join(','); yr.benches = isFinite(yr.rlFrom) ? `${Math.round(yr.rlFrom)}→${Math.round(yr.rlTo)}` : '—'; years.push(yr);
+    }
+    const fin = M.finance(years, s), z = { ore: 0, oreM: 0, low: 0, waste: 0, feed: 0, metal: 0, reclaim: 0, oz: 0, revenue: 0, cost: 0, cash: 0 };
+    for (const v of years) for (const k in z) z[k] += v[k];
+    z.grade = z.ore ? z.oreM / z.ore : 0; z.feedGrade = z.feed ? z.metal / z.feed : 0;
+    return { years, npv: fin.npv, irr: fin.irr, payback: fin.payback, life: years.length, total: z, flows: fin.flows, stockEnd: stock.t, pushbacks: pushbacks.length };
+  };
+
 
   // ---------------------------------------------------------------- max-flow (Dinic) for maximum closure
   function Graph(n, mHint) {
@@ -140,17 +201,15 @@
     }
     return { rf, ore, waste, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, value, sr: ore ? waste / ore : 0, floor };
   };
-  // Increments between consecutive shells (for pushback scheduling)
+  // Increments between consecutive shells (aggregate; kept for compatibility). Ore uses the operating cut-off.
   M.increments = function (lg, res, upTo) {
-    const s = TM.P.settings, e = M.econ(s); const inc = Array.from({ length: upTo + 1 }, () => ({ ore: 0, waste: 0, metal: 0 }));
-    for (let id = 0; id < lg.N; id++) { const sh = res.shellOf[id]; if (!sh || sh - 1 > upTo) continue; const t = lg.T[id], g = lg.G[id], c = inc[sh - 1]; if (g * e.netPrice > s.procCost + s.gaCost) { c.ore += t; c.metal += t * g; } else c.waste += t; }
-    return inc.filter(c => c.ore + c.waste > 0);
+    return M.panels(lg, res.shellOf, upTo).map(pb => pb.reduce((a, b) => ({ ore: a.ore + b.ore, waste: a.waste + b.waste + b.low, metal: a.metal + b.oreM }), { ore: 0, waste: 0, metal: 0 }));
   };
-  // Pit-by-pit analysis: best (pushback order) and worst (single bench-by-bench) case NPV per shell
-  M.pitByPit = function (lg, res) {
+  // Pit-by-pit: best case = nested shells 1..k mined as successive pushbacks; worst case = shell k mined bench by bench with no pushbacks.
+  M.pitByPit = function (lg, res, s = TM.P.settings) {
     return res.shells.map((sh, i) => {
-      const best = M.schedule(M.increments(lg, res, i)); const worst = M.schedule([{ ore: sh.ore, waste: sh.waste, metal: sh.metal }]);
-      return { shell: i + 1, rf: sh.rf, ore: sh.ore, waste: sh.waste, grade: sh.grade, oz: sh.oz, best: best.npv, worst: worst.npv, sr: sh.sr };
+      const best = M.scheduleP(M.panels(lg, res.shellOf, i), s), worst = M.scheduleP(M.panels(lg, res.shellOf, i, { merge: true }), s), t = best.total;
+      return { shell: i + 1, rf: sh.rf, ore: t.ore, low: t.low, waste: t.waste, grade: t.grade, oz: t.oreM / 31.1035, best: best.npv, worst: worst.npv, sr: t.ore + t.low ? t.waste / (t.ore + t.low) : 0, life: best.life };
     });
   };
   // Pit floor RL at a world XY for a given shell (NaN = not mined → topography)

@@ -89,27 +89,44 @@
   E.center = (def, i, j, k) => [def.x0 + (i + .5) * def.dx, def.y0 + (j + .5) * def.dy, def.z0 + (k + .5) * def.dz];
   E.idx = (def, i, j, k) => i + def.nx * (j + def.ny * k);
 
-  // Topography fraction and domain flags
-  E.prepare = function (bm, domainSolid) {
-    const d = bm.def;
+  // Topography fraction and domain flags. sub > 1 → boundary blocks are split into sub×sub×sub sub-blocks: the block's
+  // volume factor (frac) is the share of sub-blocks that lie inside the domain solid and below topography (partial-block tonnage).
+  E.prepare = function (bm, domainSolid, { sub = 1 } = {}) {
+    const d = bm.def, n = domainSolid && sub > 1 ? sub : 1; bm.sub = n; let split = 0;
     for (let j = 0; j < d.ny; j++) for (let i = 0; i < d.nx; i++) {
       const cx = d.x0 + (i + .5) * d.dx, cy = d.y0 + (j + .5) * d.dy; let top = TM.topoZ(cx, cy); if (!isFinite(top)) top = Infinity;
       const zs = domainSolid ? TM.Solid.columnCrossings(domainSolid, cx, cy) : null;
+      let subs = null;
+      if (n > 1) { subs = []; for (let b = 0; b < n; b++) for (let a = 0; a < n; a++) { const x = d.x0 + (i + (a + .5) / n) * d.dx, y = d.y0 + (j + (b + .5) / n) * d.dy; let t = TM.topoZ(x, y); if (!isFinite(t)) t = top; subs.push({ zs: TM.Solid.columnCrossings(domainSolid, x, y), top: t }); } if (subs.every(q => !q.zs.length) && !zs.length) subs = null; }
       for (let k = 0; k < d.nz; k++) {
         const zb = d.z0 + k * d.dz, f = TM.clamp((top - zb) / d.dz, 0, 1), id = E.idx(d, i, j, k);
-        bm.frac[id] = Math.round(f * 255);
-        bm.dom[id] = f > 0 && (!zs || TM.Solid.insideFromCrossings(zs, zb + d.dz / 2)) ? 1 : 0;
+        if (subs) {
+          let v = 0; const dzs = d.dz / n; for (const q of subs) for (let c = 0; c < n; c++) { const z0 = zb + c * dzs, zc = z0 + dzs / 2; if (!TM.Solid.insideFromCrossings(q.zs, zc)) continue; v += TM.clamp((q.top - z0) / dzs, 0, 1); }
+          const vf = v / (n * n * n); bm.frac[id] = Math.round(vf * 255); bm.dom[id] = vf > 0 ? 1 : 0; if (vf > 0 && vf < 1) split++;
+        } else { bm.frac[id] = Math.round(f * 255); bm.dom[id] = f > 0 && (!zs || TM.Solid.insideFromCrossings(zs, zb + d.dz / 2)) ? 1 : 0; }
       }
     }
+    bm.subSplit = split; return split;
   };
+
+  // ---------------------------------------------------------------- faults: planes fitted to a string or surface; hard/soft search boundaries
+  E.faultPlane = function (pts) {
+    const n = pts.length; let cx = 0, cy = 0, cz = 0; for (const p of pts) { cx += p[0]; cy += p[1]; cz += p[2]; } cx /= n; cy /= n; cz /= n;
+    const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; for (const p of pts) { const v = [p[0] - cx, p[1] - cy, p[2] - cz]; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) C[a][b] += v[a] * v[b]; }
+    const e = TM.eig3(C); let m = 0; for (let k = 1; k < 3; k++) if (e.values[k] < e.values[m]) m = k; let nv = [e.vectors[0][m], e.vectors[1][m], e.vectors[2][m]]; if (nv[2] < 0) nv = nv.map(v => -v);
+    const dip = Math.acos(Math.min(1, Math.abs(nv[2]))) / TM.D2R, dipDir = ((Math.atan2(nv[0], nv[1]) / TM.D2R) + 360) % 360;
+    return { c: [cx, cy, cz], n: nv, dip: +dip.toFixed(1), dipDir: +dipDir.toFixed(1) };
+  };
+  E.faultSide = (f, x, y, z) => (x - f.plane.c[0]) * f.plane.n[0] + (y - f.plane.c[1]) * f.plane.n[1] + (z - f.plane.c[2]) * f.plane.n[2] >= 0 ? 1 : 0;
+  E.faultBits = (faults, x, y, z) => { let b = 0; faults.forEach((f, i) => { if (E.faultSide(f, x, y, z)) b |= 1 << i; }); return b; };
 
   // Neighbour search (anisotropic ellipsoid, max per hole)
   function buildHash(pts, R) { const m = new Map(); const key = (a, b, c) => (a + 2048) + (b + 2048) * 4096 + (c + 2048) * 16777216; pts.forEach((p, i) => { const k = key(Math.floor(p.x / R), Math.floor(p.y / R), Math.floor(p.z / R)); let a = m.get(k); if (!a) m.set(k, a = []); a.push(i); }); return { m, key, R }; }
-  function neighbours(H, pts, x, y, z, metric, maxS, maxPerHole) {
+  function neighbours(H, pts, x, y, z, metric, maxS, maxPerHole, adj) {
     const R = H.R, hx = Math.floor(x / R), hy = Math.floor(y / R), hz = Math.floor(z / R), cand = [];
     for (let a = hx - 1; a <= hx + 1; a++) for (let b = hy - 1; b <= hy + 1; b++) for (let c = hz - 1; c <= hz + 1; c++) {
       const arr = H.m.get(H.key(a, b, c)); if (!arr) continue;
-      for (const q of arr) { const p = pts[q]; const d2 = metric(p.x - x, p.y - y, p.z - z); if (d2 <= 1) cand.push([d2, q]); }
+      for (const q of arr) { const p = pts[q]; let d2 = metric(p.x - x, p.y - y, p.z - z); if (adj) { const f = adj(q); if (!f) continue; d2 *= f; } if (d2 <= 1) cand.push([d2, q]); }
     }
     cand.sort((a, b) => a[0] - b[0]);
     if (!maxPerHole) return cand.slice(0, maxS);
@@ -128,11 +145,15 @@
     for (let a = 0; a < nd; a++) for (let b = 0; b < nd; b++) for (let c = 0; c < nd; c++) off.push([((a + .5) / nd - .5) * d.dx, ((b + .5) / nd - .5) * d.dy, ((c + .5) / nd - .5) * d.dz]);
     let cbar = 0; if (vm) { for (const u of off) for (const w of off) cbar += vm.cov(u[0] - w[0], u[1] - w[1], u[2] - w[2]); cbar /= off.length * off.length; }
     const N = bm.N; let done = 0;
+    // faults: hard boundary → samples across the fault are excluded; soft → allowed within a reduced search (distance × √softFactor)
+    const faults = (params.faults || []).slice(0, 30), hardM = faults.reduce((a, f, i) => f.boundary === 'hard' ? a | (1 << i) : a, 0), softM = faults.reduce((a, f, i) => f.boundary === 'soft' ? a | (1 << i) : a, 0), softF = params.softFactor || 4;
+    const cBits = faults.length ? Int32Array.from(comps, c => E.faultBits(faults, c.x, c.y, c.z)) : null; let bBits = 0;
+    const adj = faults.length ? q => { const df = cBits[q] ^ bBits; return df & hardM ? 0 : df & softM ? softF : 1; } : null;
     bm.grade.fill(NaN); bm.kv.fill(NaN); bm.ns.fill(0); bm.nh.fill(0); bm.dist.fill(NaN);
     await TM.chunked(N, id => {
       if (!bm.dom[id]) return;
       const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const [x, y, z] = E.center(d, i, j, k);
-      const nb = neighbours(H, comps, x, y, z, metric, maxS, mph); if (nb.length < minS) return;
+      if (adj) bBits = E.faultBits(faults, x, y, z); const nb = neighbours(H, comps, x, y, z, metric, maxS, mph, adj); if (nb.length < minS) return;
       const holes = new Set(); let ds = 0; for (const c of nb) { const s = comps[c[1]]; holes.add(s.hole); ds += Math.hypot(s.x - x, s.y - y, s.z - z); }
       bm.ns[id] = nb.length; bm.nh[id] = Math.min(255, holes.size); bm.dist[id] = ds / nb.length;
       if (params.method === 'nn') { bm.grade[id] = comps[nb[0][1]].g; done++; return; }
@@ -145,7 +166,7 @@
       let g = 0, kv = cbar; for (let r = 0; r < n; r++) { g += w[r] * comps[nb[r][1]].g; kv -= w[r] * rhs[r]; } kv -= w[n];
       bm.grade[id] = Math.max(0, g); bm.kv[id] = Math.max(0, kv); done++;
     }, onProgress, 3000);
-    bm.method = params.method; bm.params = JSON.parse(JSON.stringify(params)); bm.estimated = done; bm.created = new Date().toISOString();
+    bm.method = params.method; bm.params = JSON.parse(JSON.stringify(Object.assign({}, params, { faults: faults.map(f => ({ name: f.name, boundary: f.boundary })) }))); bm.estimated = done; bm.created = new Date().toISOString();
     return done;
   };
 

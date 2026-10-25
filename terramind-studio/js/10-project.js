@@ -17,7 +17,7 @@
       created: new Date().toISOString(), modified: new Date().toISOString(),
       settings: TM.defaultSettings(),
       db: { collars: [], surveys: [], assays: [], lith: [], fields: ['au'] },
-      surfaces: [], strings: [], solids: [], bm: null,
+      surfaces: [], strings: [], solids: [], faults: [], bm: null,
       pit: null, // {shells:[{rf,floor:Float32Array}], grid:{x0,y0,cs,nx,ny}, selected, schedule}
       ai: { log: [] }, history: []
     };
@@ -75,7 +75,7 @@
     const buf = await file.arrayBuffer(); const txt = await TM.gunzipToText(buf); const P = TM.decode(txt);
     if (P.format !== 'TerraMind.tmd') throw new Error(TM.L('Not a TerraMind project file', 'الملف ليس مشروع TerraMind'));
     P.settings = Object.assign(TM.defaultSettings(), P.settings || {});
-    P.history = P.history || []; P.ai = P.ai || { log: [] };
+    P.history = P.history || []; P.ai = P.ai || { log: [] }; P.faults = P.faults || [];
     TM.setProject(P, file.path || null); return P;
   };
 
@@ -101,7 +101,7 @@
     }, 2500);
   }
   TM.loadAutosave = async function () {
-    try { const s = await TM.idbGet('autosave'); if (!s) return null; const P = TM.decode(s); P.settings = Object.assign(TM.defaultSettings(), P.settings || {}); P.history = P.history || []; P.ai = P.ai || { log: [] }; return P; } catch (e) { return null; }
+    try { const s = await TM.idbGet('autosave'); if (!s) return null; const P = TM.decode(s); P.settings = Object.assign(TM.defaultSettings(), P.settings || {}); P.history = P.history || []; P.ai = P.ai || { log: [] }; P.faults = P.faults || []; return P; } catch (e) { return null; }
   };
   TM.clearAutosave = async function () { try { await TM.idbDel('autosave'); } catch (e) { } };
 

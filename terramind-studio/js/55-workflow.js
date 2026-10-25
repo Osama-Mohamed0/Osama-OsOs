@@ -26,25 +26,28 @@
     if (fix_overlaps) fixed = TM.Drill.fix();
     let capped = 0; if (apply_top_cut != null) { const v = +apply_top_cut || null; S().topCut = v; if (v) capped = TM.P.db.assays.filter(a => a[S().gradeField] > v).length; }
     TM.rt.comps = null; TM.logHistory('audit', JSON.stringify({ apply_top_cut, fix_overlaps, fixed, capped })); TM.touch('db'); WF.validate();
-    return { top_cut: S().topCut, samples_capped: capped, max_raw_assay: mx, overlaps_fixed: fixed.overlaps, duplicates_removed: fixed.duplicates, intervals_clipped: fixed.clipped, note: TM.P.bm ? TM.L('Re-run estimation to propagate the top-cut into the block model.', 'أعد تشغيل التقدير لتطبيق السقف على نموذج البلوكات.') : null, before };
+    // statistics and variogram are recomputed on the capped data
+    const raw = TM.P.db.assays.map(a => a[S().gradeField]).filter(isFinite), tc = S().topCut; let vario = null;
+    if (apply_top_cut != null) { S().variogram = null; S().variogramDomain = null; try { const comps = TM.Drill.comps(); if (comps.length >= 30) { vario = TM.Est.autoVariography(comps, { lag: Math.max(5, S().compLen * 5), nLags: 14 }).model; vario.topCut = tc; S().variogram = vario; TM.touch('variogram'); } } catch (e) { } }
+    return { top_cut: tc, samples_capped: capped, stats_uncapped: pickStats(TM.stats(raw)), stats_capped: tc ? pickStats(TM.stats(raw.map(g => Math.min(g, tc)))) : null, variogram_refitted: vario ? { nugget: +vario.nugget.toFixed(3), sill: +vario.sill.toFixed(3), ranges: vario.ranges } : null, max_raw_assay: mx, overlaps_fixed: fixed.overlaps, duplicates_removed: fixed.duplicates, intervals_clipped: fixed.clipped, note: TM.P.bm ? TM.L('Re-run estimation to propagate the top-cut into the block model.', 'أعد تشغيل التقدير لتطبيق السقف على نموذج البلوكات.') : null, before };
   };
   WF.maxAssay = function () { let best = null; for (const h of TM.rt.holes) for (const s of h.samples) if (isFinite(s.g) && (!best || s.g > best.g)) best = { hole: h.id, from: s.from, g: s.g }; return best; };
   WF.composite = function (len) { if (len) S().compLen = +len; const c = TM.Drill.composite(S().compLen); TM.touch('comps'); return { composites: c.length, length_m: S().compLen, stats: pickStats(TM.stats(c.map(x => x.g))) }; };
   const pickStats = st => st.n ? { n: st.n, min: +st.min.toFixed(3), mean: +st.mean.toFixed(3), median: +st.median.toFixed(3), p99: +st.p99.toFixed(3), max: +st.max.toFixed(3), cv: +st.cv.toFixed(2) } : { n: 0 };
 
   // ---------------------------------------------------------------- estimation
-  WF.variography = function (opts = {}) { const comps = TM.Drill.comps(); const r = TM.Est.autoVariography(comps, opts); S().variogram = r.model; TM.touch('variogram'); return r; };
-  WF.estimate = async function ({ method = 'ok', dx = 5, dy = 5, dz = 5, domain = null, minS = 4, maxS = 16, maxPerHole = 4, power = 2, searchFactor = 1.2 } = {}, onProgress) {
+  WF.variography = function (opts = {}) { const comps = TM.Drill.comps(); const r = TM.Est.autoVariography(comps, opts); r.model.topCut = S().topCut; S().variogram = r.model; TM.touch('variogram'); return r; };
+  WF.estimate = async function ({ method = 'ok', dx = 5, dy = 5, dz = 5, domain = null, minS = 4, maxS = 16, maxPerHole = 4, power = 2, searchFactor = 1.2, sub = 1, useFaults = true, softFactor = 4 } = {}, onProgress) {
     const comps0 = TM.Drill.comps(); if (comps0.length < 20) throw new Error(TM.L('Not enough composites — import drillholes first.', 'عدد العينات المركبة غير كافٍ — استورد الآبار أولاً.'));
     const solid = domain ? TM.P.solids.find(s => s.id === domain || s.name === domain) : null;
     const comps = solid ? comps0.filter(c => TM.Solid.inside(solid, c.x, c.y, c.z)) : comps0;
-    let model = S().variogram; if (!model || (solid && S().variogramDomain !== solid.id)) { model = TM.Est.autoVariography(comps, { lag: Math.max(5, S().compLen * 5), nLags: 14 }).model; S().variogram = model; S().variogramDomain = solid ? solid.id : null; }
+    let model = S().variogram; if (!model || (solid && S().variogramDomain !== solid.id)) { model = TM.Est.autoVariography(comps, { lag: Math.max(5, S().compLen * 5), nLags: 14 }).model; model.topCut = S().topCut; S().variogram = model; S().variogramDomain = solid ? solid.id : null; }
     const search = { azi: model.azi, dip: model.dip, rake: model.rake || 0, ranges: model.ranges.map(r => Math.max(r, 15) * searchFactor) };
-    const bm = TM.Est.define(TM.Est.autoDefine(solid ? comps : comps0, { dx, dy, dz, pad: solid ? 12 : 30 })); TM.Est.prepare(bm, solid);
-    const t0 = Date.now(); const n = await TM.Est.estimate(bm, comps, { method, power, model, search, minS, maxS, maxPerHole, disc: 2 }, onProgress);
+    const bm = TM.Est.define(TM.Est.autoDefine(solid ? comps : comps0, { dx, dy, dz, pad: solid ? 12 : 30 })); const split = TM.Est.prepare(bm, solid, { sub: +sub || 1 }); const faults = useFaults ? (TM.P.faults || []) : [];
+    const t0 = Date.now(); const n = await TM.Est.estimate(bm, comps, { method, power, model, search, minS, maxS, maxPerHole, disc: 2, faults, softFactor }, onProgress);
     bm.domain = solid ? solid.name : null; bm.topCut = S().topCut; TM.Est.classify(bm);
     TM.P.bm = bm; if (TM.P.pit) TM.P.pit.stale = true; TM.logHistory('estimate', `${method} ${dx}x${dy}x${dz} → ${n} blocks`); TM.touch('bm');
-    const r = TM.Est.report(bm, S().cutoff); return { method, blocks_estimated: n, block_size: [dx, dy, dz], seconds: +((Date.now() - t0) / 1000).toFixed(1), resource_at_cutoff: { cutoff: S().cutoff, tonnes: Math.round(r.tonnes), grade: +r.grade.toFixed(2), oz: Math.round(r.oz) }, variogram: model, domain: bm.domain };
+    const r = TM.Est.report(bm, S().cutoff); return { method, blocks_estimated: n, block_size: [dx, dy, dz], seconds: +((Date.now() - t0) / 1000).toFixed(1), resource_at_cutoff: { cutoff: S().cutoff, tonnes: Math.round(r.tonnes), grade: +r.grade.toFixed(2), oz: Math.round(r.oz) }, variogram: model, domain: bm.domain, sub_blocks: bm.sub > 1 ? { split: bm.sub, boundary_blocks: split } : null, faults: faults.map(f => `${f.name} (${f.boundary})`) };
   };
   WF.classify = function (rules) { const bm = TM.P.bm; if (!bm) throw new Error(TM.L('No block model', 'لا يوجد نموذج بلوكات')); const c = TM.Est.classify(bm, rules); TM.touch('bm'); return { measured: c[1], indicated: c[2], inferred: c[3], rules: bm.classRules }; };
   WF.resourceTable = function (cutoff = S().cutoff) {
@@ -59,10 +62,10 @@
     const before = TM.Pit.selected() ? WF.kpis() : null;
     const t0 = Date.now(); const lg = TM.Mine.buildLG(bm, { cell, benchH: S().benchH, slope: S().slope });
     const rfs = []; for (let r = rfFrom; r <= rfTo + 1e-9; r += rfStep) rfs.push(+r.toFixed(3));
-    const res = await TM.Mine.nestedShells(lg, rfs, onProgress); const pbp = TM.Mine.pitByPit(lg, res);
+    const res = await TM.Mine.nestedShells(lg, rfs, onProgress); const pbp = TM.Mine.pitByPit(lg, res, S());
     // choose the shell with the best "best-case" NPV (ultimate pit for the current economics)
     let sel = 0; pbp.forEach((p, i) => { if (p.best > pbp[sel].best) sel = i; });
-    TM.P.pit = { lg, shells: res.shells, shellOf: res.shellOf, rfs, pbp, selected: sel, design: null, params: { slope: S().slope, price: S().price, mineCost: S().mineCost, procCost: S().procCost, cell }, created: new Date().toISOString() };
+    TM.P.pit = { lg, shells: res.shells, shellOf: res.shellOf, rfs, pbp, _rtPbpKey: null, selected: sel, design: null, params: { slope: S().slope, price: S().price, mineCost: S().mineCost, procCost: S().procCost, cell }, created: new Date().toISOString() };
     TM.logHistory('pit', `LG ${rfs.length} shells, selected rf ${rfs[sel]}`); TM.touch('pit');
     const k = WF.kpis(); return { shells: rfs.length, nodes: res.nodes, seconds: +((Date.now() - t0) / 1000).toFixed(1), selected_shell: sel + 1, revenue_factor: rfs[sel], slope_angle: S().slope, ore_t: Math.round(k.ore), grade: +k.grade.toFixed(2), waste_t: Math.round(k.waste), strip_ratio: +k.sr.toFixed(2), npv_musd: +(k.npv / 1e6).toFixed(1), npv_change_musd: before ? +((k.npv - before.npv) / 1e6).toFixed(1) : null };
   };
@@ -75,16 +78,28 @@
   };
 
   // ---------------------------------------------------------------- KPIs at the current cut-off
+  // Single source of truth: the KPI bar, the schedule dialog, the AI and the executive report all read WF.plan().
+  // LG shell → bench-by-bench pushback schedule on the regularised optimisation model; pit design → benches of the block model.
+  const sig = (...a) => JSON.stringify(a);
+  TM.on('changed', w => { if (w !== 'cutoff' && TM.rt) TM.rt._plan = null; });
+  WF.plan = function (o = {}) {
+    const P = TM.P, s = Object.assign({}, S(), o.settings || {}), a = TM.Pit.active(); if (!P.bm || !a) return null;
+    const key = sig(s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, a.kind, P.pit && P.pit.selected, P.pit && P.pit.created, P.design && P.design.created, P.bm.created, o.priceF, o.costF);
+    if (!o.nocache && TM.rt._plan && TM.rt._plan.key === key) return TM.rt._plan.r;
+    let r; if (a.kind === 'shell') r = TM.Mine.scheduleP(TM.Mine.panels(P.pit.lg, P.pit.shellOf, P.pit.selected), s, o);
+    else r = TM.Mine.scheduleP(TM.Mine.panelsFromBM(P.bm, a.floorAt, s.benchH, s), s, o);
+    r.source = a.kind; r.label = a.label; r.cutoffs = TM.Mine.cutoffs(s);
+    if (!o.nocache && !o.priceF && !o.costF) TM.rt._plan = { key, r }; return r;
+  };
   WF.kpis = function (cog = S().cutoff, o = {}) {
-    const bm = TM.P.bm; if (!bm) return null; const d = bm.def, sh = TM.Pit.active(); let ore = 0, metal = 0;
-    for (let id = 0; id < bm.N; id++) {
-      const g = bm.grade[id]; if (!(g >= cog)) continue;
-      if (sh) { const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const z = d.z0 + (k + .5) * d.dz, f = sh.floorAt(d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy); if (!(z > f)) continue; }
-      const t = TM.Est.blockTonnes(bm, id); ore += t; metal += t * g;
+    const bm = TM.P.bm; if (!bm) return null; const sh = TM.Pit.active();
+    if (sh) {
+      const r = WF.plan(Object.assign({ settings: { cutoff: cog }, nocache: cog !== S().cutoff }, o)), t = r.total;
+      return { cutoff: cog, ore: t.ore, metal: t.oreM, grade: t.grade, oz: t.oreM / 31.1035, low: t.low, lowMetal: t.metal - t.oreM, waste: t.waste, sr: t.ore + t.low ? t.waste / (t.ore + t.low) : 0, inPit: true, pitLabel: sh.label, npv: r.npv, irr: r.irr, life: r.life, payback: r.payback, feed: t.feed, feedGrade: t.feedGrade, recoveredOz: t.oz, source: r.source };
     }
-    const out = { cutoff: cog, ore, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, inPit: !!sh, pitLabel: sh ? sh.label : null };
-    if (sh) { const rock = sh.rock; out.waste = Math.max(0, rock - ore); out.sr = ore ? out.waste / ore : 0; const sc = TM.Mine.schedule([{ ore, waste: out.waste, metal }], S(), o); out.npv = sc.npv; out.irr = sc.irr; out.life = sc.life; out.payback = sc.payback; }
-    return out;
+    const d = bm.def; let ore = 0, metal = 0;
+    for (let id = 0; id < bm.N; id++) { const g = bm.grade[id]; if (!(g >= cog)) continue; const t = TM.Est.blockTonnes(bm, id); ore += t; metal += t * g; }
+    return { cutoff: cog, ore, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, inPit: false, pitLabel: null };
   };
   WF.kpisBrief = function () { const k = WF.kpis(); if (!k) return {}; return { ore_t: Math.round(k.ore), grade: +k.grade.toFixed(2), contained_oz: Math.round(k.oz), waste_t: k.waste != null ? Math.round(k.waste) : null, strip_ratio: k.sr != null ? +k.sr.toFixed(2) : null, npv_musd: k.npv != null ? +(k.npv / 1e6).toFixed(1) : null }; };
   WF.cutoffScan = function (from = 0.2, to = 2.5, step = 0.05) { const out = []; for (let c = from; c <= to + 1e-9; c += step) { const k = WF.kpis(+c.toFixed(2)); if (k && k.npv != null) out.push({ c: +c.toFixed(2), npv: k.npv, ore: k.ore, grade: k.grade }); } return out; };
@@ -92,13 +107,20 @@
 
   // ---------------------------------------------------------------- schedule & sensitivity
   WF.schedule = function () {
-    const p = TM.P.pit; if (!p) throw new Error(TM.L('Optimise the pit first.', 'حسّن الحفرة أولاً.'));
-    const r = TM.Mine.schedule(TM.Mine.increments(p.lg, { shellOf: p.shellOf }, p.selected)); p.schedule = r; TM.touch('schedule');
-    return { years: r.life, npv_musd: +(r.npv / 1e6).toFixed(1), irr_pct: r.irr != null ? +(r.irr * 100).toFixed(1) : null, payback_years: r.payback != null ? +r.payback.toFixed(1) : null, ore_t: Math.round(r.total.ore), waste_t: Math.round(r.total.waste), recovered_oz: Math.round(r.total.oz), table: r.years.map(y => ({ year: y.year, ore_t: Math.round(y.ore), waste_t: Math.round(y.waste), grade: +y.grade.toFixed(2), oz: Math.round(y.oz), cash_musd: +(y.cash / 1e6).toFixed(1) })) };
+    const p = TM.P.pit; if (!p && !(TM.P.design && TM.P.design.kind === 'pit')) throw new Error(TM.L('Optimise the pit first.', 'حسّن الحفرة أولاً.'));
+    const r = WF.plan(); if (!r) throw new Error(TM.L('Needs a block model and a pit.', 'يتطلب نموذج بلوكات وحفرة.')); if (p) p.schedule = r; TM.touch('schedule'); const t = r.total;
+    return { source: r.label, years: r.life, npv_musd: +(r.npv / 1e6).toFixed(1), irr_pct: r.irr != null ? +(r.irr * 100).toFixed(1) : null, payback_years: r.payback != null ? +r.payback.toFixed(1) : null, operating_cutoff: +r.cutoffs.operating.toFixed(2), marginal_cutoff: +r.cutoffs.marginal.toFixed(2), mill_rate_t: S().millRate, mining_rate_t: S().mineRate, pushbacks: r.pushbacks, ore_t: Math.round(t.ore), ore_grade: +t.grade.toFixed(2), low_grade_stockpiled_t: Math.round(t.low), low_grade_reclaimed_t: Math.round(t.reclaim), waste_t: Math.round(t.waste), mill_feed_t: Math.round(t.feed), feed_grade: +t.feedGrade.toFixed(2), recovered_oz: Math.round(t.oz),
+      table: r.years.map(y => ({ year: y.year, pushbacks: y.pushbacks, benches: y.benches, ore_t: Math.round(y.ore), low_t: Math.round(y.low), waste_t: Math.round(y.waste), reclaim_t: Math.round(y.reclaim), feed_t: Math.round(y.feed), grade: +y.grade.toFixed(2), sr: y.sr != null ? +y.sr.toFixed(2) : null, oz: Math.round(y.oz), stockpile_t: Math.round(y.stockpile), cash_musd: +(y.cash / 1e6).toFixed(1) })) };
   };
   WF.sensitivity = function () {
-    const p = TM.P.pit; if (!p) return null; const inc = TM.Mine.increments(p.lg, { shellOf: p.shellOf }, p.selected); const f = [0.8, 0.9, 1, 1.1, 1.2];
-    return { factors: f, price: f.map(x => TM.Mine.schedule(inc, S(), { priceF: x }).npv), cost: f.map(x => TM.Mine.schedule(inc, S(), { costF: x }).npv) };
+    if (!TM.Pit.active() || !TM.P.bm) return null; const f = [0.8, 0.9, 1, 1.1, 1.2];
+    return { factors: f, price: f.map(x => WF.plan({ priceF: x, nocache: true }).npv), cost: f.map(x => WF.plan({ costF: x, nocache: true }).npv) };
+  };
+  // Pit-by-pit at the current economics (recomputed when inputs change)
+  WF.pitByPit = function () {
+    const p = TM.P.pit; if (!p) return null; const s = S(); const key = sig(s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, p.created);
+    if (p._rtPbpKey !== key || !p.pbp) { p.pbp = TM.Mine.pitByPit(p.lg, { shells: p.shells, shellOf: p.shellOf }, s); p._rtPbpKey = key; }
+    return p.pbp;
   };
 
   // ---------------------------------------------------------------- geology
@@ -185,6 +207,25 @@
     const ore = rows.filter(r => r.status === 'ore'), t = ore.reduce((a, r) => a + r.tonnes, 0), m = ore.reduce((a, r) => a + r.tonnes * r.grade, 0);
     const e = TM.Mine.econ(), val = ore.reduce((a, r) => a + r.tonnes * (r.grade * e.netPrice - S().procCost - S().gaCost - S().mineCost), 0);
     return { cutoff: cog, stopes: rows.length, ore_stopes: ore.length, ore_t: Math.round(t), grade: t ? +(m / t).toFixed(2) : 0, oz: Math.round(m / 31.1035), operating_margin_musd: +(val / 1e6).toFixed(1), rows };
+  };
+
+  // ---------------------------------------------------------------- faults
+  WF.defineFault = function ({ source, name, boundary = 'hard' }) {
+    const P = TM.P; const st = P.strings.find(x => x.id === source || x.name === source), sf = P.surfaces.find(x => x.id === source || x.name === source);
+    let pts = st ? st.pts : null; if (!pts && sf) { pts = []; const step = Math.max(1, Math.floor(sf.pts.length / 3 / 4000)); for (let i = 0; i < sf.pts.length; i += 3 * step) pts.push([sf.pts[i], sf.pts[i + 1], sf.pts[i + 2]]); }
+    if (!pts || pts.length < 3) throw new Error(TM.L('A fault needs a string or surface with at least 3 non-collinear points.', 'الفالق يحتاج خطاً أو سطحاً بثلاث نقاط غير مستقيمة على الأقل.'));
+    const plane = TM.Est.faultPlane(pts); const f = { id: TM.uid('flt'), name: name || (st || sf).name, source: (st || sf).name, boundary: boundary === 'soft' ? 'soft' : 'hard', plane };
+    P.faults = (P.faults || []).filter(x => x.name !== f.name).concat([f]); if (st) st.color = '#EF4444'; TM.logHistory('fault', `${f.name} ${f.boundary} dip ${plane.dip}/${plane.dipDir}`); TM.touch('faults'); if (P.bm) P.bm.stale = true;
+    return { fault: f.name, boundary: f.boundary, dip: plane.dip, dip_direction: plane.dipDir, faults: P.faults.length, note: TM.L('Re-run the estimation to apply the boundary.', 'أعد التقدير لتطبيق الحد.') };
+  };
+  WF.removeFault = function (id) { TM.P.faults = (TM.P.faults || []).filter(f => f.id !== id && f.name !== id); TM.touch('faults'); return { faults: TM.P.faults.length }; };
+  // Displace the part of a solid on the hanging-wall side (normal side) of a fault by an offset vector → new solid
+  WF.faultSolid = function ({ solid, fault, dx = 0, dy = 0, dz = 0, throwM = null }) {
+    const so = TM.P.solids.find(s => s.id === solid || s.name === solid), f = (TM.P.faults || []).find(x => x.id === fault || x.name === fault); if (!so || !f) throw new Error(TM.L('Solid or fault not found', 'المجسم أو الفالق غير موجود'));
+    if (throwM != null) { const n = f.plane.n, h = Math.hypot(n[0], n[1]) || 1; const dd = [n[0] / h * Math.abs(n[2]), n[1] / h * Math.abs(n[2]), -Math.hypot(n[0], n[1])]; const L = Math.hypot(...dd) || 1; dx = dd[0] / L * throwM; dy = dd[1] / L * throwM; dz = dd[2] / L * throwM; }
+    const pos = Float64Array.from(so.pos); let moved = 0; for (let i = 0; i < pos.length; i += 3) if (TM.Est.faultSide(f, pos[i], pos[i + 1], pos[i + 2])) { pos[i] += dx; pos[i + 1] += dy; pos[i + 2] += dz; moved++; }
+    TM.Undo && TM.Undo.push(TM.L('Fault displacement', 'إزاحة بالفالق')); const s2 = TM.Solid.make(`${so.name}_${f.name}_displaced`, { pos, idx: Uint32Array.from(so.idx) }, { source: 'fault displacement', color: '#FB7185' }); TM.P.solids.push(s2); TM.touch('solids');
+    return { solid: s2.name, vertices_moved: moved, offset_m: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], volume_m3: Math.round(s2.volume) };
   };
 
   // ---------------------------------------------------------------- string hygiene & project integrity
