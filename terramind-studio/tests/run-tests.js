@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const ctx = { console, setTimeout, clearTimeout, Math, Date, JSON, Buffer, TextEncoder, TextDecoder };
 ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/62-cad.js'])
+for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/58-underground.js', 'js/62-cad.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 const TM = ctx.TM;
 let pass = 0, fail = 0;
@@ -117,6 +117,14 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   { const csv = 'Hole,East,North,RL,Depth\n"A,1",1,2,3,4\nB,5,6,7,8'; const t = TM.IO.parseCSV(csv); const m = TM.IO.autoMap(t.header, ['hole', 'x', 'y', 'z', 'depth']); ok(t.rows[0][0] === 'A,1' && m.x === 1 && m.z === 3 && m.depth === 4, 'CSV parse + auto-map'); }
   { const enc = TM.encode({ a: new Float32Array([1.5, 2.5]), _rtX: 1 }); const dec = TM.decode(enc); ok(dec.a[1] === 2.5 && dec._rtX === undefined, 'typed array codec'); }
   { const d = TM.IO.writeDXF({ strings: [{ name: 'L1', closed: false, pts: [[0, 0, 0], [1, 1, 1]] }] }); const r = TM.IO.readDXF(d); ok(r.strings.length === 1 && r.strings[0].pts[1][2] === 1, 'DXF round-trip'); }
+
+  console.log('Underground');
+  { const line = [[0, 0, 100], [100, 0, 100]]; const r = TM.UG.tunnel(line, { type: 'rect', w: 4, h: 4 }); const v = TM.Solid.volume(r.mesh); ok(near(v, 1600, 1) && TM.Solid.isClosed(r.mesh).closed, 'rectangular drive volume = 4×4×100', v.toFixed(1));
+    const c = TM.UG.tunnel([[0, 0, 0], [0, 0, 50]], { type: 'circular', w: 4 }); const vc = TM.Solid.volume(c.mesh); ok(Math.abs(vc - Math.PI * 4 * 50) / (Math.PI * 4 * 50) < 0.03, 'circular raise volume ≈ πr²h', vc.toFixed(1));
+    const a = TM.UG.profileArea(TM.UG.profile('arched', 5, 5.5, 40)); ok(near(a, 5 * 3 + Math.PI * 6.25 / 2, 0.1), 'arched profile area', a.toFixed(2)); }
+  { const r = TM.UG.faceRound({ w: 5, h: 5.5, advance: 3.6, preview: true }); const k = Object.fromEntries(r.by_type.map(x => [x.kind, x.holes])); ok(k.relief === 2 && k.cut >= 8 && k.perimeter > 10 && k.lifter >= 5 && k.easer >= 1, 'face round has every hole type', JSON.stringify(k)); ok(r.powder_factor_kg_m3 > 1 && r.powder_factor_kg_m3 < 4, 'face round powder factor plausible', r.powder_factor_kg_m3 + ' kg/m³'); }
+  { const rings = [[[0, 0, 0], [20, 0, 0], [20, 6, 0], [0, 6, 0]], [[0, 0, 20], [20, 0, 20], [20, 6, 20], [0, 6, 20]]]; const so = TM.Solid.make('ST_test', TM.UG.loft(rings)); TM.P.solids.push(so); ok(near(so.volume, 2400, 1) && so.closed, 'lofted stope solid is closed', so.volume.toFixed(0));
+    const r = TM.UG.ringDesign({ stope: so.id, collarHeight: 1 }); ok(r.rings >= 8 && r.holes > 20 && r.powder_factor_kg_t > 0.2 && r.powder_factor_kg_t < 1.2, 'ring design inside a stope', JSON.stringify({ rings: r.rings, holes: r.holes, pf: r.powder_factor_kg_t })); TM.P.solids.pop(); TM.P.blast = null; }
 
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

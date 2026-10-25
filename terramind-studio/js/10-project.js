@@ -8,7 +8,8 @@
     capex: 120e6, millRate: 0.9e6, mineRate: 8e6, discount: 8, closure: 8e6,
     slope: 45, benchH: 10, batter: 70, bermW: 6, rampW: 20, rampGrade: 10,
     cutoff: 0.5, colormap: 'gold', topCut: null, compLen: 2, pitSource: 'shell',
-    infill: []
+    infill: [],
+    ugMineCost: 60, ugRate: 0.6e6, ugCapex: 80e6, ugCrown: 25, rehandle: 1, processLG: true
   });
 
   TM.newProject = function (name = 'Untitled project') {

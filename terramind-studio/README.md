@@ -1,6 +1,6 @@
-# TerraMind Studio 1.1
+# TerraMind Studio 1.3
 
-TerraMind Studio is a mining geology, resource estimation and open-pit planning application. It runs in the browser and is controlled by a bilingual (Arabic/English) AI copilot.
+TerraMind Studio is a mining geology, resource estimation, open-pit and underground mine planning application. It runs in the browser and is controlled by a bilingual (Arabic/English) AI copilot.
 
 **Windows desktop app:** download the installer (`TerraMind-Studio-…-nsis.exe`) or the portable `.exe` from the repository's **Actions → TerraMind Studio desktop build → Artifacts** (or from a GitHub Release when a `v*` tag is pushed). The desktop edition adds native Open/Save dialogs, a menu bar, `.tmd` file association and unsaved-changes protection.
 
@@ -45,6 +45,34 @@ The browser edition needs no installation or server. On Windows, double-click `i
      - «جدول الإنتاج»
      - «اقترح 3 آبار تكميلية»
      - «مقطع شمالي عند 8300»
+
+## الجديد في 1.3
+- **الواجهة:**
+  - شريط قوائم هندسي (ملف، تحرير، عرض، أدوات هندسية، مساعدة) بأيقونات واختصارات ومشاريع أخيرة.
+  - كل النوافذ تُسحب من عنوانها ويتغير حجمها من الحواف، ولها شريط تمرير وأزرار ثابتة في الأسفل.
+  - Enter ينفّذ الإجراء الرئيسي في النافذة، وEsc يغلقها.
+- **الحسابات:**
+  - مصدر واحد للأرقام: الشريط السفلي ونافذة الجدولة والتقرير التنفيذي تعطي القيم نفسها.
+  - طاقة المصنع وطاقة التعدين وحد القطع تُقرأ من إعدادات المشروع.
+  - المادة الواقعة بين حد القطع الحدي وحد القطع التشغيلي تذهب إلى مخزون منخفض التركيز.
+  - صافي القيمة الحالية في أفضل حالة يُحسب لكل غلاف على حدة.
+  - الإحصاء والتباين يُعاد حسابهما بعد تطبيق السقف.
+- **الجدولة:** تُعدَّن المراحل مصطبة بمصطبة، مع احترام سقف التعدين وسقف المصنع في كل سنة.
+- **النمذجة:**
+  - بلوكات فرعية 2×2×2 أو 4×4×4 على حواف المجسم والسطح.
+  - فوالق بحدود صلبة أو مرنة، مع إمكانية إزاحة المجسمات عبرها.
+- **المنجم السطحي:**
+  - طريق شاحنات مائل بنقاط انعكاس، ويدخل ميله في حساب الحجم.
+  - خط القاع يُستخرج من غلاف LG.
+  - لوحة حسابات حية لنمط التفجير.
+  - المكب يُفحص بمعامل الانتفاش مقابل نفايات الحفرة.
+  - المطابقة الشهرية بين النموذج والمساحة.
+- **المنجم التحت سطحي:**
+  - محسّن الغرف (على طريقة MSO).
+  - مولّد المنحدر الحلزوني مع الأنفاق العرضية ومدخنة التهوية وممر الخام.
+  - مجسمات الأنفاق والمداخن بمقاطع جاهزة.
+  - التفجير المروحي للغرف، وجولة واجهة النفق (قطع حرق وثقوب توسيع ومحيط وأرضية).
+  - حاسبة نقطة التحول من سطحي إلى تحت سطحي.
 
 ## الجديد في 1.1 (أدوات سورباك)
 - **الرسم والخطوط (CAD):**
@@ -112,11 +140,15 @@ js/35-surfaces.js     Delaunay TIN, z lookup, contours, cut & fill
 js/40-estimation.js   variography, block model, OK/IDW/NN, classification, reporting
 js/45-implicit.js     RBF implicit modelling, surface nets, volume, point-in-solid
 js/50-mining.js       economics, max-flow LG, nested shells, pit-by-pit, design, schedule
-js/55-workflow.js     high-level operations shared by UI and AI
+js/52-design.js       pit (ramp, switchbacks) and dump design from strings
+js/55-workflow.js     high-level operations shared by UI and AI (single plan for KPIs/schedule/report)
+js/57-blast.js        open-pit drill & blast patterns
+js/58-underground.js  stope optimiser, tunnels & spiral decline, ring and face-round blasting, OP→UG transition
 js/60-viewport.js     three.js scene, section clipping, picking, sketching
 js/70-ui.js           forms, tables, SVG charts, layers, KPIs, inspector
 js/80-ai.js           tool schemas, providers, offline parser, auditor cards
 js/85-report.js       executive report
+js/88-menu.js         menu bar, keyboard shortcuts, recent projects
 js/90-app.js          ribbon commands, dialogs, import wizards, boot
 tests/run-tests.js    engine tests:  node terramind-studio/tests/run-tests.js
 tools/make-samples.js regenerates samples/ from the demo generator
@@ -128,3 +160,6 @@ tools/make-samples.js regenerates samples/ from the demo generator
 - In the pit design, the ramp is modelled as a widened berm along its path (correct footprint and waste volume). The climbing ramp surface itself is drawn as a centreline, not as a sloped surface.
 - Solid Booleans are voxel-based: accuracy equals the voxel size you choose.
 - Kriging and LG run on the main thread with a progress bar. Allow about 10–20 s for ~100k blocks on a laptop.
+- Faults are planes fitted to a string or surface (unbounded). Displacing a solid moves the vertices on the hanging-wall side, so triangles that cross the fault are stretched rather than cut.
+- The stope optimiser is a slice method on the block model (vertical panels following dip through sub-slices), not a full MSO shape optimisation. Ventilation network simulation is not included.
+- The open-pit → underground transition uses the active pit truncated at each RL and values the underground ore at break-even-style costs with a single production rate.
