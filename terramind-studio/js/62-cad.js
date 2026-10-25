@@ -5,8 +5,8 @@
 
   // ---------------------------------------------------------------- undo / redo (project geometry snapshots)
   const U = TM.Undo = { stack: [], redo: [], max: 60 };
-  const snap = () => ({ strings: JSON.parse(JSON.stringify(TM.P.strings)), solids: TM.P.solids.slice(), surfaces: TM.P.surfaces.slice(), infill: (TM.P.settings.infill || []).slice(), blast: TM.P.blast ? JSON.parse(JSON.stringify(TM.P.blast)) : null, design: TM.P.design || null });
-  const restore = s => { TM.P.strings = s.strings; TM.P.solids = s.solids; TM.P.surfaces = s.surfaces; TM.P.settings.infill = s.infill; TM.P.blast = s.blast; TM.P.design = s.design; TM.Surf.rebuildTopo(); TM.emit('geometryRestored'); TM.touch('strings'); };
+  const snap = () => ({ strings: JSON.parse(JSON.stringify(TM.P.strings)), solids: TM.P.solids.slice(), surfaces: TM.P.surfaces.slice(), infill: (TM.P.settings.infill || []).slice(), blast: TM.P.blast ? JSON.parse(JSON.stringify(TM.P.blast)) : null, design: TM.P.design || null, dump: TM.P.dump || null, faults: (TM.P.faults || []).slice() });
+  const restore = s => { TM.P.strings = s.strings; TM.P.solids = s.solids; TM.P.surfaces = s.surfaces; TM.P.settings.infill = s.infill; TM.P.blast = s.blast; TM.P.design = s.design; TM.P.dump = s.dump; TM.P.faults = s.faults || []; TM.Surf.rebuildTopo(); TM.emit('geometryRestored'); TM.touch('strings'); };
   U.push = label => { if (!TM.P) return; U.stack.push({ label, s: snap() }); if (U.stack.length > U.max) U.stack.shift(); U.redo.length = 0; };
   U.undo = () => { const e = U.stack.pop(); if (!e) return null; U.redo.push({ label: e.label, s: snap() }); restore(e.s); return e.label; };
   U.redoOne = () => { const e = U.redo.pop(); if (!e) return null; U.stack.push({ label: e.label, s: snap() }); restore(e.s); return e.label; };

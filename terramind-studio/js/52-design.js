@@ -42,11 +42,11 @@
   const pointAt = (pts, A, s) => { const tot = A[A.length - 1]; s = ((s % tot) + tot) % tot; let i = 1; while (i < A.length - 1 && A[i] < s) i++; const t = (s - A[i - 1]) / ((A[i] - A[i - 1]) || 1); return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t]; };
   // Distance field to a polyline (only near it)
   function polylineDist(G, line, reach) {
-    const { nx, ny, x0, y0, res } = G, R = new Float32Array(nx * ny).fill(1e9);
+    const { nx, ny, x0, y0, res } = G, R = new Float32Array(nx * ny).fill(1e9), S = new Float32Array(nx * ny); const A = [0]; for (let k = 1; k < line.length; k++) A.push(A[k - 1] + Math.hypot(line[k][0] - line[k - 1][0], line[k][1] - line[k - 1][1]));
     let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity; for (const p of line) { bx0 = Math.min(bx0, p[0]); bx1 = Math.max(bx1, p[0]); by0 = Math.min(by0, p[1]); by1 = Math.max(by1, p[1]); }
     const i0 = Math.max(0, Math.floor((bx0 - reach - x0) / res)), i1 = Math.min(nx - 1, Math.ceil((bx1 + reach - x0) / res)), j0 = Math.max(0, Math.floor((by0 - reach - y0) / res)), j1 = Math.min(ny - 1, Math.ceil((by1 + reach - y0) / res));
-    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = x0 + (i + .5) * res, y = y0 + (j + .5) * res; let best = 1e9; for (let k = 1; k < line.length; k++) { const a = line[k - 1], b = line[k], vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = TM.clamp(((x - a[0]) * vx + (y - a[1]) * vy) / l2, 0, 1), d = Math.hypot(a[0] + vx * t - x, a[1] + vy * t - y); if (d < best) best = d; } R[i + nx * j] = best; }
-    return R;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = x0 + (i + .5) * res, y = y0 + (j + .5) * res; let best = 1e9, bs = 0; for (let k = 1; k < line.length; k++) { const a = line[k - 1], b = line[k], vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = TM.clamp(((x - a[0]) * vx + (y - a[1]) * vy) / l2, 0, 1), d = Math.hypot(a[0] + vx * t - x, a[1] + vy * t - y); if (d < best) { best = d; bs = A[k - 1] + t * (A[k] - A[k - 1]); } } R[i + nx * j] = best; S[i + nx * j] = bs; }
+    R.along = S; return R;
   }
   const topoOr = (x, y, z) => { const t = TM.topoZ(x, y); return isFinite(t) ? t : z; };
   // Split a contour into parts below topography (daylighting) at elevation z
@@ -63,7 +63,7 @@
     if (G.nx * G.ny > 9e6) throw new Error(TM.L('Design area too large for this resolution — increase the grid cell size.', 'منطقة التصميم كبيرة جداً — زد حجم خلية الشبكة.'));
     const N = G.nx * G.ny, Zd = new Float32Array(N).fill(NaN); let T = D.sdf(opts.toe, G);
     for (let i = 0; i < N; i++) if (T[i] <= 0) Zd[i] = z0;
-    const strings = [], rampLine = []; let rampS = null, benches = 0;
+    const strings = [], rampLine = []; let rampS = null, benches = 0, dir = ramp ? (ramp.dir || 1) : 1, switches = 0; const sw = ramp && ramp.switchbacks ? ramp.switchbacks.map(Number).filter(isFinite).sort((a, b) => a - b) : [];
     for (let k = 0; k < nB; k++) {
       const zk = z0 + k * H; const C = new Float32Array(N); for (let i = 0; i < N; i++) C[i] = T[i] - f;
       const toeC = D.contour(T, G, 0)[0], crestC = D.contour(C, G, 0)[0]; if (!toeC || !crestC) break;
@@ -75,17 +75,19 @@
       // ramp path along this crest
       let R = null;
       if (ramp) {
+        if (sw.some(r => r > zk + 1e-6 && r <= zk + H + 1e-6)) { dir = -dir; switches++; } // switchback: reverse the climbing direction at this RL
         const A = arc(crestC); const start = rampS == null ? nearestParam(crestC, A, ramp.start || crestC[0]) : nearestParam(crestC, A, rampS);
-        const seg = []; const steps = Math.max(2, Math.ceil(Lr / Math.max(res, 2))); for (let q = 0; q <= steps; q++) { const p = pointAt(crestC, A, start + ramp.dir * Lr * q / steps); seg.push([p[0], p[1]]); }
+        const seg = []; const steps = Math.max(2, Math.ceil(Lr / Math.max(res, 2))); for (let q = 0; q <= steps; q++) { const p = pointAt(crestC, A, start + dir * Lr * q / steps); seg.push([p[0], p[1]]); }
         rampS = seg[seg.length - 1]; R = polylineDist(G, seg, B + W + res * 2);
         seg.forEach((p, q) => rampLine.push([+p[0].toFixed(3), +p[1].toFixed(3), +(zk + H + H * q / steps).toFixed(3)]));
       }
       const Tn = new Float32Array(N); for (let i = 0; i < N; i++) { let v = C[i] - B; if (R) v = Math.min(v, R[i] - (B + W)); Tn[i] = v; }
-      for (let i = 0; i < N; i++) if (C[i] > 0 && Tn[i] <= 0 && isNaN(Zd[i])) Zd[i] = zk + H; // berm / ramp shelf
+      // berm shelf flat at zk + H; ramp cells climb from zk + H to zk + 2H along the ramp (gradient honoured → true excavated volume)
+      for (let i = 0; i < N; i++) if (C[i] > 0 && Tn[i] <= 0 && isNaN(Zd[i])) Zd[i] = R && C[i] - B > 0 && R[i] <= B + W ? zk + H + H * TM.clamp(R.along[i] / Lr, 0, 1) : zk + H;
       T = Tn;
     }
     if (rampLine.length) strings.push({ name: 'Pit_ramp_centreline', pts: rampLine.filter(p => p[2] <= topoOr(p[0], p[1], p[2]) + 0.5), kind: 'ramp' });
-    return D.finish('pit', G, Zd, strings, opts, { benches, z0 });
+    const out = D.finish('pit', G, Zd, strings, opts, { benches, z0 }); if (ramp) { out.stats.ramp = { width: W, gradient: ramp.gradient, length_m: Math.round(rampLine.reduce((a, p, i) => i ? a + Math.hypot(p[0] - rampLine[i - 1][0], p[1] - rampLine[i - 1][1], p[2] - rampLine[i - 1][2]) : 0, 0)), switchbacks: switches, direction: (ramp.dir || 1) > 0 ? 'clockwise' : 'anticlockwise' }; } return out;
   };
 
   // ---------------------------------------------------------------- dump design (benches step inward going up)

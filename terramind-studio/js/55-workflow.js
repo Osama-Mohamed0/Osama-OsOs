@@ -155,24 +155,71 @@
 
   // ---------------------------------------------------------------- engineered design (Surpac-style)
   const strById = id => { const s = TM.P.strings.find(x => x.id === id || x.name === id); if (!s) throw new Error(TM.L('String not found', 'الخط غير موجود')); return s; };
-  WF.pitDesign = function ({ toe, benchH = S().benchH, batter = S().batter, berm = S().bermW, rampWidth = S().rampW, rampGrade = S().rampGrade, rampDir = 1, res = 1, maxBenches = 40 } = {}) {
+  WF.pitDesign = function ({ toe, benchH = S().benchH, batter = S().batter, berm = S().bermW, rampWidth = S().rampW, rampGrade = S().rampGrade, rampDir = 1, switchbacks = [], res = 1, maxBenches = 40 } = {}) {
     const s = strById(toe); if (!s.closed || s.pts.length < 3) throw new Error(TM.L('The toe string must be a closed polygon.', 'خط القاع يجب أن يكون مضلعاً مغلقاً.'));
     TM.Undo.push(TM.L('Pit design', 'تصميم الحفرة'));
-    const D = TM.Design.pit({ toe: s.pts, benchH, batter, berm, ramp: rampWidth > 0 ? { width: rampWidth, gradient: rampGrade, dir: rampDir, start: s.pts[0] } : null, maxBenches, res });
+    const D = TM.Design.pit({ toe: s.pts, benchH, batter, berm, ramp: rampWidth > 0 ? { width: rampWidth, gradient: rampGrade, dir: rampDir, start: s.pts[0], switchbacks: (typeof switchbacks === 'string' ? switchbacks.split(/[,;\s]+/) : switchbacks || []).map(Number).filter(isFinite) } : null, maxBenches, res });
     D.source = s.name; TM.P.design = D; S().pitSource = 'design'; TM.logHistory('pitDesign', s.name); TM.touch('design');
-    const r = D.stats.reserve; return { benches: D.stats.benches, volume_m3: Math.round(D.stats.volume), rock_t: Math.round(D.stats.tonnes), footprint_m2: Math.round(D.stats.footprint), overall_slope_deg: +(Math.atan(benchH / (benchH / Math.tan(batter * TM.D2R) + berm)) / TM.D2R).toFixed(1), reserve: r ? { cutoff: r.cutoff, ore_t: Math.round(r.ore), grade: +r.grade.toFixed(2), oz: Math.round(r.oz), waste_t: Math.round(r.waste), strip_ratio: r.sr != null ? +r.sr.toFixed(2) : null } : null };
+    const r = D.stats.reserve; return { benches: D.stats.benches, volume_m3: Math.round(D.stats.volume), rock_t: Math.round(D.stats.tonnes), footprint_m2: Math.round(D.stats.footprint), overall_slope_deg: +(Math.atan(benchH / (benchH / Math.tan(batter * TM.D2R) + berm)) / TM.D2R).toFixed(1), reserve: r ? { cutoff: r.cutoff, ore_t: Math.round(r.ore), grade: +r.grade.toFixed(2), oz: Math.round(r.oz), waste_t: Math.round(r.waste), strip_ratio: r.sr != null ? +r.sr.toFixed(2) : null } : null, ramp: D.stats.ramp || null };
   };
-  WF.dumpDesign = function ({ base, benchH = 10, batter = 37, berm = 10, maxRL = null, res = 1 } = {}) {
+  // Waste dump: capacity in loose m³ vs the waste the active pit will produce (in-situ t ÷ density × swell factor)
+  WF.dumpDesign = function ({ base, benchH = 10, batter = 37, berm = 10, maxRL = null, res = 1, swell = 1.25, wasteT = null } = {}) {
     const s = strById(base); if (!s.closed) throw new Error(TM.L('The base string must be closed.', 'خط القاعدة يجب أن يكون مغلقاً.'));
+    const a = TM.Pit.active(); let overlap = 0; if (a) for (let i = 0; i < s.pts.length; i++) { const p = s.pts[i]; if (isFinite(a.floorAt(p[0], p[1]))) overlap++; }
     TM.Undo.push(TM.L('Dump design', 'تصميم المكب')); const z0 = s.pts.reduce((a, p) => a + p[2], 0) / s.pts.length;
-    const D = TM.Design.dump({ base: s.pts, benchH, batter, berm, maxRL: maxRL || z0 + 50, res }); D.source = s.name; TM.P.design = D; TM.touch('design');
-    return { lifts: D.stats.benches, capacity_m3: Math.round(D.stats.volume), capacity_t_loose: Math.round(D.stats.volume * 1.9), footprint_m2: Math.round(D.stats.footprint) };
+    const keepPit = TM.P.design && TM.P.design.kind === 'pit' ? TM.P.design : null;
+    const D = TM.Design.dump({ base: s.pts, benchH, batter, berm, maxRL: maxRL || z0 + 50, res }); D.source = s.name; D.swell = swell; TM.P.dump = D; if (!keepPit) TM.P.design = D; TM.touch('design');
+    let need = wasteT; if (need == null) { const k = TM.P.bm && a ? WF.kpis() : null; need = k ? k.waste : null; }
+    const req = need != null ? need / S().density * swell : null;
+    return { lifts: D.stats.benches, capacity_m3_loose: Math.round(D.stats.volume), footprint_m2: Math.round(D.stats.footprint), swell_factor: swell, waste_to_store_t: need != null ? Math.round(need) : null, required_m3_loose: req != null ? Math.round(req) : null, utilisation_pct: req != null ? +(req / D.stats.volume * 100).toFixed(1) : null, fits: req != null ? req <= D.stats.volume : null, base_vertices_inside_pit: overlap };
   };
   WF.designToStrings = function () {
     const D = TM.P.design; if (D) { TM.Undo.push('Design → strings'); let n = 0; for (const s of D.strings) { TM.P.strings.push({ id: TM.uid('str'), name: s.name, strNo: s.kind === 'ramp' ? 3 : (D.kind === 'pit' ? 10 : 20), closed: false, color: s.kind === 'ramp' ? '#F97316' : (D.kind === 'pit' ? '#34D399' : '#F2B740'), pts: s.pts }); n++; } TM.touch('strings'); return { strings: n }; }
     const p = TM.P.pit; if (!p || !p.design) WF.designPit(); let n = 0; for (const lv of TM.P.pit.design) for (const L of lv.lines) { TM.P.strings.push({ id: TM.uid('str'), name: `Pit_RL${Math.round(lv.z)}`, strNo: 100 + Math.round(lv.z / S().benchH) % 100, closed: false, color: '#7AA9F8', pts: L.map(p => [+p[0].toFixed(3), +p[1].toFixed(3), +p[2].toFixed(3)]) }); n++; } TM.touch('strings'); return { strings: n };
   };
   WF.designSurface = function () { const D = TM.P.design; if (!D) throw new Error('No design'); const m = TM.Design.toMesh(D, Math.max(1, Math.round(2 / D.grid.res))); const s = { id: TM.uid('srf'), name: D.kind === 'pit' ? 'Pit_design_DTM' : 'Dump_design_DTM', role: 'surface', pts: m.pos, tri: m.idx, color: '#8fa6c4' }; TM.P.surfaces.push(s); TM.touch('surfaces'); return { surface: s.name, points: m.pos.length / 3, triangles: m.idx.length / 3 }; };
+
+  // Toe string from the selected LG shell: outline of the pit floor `benchesUp` benches above its lowest point
+  WF.shellToe = function ({ benchesUp = 1, minArea = 400 } = {}) {
+    const p = TM.P.pit; if (!p) throw new Error(TM.L('Optimise the pit first.', 'حسّن الحفرة أولاً.')); const sh = p.shells[p.selected], H = p.lg.benchH;
+    const hm = TM.Mine.pitSurface(p.lg, sh.floor); let zmin = Infinity; for (const z of sh.floor) if (isFinite(z)) zmin = Math.min(zmin, z);
+    const lv = zmin + H * Math.max(0, benchesUp) + 0.5, lines = TM.Mine.benchContours(hm, H, lv, lv)[0]; if (!lines) throw new Error(TM.L('No closed floor outline at that level.', 'لا يوجد حد مغلق للقاع عند هذا المنسوب.'));
+    const closed = lines.lines.filter(l => Math.hypot(l[0][0] - l[l.length - 1][0], l[0][1] - l[l.length - 1][1]) < p.lg.cell * 1.5).map(l => l.slice(0, -1)).filter(l => l.length > 3 && TM.Surf.polyArea(l) >= minArea).sort((a, b) => TM.Surf.polyArea(b) - TM.Surf.polyArea(a));
+    if (!closed.length) throw new Error(TM.L('The shell floor is too small at that level; try fewer benches up.', 'قاع الغلاف صغير جداً عند هذا المنسوب؛ جرّب عدداً أقل من المصاطب.'));
+    const z = Math.round(zmin + H * Math.max(0, benchesUp)); const pts = TM.Str.simplify(TM.Str.smooth ? TM.Str.smooth(closed[0].map(q => [q[0], q[1], z]), 2, true) : closed[0].map(q => [q[0], q[1], z]), 1.0, true).map(q => [+q[0].toFixed(3), +q[1].toFixed(3), z]);
+    TM.Undo.push(TM.L('Toe from shell', 'القاع من الغلاف')); const st = { id: TM.uid('str'), name: `Toe_shell${p.selected + 1}_RL${z}`, closed: true, pts, color: '#34D399', strNo: 9 }; TM.P.strings.push(st); TM.touch('strings');
+    return { string: st.name, id: st.id, rl: z, vertices: pts.length, area_m2: Math.round(TM.Surf.polyArea(pts)), shell: p.selected + 1 };
+  };
+  // ---------------------------------------------------------------- monthly survey reconciliation (model planned vs survey actual)
+  // Mined volume = between the previous and the new survey surface (inside an optional polygon). Model tonnes/grade = block model
+  // intersected with that volume (each block column split by the two surfaces). Actual = survey volume × density, plus optional mill figures.
+  WF.reconcile = function ({ before, after, polygon = null, cell = 2, actualOreT = null, actualGrade = null, period = '' } = {}) {
+    const bm = TM.P.bm, P = TM.P; if (!bm) throw new Error(TM.L('Needs a block model.', 'يتطلب نموذج بلوكات.'));
+    const sA = P.surfaces.find(x => x.id === before || x.name === before) || P.surfaces.find(x => x.role === 'topo'), sB = P.surfaces.find(x => x.id === after || x.name === after);
+    if (!sA || !sB || sA === sB) throw new Error(TM.L('Choose two different surfaces (previous and current survey).', 'اختر سطحين مختلفين (المسح السابق والحالي).'));
+    const tA = TM.Surf.tinOf(sA), tB = TM.Surf.tinOf(sB), poly = polygon ? strById(polygon).pts : null, d = bm.def, dn = S().density, cog = S().cutoff;
+    let x0 = Math.max(tA.x0, tB.x0), x1 = Math.min(tA.x1, tB.x1), y0 = Math.max(tA.y0, tB.y0), y1 = Math.min(tA.y1, tB.y1);
+    if (poly) { x0 = Math.max(x0, Math.min(...poly.map(q => q[0]))); x1 = Math.min(x1, Math.max(...poly.map(q => q[0]))); y0 = Math.max(y0, Math.min(...poly.map(q => q[1]))); y1 = Math.min(y1, Math.max(...poly.map(q => q[1]))); }
+    let vol = 0, fill = 0, ore = 0, metal = 0, waste = 0, unest = 0; const benches = new Map(), H = S().benchH;
+    for (let y = y0 + cell / 2; y < y1; y += cell) for (let x = x0 + cell / 2; x < x1; x += cell) {
+      if (poly && !TM.Surf.pointInPoly(x, y, poly)) continue; const za = tA.z(x, y), zb = tB.z(x, y); if (!isFinite(za) || !isFinite(zb)) continue;
+      if (zb >= za) { fill += (zb - za) * cell * cell; continue; } vol += (za - zb) * cell * cell;
+      const i = Math.floor((x - d.x0) / d.dx), j = Math.floor((y - d.y0) / d.dy);
+      for (let k = 0; k < d.nz; k++) { const lo = d.z0 + k * d.dz, hi = lo + d.dz, a = Math.max(lo, zb), b = Math.min(hi, za); if (b <= a) continue; const t = (b - a) * cell * cell * dn; const id = i >= 0 && j >= 0 && i < d.nx && j < d.ny ? E_idx(d, i, j, k) : -1; const g = id >= 0 ? bm.grade[id] : NaN; const rl = Math.floor(((a + b) / 2) / H) * H; const r = benches.get(rl) || { rl, ore: 0, metal: 0, waste: 0 };
+        if (g >= cog) { ore += t; metal += t * g; r.ore += t; r.metal += t * g; } else { waste += t; r.waste += t; if (!isFinite(g)) unest += t; } benches.set(rl, r); }
+    }
+    const surveyT = vol * dn, modelT = ore + waste, aOre = actualOreT != null ? +actualOreT : null, aG = actualGrade != null ? +actualGrade : null;
+    const pct = (a, m) => a != null && m ? +((a / m - 1) * 100).toFixed(1) : null;
+    const rows = [
+      { item: TM.L('Total rock moved (t)', 'إجمالي الصخر المحفور (طن)'), model: Math.round(modelT), actual: Math.round(surveyT), variance_pct: pct(surveyT, modelT) },
+      { item: TM.L('Ore ≥ cut-off (t)', 'الخام فوق حد القطع (طن)'), model: Math.round(ore), actual: aOre != null ? Math.round(aOre) : null, variance_pct: pct(aOre, ore) },
+      { item: TM.L('Ore grade (g/t)', 'تركيز الخام (غ/طن)'), model: ore ? +(metal / ore).toFixed(2) : 0, actual: aG, variance_pct: pct(aG, ore ? metal / ore : 0) },
+      { item: TM.L('Contained gold (oz)', 'الذهب المحتوى (أونصة)'), model: Math.round(metal / 31.1035), actual: aOre != null && aG != null ? Math.round(aOre * aG / 31.1035) : null, variance_pct: aOre != null && aG != null ? pct(aOre * aG, metal) : null },
+      { item: TM.L('Waste (t)', 'النفايات (طن)'), model: Math.round(waste), actual: aOre != null ? Math.round(Math.max(0, surveyT - aOre)) : null, variance_pct: aOre != null ? pct(Math.max(0, surveyT - aOre), waste) : null }];
+    const out = { period, before: sA.name, after: sB.name, cutoff: cog, mined_volume_m3: Math.round(vol), fill_volume_m3: Math.round(fill), survey_tonnes: Math.round(surveyT), model_tonnes: Math.round(modelT), unestimated_t: Math.round(unest), rows, benches: [...benches.values()].sort((a, b) => b.rl - a.rl).map(r => ({ rl: r.rl, ore_t: Math.round(r.ore), grade: r.ore ? +(r.metal / r.ore).toFixed(2) : 0, waste_t: Math.round(r.waste) })), factors: { F_tonnes: aOre != null && ore ? +(aOre / ore).toFixed(3) : null, F_grade: aG != null && ore ? +(aG / (metal / ore)).toFixed(3) : null, F_metal: aOre != null && aG != null && metal ? +(aOre * aG / metal).toFixed(3) : null } };
+    (P.recon = P.recon || []).push({ t: new Date().toISOString(), period, after: sB.name, rows }); TM.logHistory('reconcile', `${sA.name} → ${sB.name}`); return out;
+  };
+  const E_idx = (d, i, j, k) => i + d.nx * (j + d.ny * k);
 
   // ---------------------------------------------------------------- bench-by-bench report inside the active pit
   WF.benchReport = function (cog = S().cutoff) {

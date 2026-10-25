@@ -157,16 +157,16 @@
   };
 
 
-  VP.buildDesign = function () {
-    dispose('designSurf'); dispose('designStr'); const D = TM.P.design; if (!D) return;
+  VP.buildDesign = function () { dispose('designSurf'); dispose('designStr'); dispose('dumpSurf'); dispose('dumpStr'); if (TM.P.design) drawDesign(TM.P.design, 'design'); if (TM.P.dump && TM.P.dump !== TM.P.design) drawDesign(TM.P.dump, 'dump'); VP.applyVis(); };
+  function drawDesign(D, key) {
     const m = TM.Design.toMesh(D, Math.max(1, Math.round(2 / D.grid.res))), n = m.pos.length / 3, pos = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const v = V3(m.pos[i * 3], m.pos[i * 3 + 1], m.pos[i * 3 + 2] + 0.15); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setIndex(new THREE.BufferAttribute(m.idx, 1)); geo.computeVertexNormals();
-    const mesh = new THREE.Mesh(geo, clipMat(new THREE.MeshLambertMaterial({ color: D.kind === 'pit' ? 0x8fa6c4 : 0xb59a6a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }))); mesh.renderOrder = 2; mesh.userData = { kind: 'design', ref: { name: D.kind === 'pit' ? 'Pit design' : 'Dump design' } }; put('designSurf', mesh);
+    const mesh = new THREE.Mesh(geo, clipMat(new THREE.MeshLambertMaterial({ color: D.kind === 'pit' ? 0x8fa6c4 : 0xb59a6a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }))); mesh.renderOrder = 2; mesh.userData = { kind: 'design', ref: { name: D.kind === 'pit' ? 'Pit design' : 'Dump design' } }; put(key + 'Surf', mesh);
     const pts = [], ramp = []; for (const s of D.strings) { const arr = s.kind === 'ramp' ? ramp : pts; for (let i = 1; i < s.pts.length; i++) arr.push(V3(...s.pts[i - 1]).add(new THREE.Vector3(0, 0.3, 0)), V3(...s.pts[i]).add(new THREE.Vector3(0, 0.3, 0))); }
     const g = new THREE.Group(); g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), clipMat(new THREE.LineBasicMaterial({ color: D.kind === 'pit' ? 0x34D399 : 0xF2B740 }))));
-    if (ramp.length) g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ramp), clipMat(new THREE.LineBasicMaterial({ color: 0xF97316 })))); put('designStr', g); VP.applyVis();
-  };
+    if (ramp.length) g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ramp), clipMat(new THREE.LineBasicMaterial({ color: 0xF97316 })))); put(key + 'Str', g);
+  }
   VP.buildBlast = function () {
     dispose('blast'); const B = TM.P.blast; if (!B || !B.holes.length) return; const pts = [], col = []; const g = new THREE.Group();
     for (const h of B.holes) { pts.push(V3(h.x, h.y, h.z), V3(h.ex, h.ey, h.ez)); }
@@ -187,6 +187,7 @@
       else if (k === 'design') o.visible = v.design;
       else if (k === 'infill') o.visible = v.infill;
       else if (k === 'designSurf' || k === 'designStr') o.visible = v.designP !== false;
+      else if (k === 'dumpSurf' || k === 'dumpStr') o.visible = v.dumpP !== false;
       else if (k === 'blast') o.visible = v.blast !== false;
       else if (k === 'grid') o.visible = v.grid !== false;
     }
