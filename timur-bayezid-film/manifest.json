@@ -131,67 +131,100 @@
       "title": "سيواس",
       "act": 2,
       "frames": 998,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S15.mp4",
+      "renderSec": 60,
+      "renderedAt": "2026-10-29T19:22:30.546Z"
     },
     "S16": {
       "title": "الدموع والعاصفة",
       "act": 2,
       "frames": 725,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S16.mp4",
+      "renderSec": 111,
+      "renderedAt": "2026-10-29T19:24:22.303Z"
     },
     "S17": {
       "title": "أرزنجان وقراباغ",
       "act": 2,
       "frames": 674,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S17.mp4",
+      "renderSec": 73,
+      "renderedAt": "2026-10-29T19:25:35.613Z"
     },
     "S18": {
       "title": "الحشد",
       "act": 2,
       "frames": 847,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S18.mp4",
+      "renderSec": 77,
+      "renderedAt": "2026-10-29T19:26:52.671Z"
     },
     "S19": {
       "title": "المناورة",
       "act": 2,
       "frames": 701,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S19.mp4",
+      "renderSec": 134,
+      "renderedAt": "2026-10-29T19:29:07.358Z"
     },
     "S20": {
       "title": "العطش",
       "act": 2,
       "frames": 803,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S20.mp4",
+      "renderSec": 87,
+      "renderedAt": "2026-10-29T19:30:35.079Z"
     },
     "S21": {
       "title": "الليلة الأخيرة",
       "act": 2,
       "frames": 797,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S21.mp4",
+      "renderSec": 49,
+      "renderedAt": "2026-10-29T19:31:24.745Z"
     },
     "S22": {
       "title": "التشكيل",
       "act": 2,
       "frames": 963,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S22.mp4",
+      "renderSec": 81,
+      "renderedAt": "2026-10-29T19:32:46.320Z"
     },
     "S23": {
       "title": "مطر السهام",
       "act": 2,
       "frames": 910,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S23.mp4",
+      "renderSec": 211,
+      "renderedAt": "2026-10-29T19:36:18.221Z"
     },
     "S24": {
       "title": "الخيانة",
       "act": 2,
       "frames": 758,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S24.mp4",
+      "renderSec": 59,
+      "renderedAt": "2026-10-29T19:37:17.251Z"
     },
     "S25": {
       "title": "أسود الصرب",
       "act": 2,
       "frames": 781,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S25.mp4",
+      "renderSec": 67,
+      "renderedAt": "2026-10-29T19:38:24.476Z"
     },
     "S26": {
       "title": "تفرّق الأبناء",

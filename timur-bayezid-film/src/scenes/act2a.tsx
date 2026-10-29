@@ -110,7 +110,7 @@ export const S16: React.FC = () => {
     <SceneShell id="S16">
       <Seg from={0} to={split + 12} fadeIn={0}>
         <Parchment dark />
-        <Camera keys={[{f: 0, x: 960, y: 560, z: 1.5}, {f: cOath, x: 960, y: 480, z: 1.9}, {f: split, x: 960, y: 460, z: 2.1}]}>
+        <Camera keys={[{f: 0, x: 960, y: 640, z: 1.45}, {f: cOath, x: 960, y: 600, z: 1.7}, {f: split, x: 960, y: 580, z: 1.85}]}>
           <Layer depth={1}>
             <Svg>
               <Flame x={1250} y={760} scale={0.9} seed="s16c" />
@@ -329,7 +329,7 @@ export const S19: React.FC = () => {
         <City id="ankara" glow={cAnk} color={C.turqDeep} size={1.3} />
       </OldMap>
       <Flash at={cSurp} color={C.goldLight} peak={0.35} />
-      <Quote text="الصاعقة… فوجئت هذه المرة" from={cSurp - 10} to={700} y={800} size={64} color={C.redDeep} />
+      <Caption text="الصاعقة… فوجئت هذه المرة" from={cSurp - 10} to={700} y={880} size={56} />
     </SceneShell>
   );
 };

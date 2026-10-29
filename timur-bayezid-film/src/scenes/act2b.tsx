@@ -155,7 +155,7 @@ export const S23: React.FC = () => {
   const cOtt = cue('S23', 'ورد', 0, 380);
   const cThirst = cue('S23', 'العطش', 0, 560);
   const end = 910;
-  const riderX = kf(f, [[cCharge - 20, 2600], [cRet, 1250], [cBack, 1900], [cOtt + 40, 1180], [cThirst - 30, 1900], [end - 120, 1050], [end, 1500]], EASE.inOut);
+  const riderX = kf(f, [[cCharge - 20, 2600], [cRet, 860], [cBack, 1700], [cOtt + 40, 780], [cThirst - 30, 1600], [end - 120, 720], [end, 1200]], EASE.inOut);
   const riderFacing = (f > cRet && f < cBack + 10) || (f > cOtt + 40 && f < cThirst - 30) || f > end - 120 ? 'right' : 'left';
   const shakeAt = (t: number) => (t > cOtt && t < cOtt + 50) || (t > end - 140 && t < end - 60) ? 9 : t > c0 + 10 ? 2 : 0;
   return (
