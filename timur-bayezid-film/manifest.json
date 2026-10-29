@@ -5,205 +5,229 @@
       "title": "الخطاف: الخيمة",
       "act": 1,
       "frames": 798,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S01.mp4",
+      "renderSec": 61,
+      "renderedAt": "2026-10-29T18:39:28.586Z"
     },
     "S02": {
       "title": "العنوان",
       "act": 1,
       "frames": 270,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S02.mp4",
+      "renderSec": 33,
+      "renderedAt": "2026-10-29T18:40:01.753Z"
     },
     "S03": {
       "title": "قوصوه: ولادة سلطان",
       "act": 1,
       "frames": 837,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S03.mp4",
+      "renderSec": 171,
+      "renderedAt": "2026-10-29T18:42:53.466Z"
     },
     "S04": {
       "title": "الصاعقة",
       "act": 1,
       "frames": 967,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S04.mp4",
+      "renderSec": 167,
+      "renderedAt": "2026-10-29T18:45:40.996Z"
     },
     "S05": {
       "title": "نيكوبوليس",
       "act": 1,
       "frames": 1064,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S05.mp4",
+      "renderSec": 166,
+      "renderedAt": "2026-10-29T18:58:56.595Z"
     },
     "S06": {
       "title": "العرش",
       "act": 1,
       "frames": 750,
-      "status": "planned"
+      "status": "rendered",
+      "video": "out/scenes/S06.mp4",
+      "renderSec": 145,
+      "renderedAt": "2026-10-29T18:50:39.236Z"
     },
     "S07": {
       "title": "الأعرج",
       "act": 1,
       "frames": 803,
-      "status": "planned"
+      "status": "rendered",
+      "video": "out/scenes/S07.mp4",
+      "renderSec": 145,
+      "renderedAt": "2026-10-29T19:01:21.624Z"
     },
     "S08": {
       "title": "آلة الحرب",
       "act": 1,
       "frames": 893,
-      "status": "planned"
+      "status": "rendered",
+      "video": "out/scenes/S08.mp4",
+      "renderSec": 127,
+      "renderedAt": "2026-10-29T19:03:29.702Z"
     },
     "S09": {
       "title": "أرض واحدة وملكان",
       "act": 1,
       "frames": 712,
-      "status": "planned"
+      "status": "coded"
     },
     "S10": {
       "title": "اللاجئون",
       "act": 1,
       "frames": 995,
-      "status": "planned"
+      "status": "coded"
     },
     "S11": {
       "title": "الرسول",
       "act": 1,
       "frames": 464,
-      "status": "planned"
+      "status": "coded"
     },
     "S12": {
       "title": "كتاب تيمور",
       "act": 1,
       "frames": 648,
-      "status": "planned"
+      "status": "coded"
     },
     "S13": {
       "title": "رد الصاعقة",
       "act": 1,
       "frames": 658,
-      "status": "planned"
+      "status": "coded"
     },
     "S14": {
       "title": "الطبول",
       "act": 1,
       "frames": 514,
-      "status": "planned"
+      "status": "coded"
     },
     "S15": {
       "title": "سيواس",
       "act": 2,
       "frames": 998,
-      "status": "planned"
+      "status": "coded"
     },
     "S16": {
       "title": "الدموع والعاصفة",
       "act": 2,
       "frames": 725,
-      "status": "planned"
+      "status": "coded"
     },
     "S17": {
       "title": "أرزنجان وقراباغ",
       "act": 2,
       "frames": 674,
-      "status": "planned"
+      "status": "coded"
     },
     "S18": {
       "title": "الحشد",
       "act": 2,
       "frames": 847,
-      "status": "planned"
+      "status": "coded"
     },
     "S19": {
       "title": "المناورة",
       "act": 2,
       "frames": 701,
-      "status": "planned"
+      "status": "coded"
     },
     "S20": {
       "title": "العطش",
       "act": 2,
       "frames": 803,
-      "status": "planned"
+      "status": "coded"
     },
     "S21": {
       "title": "الليلة الأخيرة",
       "act": 2,
       "frames": 797,
-      "status": "planned"
+      "status": "coded"
     },
     "S22": {
       "title": "التشكيل",
       "act": 2,
       "frames": 963,
-      "status": "planned"
+      "status": "coded"
     },
     "S23": {
       "title": "مطر السهام",
       "act": 2,
       "frames": 910,
-      "status": "planned"
+      "status": "coded"
     },
     "S24": {
       "title": "الخيانة",
       "act": 2,
       "frames": 758,
-      "status": "planned"
+      "status": "coded"
     },
     "S25": {
       "title": "أسود الصرب",
       "act": 2,
       "frames": 781,
-      "status": "planned"
+      "status": "coded"
     },
     "S26": {
       "title": "تفرّق الأبناء",
       "act": 2,
       "frames": 587,
-      "status": "planned"
+      "status": "coded"
     },
     "S27": {
       "title": "الوقفة الأخيرة",
       "act": 2,
       "frames": 1153,
-      "status": "planned"
+      "status": "coded"
     },
     "S28": {
       "title": "وجهاً لوجه",
       "act": 3,
       "frames": 813,
-      "status": "planned"
+      "status": "coded"
     },
     "S29": {
       "title": "القفص",
       "act": 3,
       "frames": 1061,
-      "status": "planned"
+      "status": "coded"
     },
     "S30": {
       "title": "آق شهر",
       "act": 3,
       "frames": 947,
-      "status": "planned"
+      "status": "coded"
     },
     "S31": {
       "title": "حرب الإخوة",
       "act": 3,
       "frames": 1013,
-      "status": "planned"
+      "status": "coded"
     },
     "S32": {
       "title": "مصير الأعرج",
       "act": 3,
       "frames": 966,
-      "status": "planned"
+      "status": "coded"
     },
     "S33": {
       "title": "العبرة",
       "act": 3,
       "frames": 674,
-      "status": "planned"
+      "status": "coded"
     },
     "S34": {
       "title": "شارة الختام",
       "act": 3,
       "frames": 456,
-      "status": "planned"
+      "status": "coded"
     }
   }
 }

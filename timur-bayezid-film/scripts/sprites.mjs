@@ -4,7 +4,8 @@ import {renderStill, selectComposition} from '@remotion/renderer';
 import fs from 'node:fs';
 import path from 'node:path';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const BROWSER = '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
+const LINUX_SHELL = '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
+const BROWSER = fs.existsSync(LINUX_SHELL) ? LINUX_SHELL : null; // null = Remotion downloads its own browser
 const serveUrl = await bundle({entryPoint: path.join(ROOT, 'src/index.ts'), publicDir: path.join(ROOT, 'public')});
 const common = {serveUrl, browserExecutable: BROWSER, logLevel: 'error'};
 export const SPEC = [

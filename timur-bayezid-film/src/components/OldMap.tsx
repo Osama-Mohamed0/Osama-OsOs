@@ -55,7 +55,8 @@ export const OldMap: React.FC<{
     <AbsoluteFill style={{backgroundColor: C.parchment}}>
       <MapCtx.Provider value={{k}}>
         <svg width={1920} height={1080} viewBox={`${cx - w / 2} ${cy - h / 2} ${w} ${h}`} preserveAspectRatio="xMidYMid slice">
-          <image href={staticFile('tex/map_paper.jpg')} x={-200} y={-150} width={MAP_W + 400} height={MAP_H + 300} preserveAspectRatio="none" />
+          <rect x={-3000} y={-3000} width={MAP_W + 6000} height={MAP_H + 6000} fill={C.parchment} />
+          <image href={staticFile('tex/map_paper.jpg')} x={-700} y={-500} width={MAP_W + 1400} height={MAP_H + 1000} preserveAspectRatio="none" />
           {/* coast ripple bands (old map sea hatching) */}
           <g fill="none" strokeLinejoin="round">
             <path d={LAND} stroke={C.turqDeep} strokeOpacity={0.07} strokeWidth={70} />

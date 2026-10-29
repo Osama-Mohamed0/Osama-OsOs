@@ -208,6 +208,14 @@ export const Fire: React.FC<{x: number; y: number; scale?: number; seed?: string
   const f = useCurrentFrame();
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      {smoke && (
+        <defs>
+          <radialGradient id={`sm-${seed}`}>
+            <stop offset="0%" stopColor={C.inkSoft} stopOpacity={0.8} />
+            <stop offset="100%" stopColor={C.inkSoft} stopOpacity={0} />
+          </radialGradient>
+        </defs>
+      )}
       {smoke &&
         Array.from({length: 7}).map((_, i) => {
           const life = (f * 0.8 + i * 30) % 210;
@@ -216,9 +224,9 @@ export const Fire: React.FC<{x: number; y: number; scale?: number; seed?: string
               key={i}
               cx={noise1(seed + 'sm' + i, f / 40) * 30 + life * 0.4}
               cy={-life * 1.1}
-              r={20 + life * 0.4}
-              fill={C.inkSoft}
-              opacity={0.35 * Math.sin((life / 210) * Math.PI)}
+              r={30 + life * 0.55}
+              fill={`url(#sm-${seed})`}
+              opacity={0.55 * Math.sin((life / 210) * Math.PI)}
             />
           );
         })}

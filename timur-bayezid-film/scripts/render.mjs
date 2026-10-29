@@ -8,7 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const BROWSER = '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
+const LINUX_SHELL = '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
+const BROWSER = fs.existsSync(LINUX_SHELL) ? LINUX_SHELL : null; // null = Remotion downloads its own browser
 const [mode, ...args] = process.argv.slice(2);
 const serveUrl = await bundle({entryPoint: path.join(ROOT, 'src/index.ts'), publicDir: path.join(ROOT, 'public')});
 const common = {serveUrl, browserExecutable: BROWSER, chromiumOptions: {gl: process.env.GL ?? 'angle'}, logLevel: process.env.LOG ?? 'error'};
@@ -28,7 +29,7 @@ if (mode === 'stills') {
     console.log(out);
   }
 } else if (mode === 'scenes' || mode === 'frames-only') {
-  const ids = mode === 'frames-only' ? [args[0]] : args[0] === 'all' ? Object.keys((await import(path.join(ROOT, 'story/timing.json'), {with: {type: 'json'}})).default.scenes.map((s) => s.id)) : args;
+  const ids = mode === 'frames-only' ? [args[0]] : args[0] === 'all' ? JSON.parse(fs.readFileSync(path.join(ROOT, 'story/timing.json'), 'utf8')).scenes.map((s) => s.id) : args;
   fs.mkdirSync(path.join(ROOT, 'out/scenes'), {recursive: true});
   for (const id of ids) {
     const composition = await selectComposition({...common, id, inputProps: process.env.PROPS ? JSON.parse(process.env.PROPS) : {}});

@@ -2,12 +2,15 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {ramp} from '../lib/anim';
 
-/** Time segment inside a scene, cross-faded with neighbours. */
+/**
+ * Time segment inside a scene. The incoming segment fades in ON TOP of the outgoing one
+ * (which stays opaque until it ends), so cross-fades never dip to black.
+ */
 export const Seg: React.FC<{from: number; to: number; fadeIn?: number; fadeOut?: number; children: React.ReactNode}> = ({
   from,
   to,
-  fadeIn = 14,
-  fadeOut = 14,
+  fadeIn = 12,
+  fadeOut = 0,
   children,
 }) => {
   const f = useCurrentFrame();

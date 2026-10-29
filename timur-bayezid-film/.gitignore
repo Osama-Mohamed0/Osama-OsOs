@@ -3,3 +3,7 @@ node_modules/
 out/
 audio/work/
 *.log
+audio/narration/*.wav
+audio/stems/
+audio/soundtrack.wav
+public/audio/

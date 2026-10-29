@@ -221,7 +221,7 @@ export const CavalryLine: React.FC<{
           y={py}
           scale={scale * (1 + r * 0.06)}
           facing={facing}
-          phase={f * 0.42 + rr(s + 'ph', 0, 6)}
+          phase={f * (gait === 'walk' ? 0.16 : gait === 'trot' ? 0.3 : 0.42) + rr(s + 'ph', 0, 6)}
           opacity={opacity}
         />,
       );

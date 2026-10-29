@@ -11,7 +11,8 @@ export const Rosette: React.FC<{
   progress?: number;
   rot?: number;
   width?: number;
-}> = ({x = 0, y = 0, r = 100, color = C.gold, fill = 'none', progress = 1, rot = 0, width = 3}) => {
+  dot?: boolean;
+}> = ({x = 0, y = 0, r = 100, color = C.gold, fill = 'none', progress = 1, rot = 0, width = 3, dot = true}) => {
   const star = (rr: number, n: number, k: number) => {
     const pts: string[] = [];
     for (let i = 0; i < n; i++) {
@@ -36,7 +37,7 @@ export const Rosette: React.FC<{
       <path d={star(r * 0.62, 8, 3)} style={dash(r * 18)} />
       <path d={poly(r * 0.36, 8, Math.PI / 8)} style={dash(r * 3)} />
       <circle r={r * 1.08} style={dash(r * 7)} strokeWidth={width * 0.7} />
-      <circle r={r * 0.16} fill={color} opacity={progress} />
+      {dot && <circle r={r * 0.16} fill={color} opacity={progress} />}
     </g>
   );
 };

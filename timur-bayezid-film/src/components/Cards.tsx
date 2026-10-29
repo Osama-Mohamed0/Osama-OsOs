@@ -200,8 +200,8 @@ export const ActCard: React.FC<{name: string; title: string; from: number; to: n
       <AbsoluteFill style={{background: `radial-gradient(ellipse at center, ${C.inkSoft} 0%, ${C.ink} 75%)`}} />
       <svg width={1920} height={1080} style={{position: 'absolute'}}>
         <g opacity={0.55}>
-          <Rosette x={960} y={540} r={400} progress={p} color={C.gold} width={2.2} rot={f * 0.05} />
-          <Rosette x={960} y={540} r={250} progress={p} color={C.red} width={1.6} rot={-f * 0.08} />
+          <Rosette x={960} y={540} r={400} progress={p} color={C.gold} width={2.2} rot={f * 0.05} dot={false} />
+          <Rosette x={960} y={540} r={250} progress={p} color={C.red} width={1.6} rot={-f * 0.08} dot={false} />
         </g>
         <ellipse cx={960} cy={540} rx={520} ry={190} fill={C.ink} opacity={0.75} />
         <OrnateFrame x={110} y={90} w={1700} h={900} progress={p} color={C.gold} inner={C.redDeep} />
