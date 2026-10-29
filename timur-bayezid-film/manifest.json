@@ -1,0 +1,209 @@
+{
+  "note": "Scene state for resumable production. status: planned → coded → rendered → reviewed",
+  "scenes": {
+    "S01": {
+      "title": "الخطاف: الخيمة",
+      "act": 1,
+      "frames": 798,
+      "status": "coded"
+    },
+    "S02": {
+      "title": "العنوان",
+      "act": 1,
+      "frames": 270,
+      "status": "coded"
+    },
+    "S03": {
+      "title": "قوصوه: ولادة سلطان",
+      "act": 1,
+      "frames": 837,
+      "status": "coded"
+    },
+    "S04": {
+      "title": "الصاعقة",
+      "act": 1,
+      "frames": 967,
+      "status": "coded"
+    },
+    "S05": {
+      "title": "نيكوبوليس",
+      "act": 1,
+      "frames": 1064,
+      "status": "coded"
+    },
+    "S06": {
+      "title": "العرش",
+      "act": 1,
+      "frames": 750,
+      "status": "planned"
+    },
+    "S07": {
+      "title": "الأعرج",
+      "act": 1,
+      "frames": 803,
+      "status": "planned"
+    },
+    "S08": {
+      "title": "آلة الحرب",
+      "act": 1,
+      "frames": 893,
+      "status": "planned"
+    },
+    "S09": {
+      "title": "أرض واحدة وملكان",
+      "act": 1,
+      "frames": 712,
+      "status": "planned"
+    },
+    "S10": {
+      "title": "اللاجئون",
+      "act": 1,
+      "frames": 995,
+      "status": "planned"
+    },
+    "S11": {
+      "title": "الرسول",
+      "act": 1,
+      "frames": 464,
+      "status": "planned"
+    },
+    "S12": {
+      "title": "كتاب تيمور",
+      "act": 1,
+      "frames": 648,
+      "status": "planned"
+    },
+    "S13": {
+      "title": "رد الصاعقة",
+      "act": 1,
+      "frames": 658,
+      "status": "planned"
+    },
+    "S14": {
+      "title": "الطبول",
+      "act": 1,
+      "frames": 514,
+      "status": "planned"
+    },
+    "S15": {
+      "title": "سيواس",
+      "act": 2,
+      "frames": 998,
+      "status": "planned"
+    },
+    "S16": {
+      "title": "الدموع والعاصفة",
+      "act": 2,
+      "frames": 725,
+      "status": "planned"
+    },
+    "S17": {
+      "title": "أرزنجان وقراباغ",
+      "act": 2,
+      "frames": 674,
+      "status": "planned"
+    },
+    "S18": {
+      "title": "الحشد",
+      "act": 2,
+      "frames": 847,
+      "status": "planned"
+    },
+    "S19": {
+      "title": "المناورة",
+      "act": 2,
+      "frames": 701,
+      "status": "planned"
+    },
+    "S20": {
+      "title": "العطش",
+      "act": 2,
+      "frames": 803,
+      "status": "planned"
+    },
+    "S21": {
+      "title": "الليلة الأخيرة",
+      "act": 2,
+      "frames": 797,
+      "status": "planned"
+    },
+    "S22": {
+      "title": "التشكيل",
+      "act": 2,
+      "frames": 963,
+      "status": "planned"
+    },
+    "S23": {
+      "title": "مطر السهام",
+      "act": 2,
+      "frames": 910,
+      "status": "planned"
+    },
+    "S24": {
+      "title": "الخيانة",
+      "act": 2,
+      "frames": 758,
+      "status": "planned"
+    },
+    "S25": {
+      "title": "أسود الصرب",
+      "act": 2,
+      "frames": 781,
+      "status": "planned"
+    },
+    "S26": {
+      "title": "تفرّق الأبناء",
+      "act": 2,
+      "frames": 587,
+      "status": "planned"
+    },
+    "S27": {
+      "title": "الوقفة الأخيرة",
+      "act": 2,
+      "frames": 1153,
+      "status": "planned"
+    },
+    "S28": {
+      "title": "وجهاً لوجه",
+      "act": 3,
+      "frames": 813,
+      "status": "planned"
+    },
+    "S29": {
+      "title": "القفص",
+      "act": 3,
+      "frames": 1061,
+      "status": "planned"
+    },
+    "S30": {
+      "title": "آق شهر",
+      "act": 3,
+      "frames": 947,
+      "status": "planned"
+    },
+    "S31": {
+      "title": "حرب الإخوة",
+      "act": 3,
+      "frames": 1013,
+      "status": "planned"
+    },
+    "S32": {
+      "title": "مصير الأعرج",
+      "act": 3,
+      "frames": 966,
+      "status": "planned"
+    },
+    "S33": {
+      "title": "العبرة",
+      "act": 3,
+      "frames": 674,
+      "status": "planned"
+    },
+    "S34": {
+      "title": "شارة الختام",
+      "act": 3,
+      "frames": 456,
+      "status": "planned"
+    }
+  }
+}

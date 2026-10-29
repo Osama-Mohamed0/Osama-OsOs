@@ -1,0 +1,24 @@
+{
+  "name": "timur-vs-bayezid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cinematic motion graphics film: Timur vs Bayezid I (Ankara 1402)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:sheet": "remotion still src/index.ts CharacterSheet out/CharacterSheet.png"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.539",
+    "@remotion/cli": "4.0.539",
+    "@remotion/fonts": "4.0.539",
+    "@remotion/renderer": "4.0.539",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3",
+    "tsx": "4.20.3"
+  }
+}
