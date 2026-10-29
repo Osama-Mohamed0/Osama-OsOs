@@ -228,7 +228,7 @@ export const S04: React.FC = () => {
             <g key={k}>
               <Territory d={blob(b.x, b.y, k === 'karaman' ? 130 : 62, k, 10, 0.35)} color={C.red} from={hits[i]} dur={18} origin={b} id={'bt' + k} />
               <MapArrow via={['bursa', b]} from={hits[i] - 14} dur={14} zigzag color={C.red} width={10} fadeAt={hits[i] + 40} />
-              <MapLabel at={b} text={w} from={hits[i]} color={C.redDeep} size={30} dy={k === 'mentese' ? 46 : k === 'saruhan' ? -30 : 8} dx={k === 'saruhan' ? -40 : k === 'germiyan' ? 30 : 0} />
+              <MapLabel at={b} text={w} from={hits[i]} to={k === 'karaman' ? 99999 : cYil + 40} color={C.redDeep} size={30} dy={k === 'mentese' ? 46 : k === 'saruhan' ? -30 : 8} dx={k === 'saruhan' ? -40 : k === 'germiyan' ? 30 : 0} />
             </g>
           );
         })}

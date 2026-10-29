@@ -77,7 +77,10 @@
       "title": "أرض واحدة وملكان",
       "act": 1,
       "frames": 712,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S09.mp4",
+      "renderSec": 73,
+      "renderedAt": "2026-10-29T19:04:42.619Z"
     },
     "S10": {
       "title": "اللاجئون",

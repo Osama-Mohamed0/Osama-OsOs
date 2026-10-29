@@ -12,7 +12,7 @@ W, H = round((LON1 - LON0) * KX), round((LAT0 - LAT1) * S)
 def P(lon, lat):
     return ((lon - LON0) * KX, (LAT0 - lat) * S)
 
-BB = box(LON0 - 1, LAT1 - 1, LON1 + 1, LAT0 + 1)
+BB = box(LON0 - 12, LAT1 - 12, LON1 + 14, LAT0 + 10)  # wide clip so artificial edges stay off-screen
 
 def ring_d(coords):
     pts = [P(*c[:2]) for c in coords]
