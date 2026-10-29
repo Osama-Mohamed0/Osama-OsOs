@@ -34,8 +34,8 @@
       "frames": 967,
       "status": "rendered",
       "video": "out/scenes/S04.mp4",
-      "renderSec": 167,
-      "renderedAt": "2026-10-29T18:45:40.996Z"
+      "renderSec": 186,
+      "renderedAt": "2026-10-29T19:08:39.342Z"
     },
     "S05": {
       "title": "نيكوبوليس",
@@ -61,8 +61,8 @@
       "frames": 803,
       "status": "rendered",
       "video": "out/scenes/S07.mp4",
-      "renderSec": 145,
-      "renderedAt": "2026-10-29T19:01:21.624Z"
+      "renderSec": 124,
+      "renderedAt": "2026-10-29T19:10:43.298Z"
     },
     "S08": {
       "title": "آلة الحرب",
@@ -70,8 +70,8 @@
       "frames": 893,
       "status": "rendered",
       "video": "out/scenes/S08.mp4",
-      "renderSec": 127,
-      "renderedAt": "2026-10-29T19:03:29.702Z"
+      "renderSec": 138,
+      "renderedAt": "2026-10-29T19:13:01.773Z"
     },
     "S09": {
       "title": "أرض واحدة وملكان",
@@ -79,38 +79,53 @@
       "frames": 712,
       "status": "rendered",
       "video": "out/scenes/S09.mp4",
-      "renderSec": 73,
-      "renderedAt": "2026-10-29T19:04:42.619Z"
+      "renderSec": 84,
+      "renderedAt": "2026-10-29T19:14:26.498Z"
     },
     "S10": {
       "title": "اللاجئون",
       "act": 1,
       "frames": 995,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S10.mp4",
+      "renderSec": 175,
+      "renderedAt": "2026-10-29T19:17:22.452Z"
     },
     "S11": {
       "title": "الرسول",
       "act": 1,
       "frames": 464,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S11.mp4",
+      "renderSec": 85,
+      "renderedAt": "2026-10-29T19:18:47.542Z"
     },
     "S12": {
       "title": "كتاب تيمور",
       "act": 1,
       "frames": 648,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S12.mp4",
+      "renderSec": 47,
+      "renderedAt": "2026-10-29T19:19:34.668Z"
     },
     "S13": {
       "title": "رد الصاعقة",
       "act": 1,
       "frames": 658,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S13.mp4",
+      "renderSec": 75,
+      "renderedAt": "2026-10-29T19:20:49.606Z"
     },
     "S14": {
       "title": "الطبول",
       "act": 1,
       "frames": 514,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S14.mp4",
+      "renderSec": 39,
+      "renderedAt": "2026-10-29T19:21:29.581Z"
     },
     "S15": {
       "title": "سيواس",
