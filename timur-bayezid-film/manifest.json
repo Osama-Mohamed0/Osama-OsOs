@@ -22,38 +22,38 @@
     "S03": {
       "title": "قوصوه: ولادة سلطان",
       "act": 1,
-      "frames": 837,
-      "status": "reviewed",
+      "frames": 846,
+      "status": "rendered",
       "video": "out/scenes/S03.mp4",
-      "renderSec": 171,
-      "renderedAt": "2026-10-29T18:42:53.466Z"
+      "renderSec": 182,
+      "renderedAt": "2026-10-30T07:59:59.404Z"
     },
     "S04": {
       "title": "الصاعقة",
       "act": 1,
-      "frames": 967,
-      "status": "reviewed",
+      "frames": 1090,
+      "status": "rendered",
       "video": "out/scenes/S04.mp4",
-      "renderSec": 186,
-      "renderedAt": "2026-10-29T19:08:39.342Z"
+      "renderSec": 240,
+      "renderedAt": "2026-10-30T08:03:59.463Z"
     },
     "S05": {
       "title": "نيكوبوليس",
       "act": 1,
-      "frames": 1064,
-      "status": "reviewed",
+      "frames": 968,
+      "status": "rendered",
       "video": "out/scenes/S05.mp4",
-      "renderSec": 166,
-      "renderedAt": "2026-10-29T18:58:56.595Z"
+      "renderSec": 158,
+      "renderedAt": "2026-10-30T08:06:37.724Z"
     },
     "S06": {
       "title": "العرش",
       "act": 1,
-      "frames": 750,
-      "status": "reviewed",
+      "frames": 785,
+      "status": "rendered",
       "video": "out/scenes/S06.mp4",
-      "renderSec": 145,
-      "renderedAt": "2026-10-29T18:50:39.236Z"
+      "renderSec": 159,
+      "renderedAt": "2026-10-30T08:09:17.319Z"
     },
     "S07": {
       "title": "الأعرج",

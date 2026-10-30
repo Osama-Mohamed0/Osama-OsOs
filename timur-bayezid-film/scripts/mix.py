@@ -35,12 +35,12 @@ def build_narration():
 
 
 FILTER = (
-    '[0:a]asplit=2[nmix][nsc];'
+    '[0:a]acompressor=threshold=0.08:ratio=3:attack=8:release=200:makeup=2,asplit=2[nmix][nsc];'
     '[1:a]volume=1.3[mus];[2:a]volume=1.1[sfx];'
     # background bus: glue compression so battles never swamp the voice
     '[mus][sfx]amix=inputs=2:normalize=0,acompressor=threshold=0.06:ratio=4:attack=20:release=300:makeup=1[bus];'
     # ducking keyed by the narration
-    '[bus][nsc]sidechaincompress=threshold=0.025:ratio=6:attack=35:release=650:makeup=1:knee=3,volume=2.0[bduck];'
+    '[bus][nsc]sidechaincompress=threshold=0.025:ratio=6:attack=35:release=650:makeup=1:knee=3,volume=1.5[bduck];'
     '[nmix]equalizer=f=2800:t=q:w=1.4:g=1.5[voice];'
     '[voice][bduck]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=false[mix]'
 )
