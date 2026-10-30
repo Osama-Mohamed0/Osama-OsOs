@@ -223,8 +223,8 @@
       "frames": 781,
       "status": "rendered",
       "video": "out/scenes/S25.mp4",
-      "renderSec": 67,
-      "renderedAt": "2026-10-29T19:38:24.476Z"
+      "renderSec": 49,
+      "renderedAt": "2026-10-30T01:31:19.368Z"
     },
     "S26": {
       "title": "تفرّق الأبناء",
@@ -241,8 +241,8 @@
       "frames": 1153,
       "status": "rendered",
       "video": "out/scenes/S27.mp4",
-      "renderSec": 154,
-      "renderedAt": "2026-10-29T19:42:32.890Z"
+      "renderSec": 138,
+      "renderedAt": "2026-10-30T01:33:37.974Z"
     },
     "S28": {
       "title": "وجهاً لوجه",
@@ -304,8 +304,8 @@
       "frames": 456,
       "status": "rendered",
       "video": "out/scenes/S34.mp4",
-      "renderSec": 58,
-      "renderedAt": "2026-10-29T19:53:09.421Z"
+      "renderSec": 49,
+      "renderedAt": "2026-10-30T01:34:27.367Z"
     }
   }
 }
