@@ -58,254 +58,254 @@
     "S07": {
       "title": "الأعرج",
       "act": 1,
-      "frames": 803,
-      "status": "reviewed",
+      "frames": 823,
+      "status": "rendered",
       "video": "out/scenes/S07.mp4",
-      "renderSec": 124,
-      "renderedAt": "2026-10-29T19:10:43.298Z"
+      "renderSec": 139,
+      "renderedAt": "2026-10-30T08:11:36.822Z"
     },
     "S08": {
       "title": "آلة الحرب",
       "act": 1,
-      "frames": 893,
-      "status": "reviewed",
+      "frames": 931,
+      "status": "rendered",
       "video": "out/scenes/S08.mp4",
-      "renderSec": 138,
-      "renderedAt": "2026-10-29T19:13:01.773Z"
+      "renderSec": 152,
+      "renderedAt": "2026-10-30T08:14:09.765Z"
     },
     "S09": {
       "title": "أرض واحدة وملكان",
       "act": 1,
-      "frames": 712,
-      "status": "reviewed",
+      "frames": 826,
+      "status": "rendered",
       "video": "out/scenes/S09.mp4",
-      "renderSec": 84,
-      "renderedAt": "2026-10-29T19:14:26.498Z"
+      "renderSec": 102,
+      "renderedAt": "2026-10-30T08:15:51.985Z"
     },
     "S10": {
       "title": "اللاجئون",
       "act": 1,
-      "frames": 995,
-      "status": "reviewed",
+      "frames": 1047,
+      "status": "rendered",
       "video": "out/scenes/S10.mp4",
-      "renderSec": 175,
-      "renderedAt": "2026-10-29T19:17:22.452Z"
+      "renderSec": 199,
+      "renderedAt": "2026-10-30T08:19:10.966Z"
     },
     "S11": {
       "title": "الرسول",
       "act": 1,
-      "frames": 464,
-      "status": "reviewed",
+      "frames": 477,
+      "status": "rendered",
       "video": "out/scenes/S11.mp4",
-      "renderSec": 85,
-      "renderedAt": "2026-10-29T19:18:47.542Z"
+      "renderSec": 89,
+      "renderedAt": "2026-10-30T08:20:40.877Z"
     },
     "S12": {
       "title": "كتاب تيمور",
       "act": 1,
-      "frames": 648,
-      "status": "reviewed",
+      "frames": 678,
+      "status": "rendered",
       "video": "out/scenes/S12.mp4",
-      "renderSec": 47,
-      "renderedAt": "2026-10-29T19:19:34.668Z"
+      "renderSec": 53,
+      "renderedAt": "2026-10-30T08:21:34.090Z"
     },
     "S13": {
       "title": "رد الصاعقة",
       "act": 1,
-      "frames": 658,
-      "status": "reviewed",
+      "frames": 667,
+      "status": "rendered",
       "video": "out/scenes/S13.mp4",
-      "renderSec": 75,
-      "renderedAt": "2026-10-29T19:20:49.606Z"
+      "renderSec": 93,
+      "renderedAt": "2026-10-30T08:23:07.278Z"
     },
     "S14": {
       "title": "الطبول",
       "act": 1,
-      "frames": 514,
-      "status": "reviewed",
+      "frames": 527,
+      "status": "rendered",
       "video": "out/scenes/S14.mp4",
-      "renderSec": 39,
-      "renderedAt": "2026-10-29T19:21:29.581Z"
+      "renderSec": 33,
+      "renderedAt": "2026-10-30T08:23:40.546Z"
     },
     "S15": {
       "title": "سيواس",
       "act": 2,
-      "frames": 998,
-      "status": "reviewed",
+      "frames": 941,
+      "status": "rendered",
       "video": "out/scenes/S15.mp4",
-      "renderSec": 60,
-      "renderedAt": "2026-10-29T19:22:30.546Z"
+      "renderSec": 55,
+      "renderedAt": "2026-10-30T08:24:36.269Z"
     },
     "S16": {
       "title": "الدموع والعاصفة",
       "act": 2,
-      "frames": 725,
-      "status": "reviewed",
+      "frames": 744,
+      "status": "rendered",
       "video": "out/scenes/S16.mp4",
-      "renderSec": 113,
-      "renderedAt": "2026-10-30T01:10:02.359Z"
+      "renderSec": 119,
+      "renderedAt": "2026-10-30T08:26:35.625Z"
     },
     "S17": {
       "title": "أرزنجان وقراباغ",
       "act": 2,
-      "frames": 674,
-      "status": "reviewed",
+      "frames": 623,
+      "status": "rendered",
       "video": "out/scenes/S17.mp4",
-      "renderSec": 73,
-      "renderedAt": "2026-10-29T19:25:35.613Z"
+      "renderSec": 88,
+      "renderedAt": "2026-10-30T08:56:49.892Z"
     },
     "S18": {
       "title": "الحشد",
       "act": 2,
-      "frames": 847,
-      "status": "reviewed",
+      "frames": 768,
+      "status": "rendered",
       "video": "out/scenes/S18.mp4",
-      "renderSec": 77,
-      "renderedAt": "2026-10-29T19:26:52.671Z"
+      "renderSec": 75,
+      "renderedAt": "2026-10-30T08:27:51.558Z"
     },
     "S19": {
       "title": "المناورة",
       "act": 2,
-      "frames": 701,
-      "status": "reviewed",
+      "frames": 820,
+      "status": "rendered",
       "video": "out/scenes/S19.mp4",
-      "renderSec": 124,
-      "renderedAt": "2026-10-30T01:12:06.397Z"
+      "renderSec": 159,
+      "renderedAt": "2026-10-30T08:30:31.346Z"
     },
     "S20": {
       "title": "العطش",
       "act": 2,
-      "frames": 803,
-      "status": "reviewed",
+      "frames": 780,
+      "status": "rendered",
       "video": "out/scenes/S20.mp4",
-      "renderSec": 87,
-      "renderedAt": "2026-10-29T19:30:35.079Z"
+      "renderSec": 105,
+      "renderedAt": "2026-10-30T08:32:16.705Z"
     },
     "S21": {
       "title": "الليلة الأخيرة",
       "act": 2,
-      "frames": 797,
-      "status": "reviewed",
+      "frames": 765,
+      "status": "rendered",
       "video": "out/scenes/S21.mp4",
-      "renderSec": 49,
-      "renderedAt": "2026-10-29T19:31:24.745Z"
+      "renderSec": 47,
+      "renderedAt": "2026-10-30T08:33:03.901Z"
     },
     "S22": {
       "title": "التشكيل",
       "act": 2,
-      "frames": 963,
-      "status": "reviewed",
+      "frames": 970,
+      "status": "rendered",
       "video": "out/scenes/S22.mp4",
-      "renderSec": 81,
-      "renderedAt": "2026-10-29T19:32:46.320Z"
+      "renderSec": 85,
+      "renderedAt": "2026-10-30T08:34:29.729Z"
     },
     "S23": {
       "title": "مطر السهام",
       "act": 2,
-      "frames": 910,
-      "status": "reviewed",
+      "frames": 883,
+      "status": "rendered",
       "video": "out/scenes/S23.mp4",
-      "renderSec": 186,
-      "renderedAt": "2026-10-30T01:15:12.679Z"
+      "renderSec": 215,
+      "renderedAt": "2026-10-30T08:38:05.037Z"
     },
     "S24": {
       "title": "الخيانة",
       "act": 2,
-      "frames": 758,
-      "status": "reviewed",
+      "frames": 792,
+      "status": "rendered",
       "video": "out/scenes/S24.mp4",
-      "renderSec": 59,
-      "renderedAt": "2026-10-29T19:37:17.251Z"
+      "renderSec": 69,
+      "renderedAt": "2026-10-30T08:39:14.104Z"
     },
     "S25": {
       "title": "أسود الصرب",
       "act": 2,
-      "frames": 781,
-      "status": "reviewed",
+      "frames": 824,
+      "status": "rendered",
       "video": "out/scenes/S25.mp4",
-      "renderSec": 49,
-      "renderedAt": "2026-10-30T01:31:19.368Z"
+      "renderSec": 62,
+      "renderedAt": "2026-10-30T08:40:16.292Z"
     },
     "S26": {
       "title": "تفرّق الأبناء",
       "act": 2,
-      "frames": 587,
-      "status": "reviewed",
+      "frames": 711,
+      "status": "rendered",
       "video": "out/scenes/S26.mp4",
-      "renderSec": 93,
-      "renderedAt": "2026-10-29T19:39:58.152Z"
+      "renderSec": 129,
+      "renderedAt": "2026-10-30T08:42:25.978Z"
     },
     "S27": {
       "title": "الوقفة الأخيرة",
       "act": 2,
-      "frames": 1153,
-      "status": "reviewed",
+      "frames": 1149,
+      "status": "rendered",
       "video": "out/scenes/S27.mp4",
-      "renderSec": 138,
-      "renderedAt": "2026-10-30T01:33:37.974Z"
+      "renderSec": 169,
+      "renderedAt": "2026-10-30T08:45:15.586Z"
     },
     "S28": {
       "title": "وجهاً لوجه",
       "act": 3,
-      "frames": 813,
-      "status": "reviewed",
+      "frames": 760,
+      "status": "rendered",
       "video": "out/scenes/S28.mp4",
-      "renderSec": 64,
-      "renderedAt": "2026-10-29T19:43:36.996Z"
+      "renderSec": 63,
+      "renderedAt": "2026-10-30T08:46:18.929Z"
     },
     "S29": {
       "title": "القفص",
       "act": 3,
-      "frames": 1061,
-      "status": "reviewed",
+      "frames": 1017,
+      "status": "rendered",
       "video": "out/scenes/S29.mp4",
-      "renderSec": 86,
-      "renderedAt": "2026-10-29T19:45:02.955Z"
+      "renderSec": 101,
+      "renderedAt": "2026-10-30T08:48:00.362Z"
     },
     "S30": {
       "title": "آق شهر",
       "act": 3,
-      "frames": 947,
-      "status": "reviewed",
+      "frames": 797,
+      "status": "rendered",
       "video": "out/scenes/S30.mp4",
-      "renderSec": 45,
-      "renderedAt": "2026-10-29T19:45:48.499Z"
+      "renderSec": 43,
+      "renderedAt": "2026-10-30T08:48:43.612Z"
     },
     "S31": {
       "title": "حرب الإخوة",
       "act": 3,
-      "frames": 1013,
-      "status": "reviewed",
+      "frames": 964,
+      "status": "rendered",
       "video": "out/scenes/S31.mp4",
-      "renderSec": 191,
-      "renderedAt": "2026-10-29T19:49:00.178Z"
+      "renderSec": 195,
+      "renderedAt": "2026-10-30T08:51:58.556Z"
     },
     "S32": {
       "title": "مصير الأعرج",
       "act": 3,
-      "frames": 966,
-      "status": "reviewed",
+      "frames": 841,
+      "status": "rendered",
       "video": "out/scenes/S32.mp4",
-      "renderSec": 128,
-      "renderedAt": "2026-10-29T19:51:08.237Z"
+      "renderSec": 119,
+      "renderedAt": "2026-10-30T08:53:57.988Z"
     },
     "S33": {
       "title": "العبرة",
       "act": 3,
-      "frames": 674,
-      "status": "reviewed",
+      "frames": 700,
+      "status": "rendered",
       "video": "out/scenes/S33.mp4",
-      "renderSec": 63,
-      "renderedAt": "2026-10-29T19:52:11.256Z"
+      "renderSec": 61,
+      "renderedAt": "2026-10-30T08:54:59.673Z"
     },
     "S34": {
       "title": "شارة الختام",
       "act": 3,
-      "frames": 456,
-      "status": "reviewed",
+      "frames": 497,
+      "status": "rendered",
       "video": "out/scenes/S34.mp4",
-      "renderSec": 49,
-      "renderedAt": "2026-10-30T01:34:27.367Z"
+      "renderSec": 65,
+      "renderedAt": "2026-10-30T08:57:55.586Z"
     }
   },
   "final": {

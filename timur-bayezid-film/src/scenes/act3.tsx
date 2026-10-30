@@ -477,7 +477,7 @@ export const S34: React.FC = () => {
               </Reveal>
               <Reveal from={140} dur={40}>
                 <div style={{fontFamily: FONT.body, fontSize: 30, color: C.gold, marginTop: 40}}>
-                  رسوم وحركة وصوت مولّدة بالكامل بالكود: Remotion · Piper TTS · Python · FFmpeg
+                  رسوم وحركة وموسيقى ومؤثرات مولّدة بالكامل بالكود: Remotion · Python · FFmpeg
                 </div>
               </Reveal>
               <Reveal from={200} dur={40}>
