@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {C, FONT} from '../theme';
 import {EASE, fadeInOut, kf, noise1, ramp} from '../lib/anim';
-import {cue} from '../lib/cue';
+import {cue, narrEnd as narrEndOf, narrStart, sceneLen} from '../lib/cue';
 import {blob} from '../lib/shapes';
 import {SceneShell} from '../components/SceneShell';
 import {Camera, Layer} from '../components/Camera';
@@ -21,6 +21,7 @@ import {BEYLIKS} from '../data/mapData';
 /* =================================================================== S01 — the tent (hook) */
 export const S01: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S01');
   const cBolt = cue('S01', 'الصاعقة', 0, 380);
   const cOld = cue('S01', 'شيخ', 0, 520);
   const cHow = cue('S01', 'فكيف', 0, 690);
@@ -76,12 +77,13 @@ export const S01: React.FC = () => {
 /* =================================================================== S02 — title */
 export const S02: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S02');
   const draw = ramp(f, 16, 90, EASE.out);
   const titleIn = ramp(f, 26, 70, EASE.out);
   return (
     <SceneShell id="S02" fadeIn={4} fadeOut={14} vignette={0.75}>
       <Parchment dark />
-      <Camera keys={[{f: 0, z: 1.08}, {f: 270, z: 1.0}]}>
+      <Camera keys={[{f: 0, z: 1.08}, {f: L, z: 1.0}]}>
         <Layer depth={0.4}>
           <Svg>
             <StarLattice w={1920} h={1080} cell={180} color={C.gold} opacity={0.08 * draw} offset={f * 0.2} />
@@ -121,6 +123,7 @@ export const S02: React.FC = () => {
 /* =================================================================== S03 — Kosovo */
 export const S03: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S03');
   const cMurad = cue('S03', 'مراد', 0, 200);
   const cBay = cue('S03', 'بايزيد', 0, 330);
   const cYaq = cue('S03', 'يعقوب', 0, 470);
@@ -135,7 +138,7 @@ export const S03: React.FC = () => {
           {f: cBay, x: 900, y: 560, z: 1.0},
           {f: cYaq + 40, x: 980, y: 540, z: 1.05},
           {f: cAge, x: 1020, y: 470, z: 1.6},
-          {f: 837, x: 1030, y: 430, z: 2.2},
+          {f: L, x: 1030, y: 430, z: 2.2},
         ]}
       >
         <Layer depth={0.15}>
@@ -206,6 +209,7 @@ const BEY_ORDER: [keyof typeof BEYLIKS, string][] = [
 
 export const S04: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S04');
   const cYil = cue('S04', 'يلدرم', 0, 640);
   const cRev = cue('S04', 'المخلوعين', 0, 790);
   const hits = BEY_ORDER.map(([, w], i) => cue('S04', w, 0, 120 + i * 70));
@@ -246,6 +250,7 @@ export const S04: React.FC = () => {
 /* =================================================================== S05 — Nicopolis */
 export const S05: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S05');
   const cCrush = cue('S05', 'وسحقهم', 0, 420);
   const cStef = cue('S05', 'ستيفان', 0, 520);
   const split = cStef - 20;
@@ -298,8 +303,8 @@ export const S05: React.FC = () => {
         </Camera>
         <DateCard text="نيكوبوليس ١٣٩٦" sub="سحق الحملة الصليبية" from={30} to={split - 20} />
       </Seg>
-      <Seg from={split} to={1064} fadeOut={0}>
-        <Camera keys={[{f: split, x: 900, y: 520, z: 1.25}, {f: 1064, x: 960, y: 560, z: 1.0}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 900, y: 520, z: 1.25}, {f: L, x: 960, y: 560, z: 1.0}]}>
           <Layer depth={0.15}>
             <Svg>
               <Sky mode="sunset" clouds={4} />
@@ -323,8 +328,8 @@ export const S05: React.FC = () => {
           </Layer>
           <Wash color={C.redDeep} opacity={0.15} />
         </Camera>
-        <NameTag text="ستيفان لازاريفيتش" x={1130} y={330} from={cStef + 6} to={1040} color={C.navy} />
-        <Caption text="ابن الأمير لازار الذي قُتل في قوصوه — صهر بايزيد وتابعه" from={cStef + 70} to={1040} y={930} size={38} />
+        <NameTag text="ستيفان لازاريفيتش" x={1130} y={330} from={cStef + 6} to={L - 24} color={C.navy} />
+        <Caption text="ابن الأمير لازار الذي قُتل في قوصوه — صهر بايزيد وتابعه" from={cStef + 70} to={L - 24} y={930} size={38} />
       </Seg>
     </SceneShell>
   );

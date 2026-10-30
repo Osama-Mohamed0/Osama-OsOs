@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {C, FONT} from '../theme';
 import {EASE, fadeInOut, kf, noise1, ramp, rr} from '../lib/anim';
-import {cue} from '../lib/cue';
+import {cue, narrEnd as narrEndOf, narrStart, sceneLen} from '../lib/cue';
 import {SceneShell} from '../components/SceneShell';
 import {Camera, Layer} from '../components/Camera';
 import {Parchment, Svg} from '../components/Stage';
@@ -45,6 +45,7 @@ const Court: React.FC<{f: number; bayezidExpr?: 'confident' | 'anger' | 'neutral
 /* =================================================================== S06 — the throne */
 export const S06: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S06');
   const cCal = cue('S06', 'الخليفة', 0, 160);
   const cDanger = cue('S06', 'الخطر', 0, 470);
   const cSmall = cue('S06', 'أصغر', 0, 680);
@@ -57,7 +58,7 @@ export const S06: React.FC = () => {
           {f: 0, x: 965, y: 470, z: 2.4},
           {f: cCal, x: 962, y: 520, z: 1.6},
           {f: cDanger, x: 960, y: 560, z: 1.05},
-          {f: 750, x: 960, y: 600, z: 0.92},
+          {f: L, x: 960, y: 600, z: 0.92},
         ]}
       >
         <Layer depth={1}>
@@ -87,6 +88,7 @@ export const S06: React.FC = () => {
 /* =================================================================== S07 — the lame one */
 export const S07: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S07');
   const cArrow = cue('S07', 'السهام', 0, 250);
   const cName = cue('S07', 'لنك', 0, 520);
   const cLaugh = cue('S07', 'يضحك', 0, 700);
@@ -101,7 +103,7 @@ export const S07: React.FC = () => {
           {f: cArrow, x: 1150, y: 560, z: 1.3},
           {f: cName, x: 950, y: 560, z: 1.1},
           {f: cLaugh, x: 730, y: 520, z: 1.7},
-          {f: 803, x: 705, y: 510, z: 2.5},
+          {f: L, x: 705, y: 510, z: 2.5},
         ]}
       >
         <Layer depth={0.1}>
@@ -146,6 +148,7 @@ export const S07: React.FC = () => {
 /* =================================================================== S08 — the war machine */
 export const S08: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S08');
   const cPersia = cue('S08', 'فارس', 0, 200);
   const cIraq = cue('S08', 'والعراق', 0, 240);
   const cHorde = cue('S08', 'الذهبية', 0, 330);
@@ -177,8 +180,8 @@ export const S08: React.FC = () => {
         </OldMap>
         <DateCard text="١٣٧٠ – ١٤٠٠" sub="ثلاثون عاماً من الفتوح" from={20} to={split - 10} />
       </Seg>
-      <Seg from={split} to={893} fadeOut={0}>
-        <Camera keys={[{f: split, x: 1100, y: 560, z: 1.1}, {f: 893, x: 820, y: 560, z: 1.25}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 1100, y: 560, z: 1.1}, {f: L, x: 820, y: 560, z: 1.25}]}>
           <Layer depth={0.1}>
             <Svg>
               <Sky mode="sunset" clouds={3} />
@@ -195,7 +198,7 @@ export const S08: React.FC = () => {
             <Svg>
               <g opacity={0.95} style={{filter: 'brightness(0.12)'}}>
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <Sprite key={i} unit="elephant" anim="walk" x={kf(f, [[split, 2100 + i * 330], [893, 700 + i * 330]], EASE.soft)} y={840} scale={0.8} facing="left" phase={f * 0.1 + i} />
+                  <Sprite key={i} unit="elephant" anim="walk" x={kf(f, [[split, 2100 + i * 330], [L, 700 + i * 330]], EASE.soft)} y={840} scale={0.8} facing="left" phase={f * 0.1 + i} />
                 ))}
               </g>
             </Svg>
@@ -226,6 +229,7 @@ export const S08: React.FC = () => {
 /* =================================================================== S09 — one land, two kings */
 export const S09: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S09');
   const cEnd = cue('S09', 'ومع', 0, 260);
   const cTouch = cue('S09', 'تلامست', 0, 420);
   const cKings = cue('S09', 'وملكان', 0, 560);
@@ -260,7 +264,7 @@ export const S09: React.FC = () => {
           )}
         </OldMap>
       </Seg>
-      <Seg from={cKings} to={712} fadeOut={0}>
+      <Seg from={cKings} to={L} fadeOut={0}>
         <Parchment dark />
         <Svg>
           <OrnateFrame x={110} y={110} w={800} h={860} color={C.gold} inner={C.red} progress={ramp(f, cKings, cKings + 30)} />
@@ -275,11 +279,11 @@ export const S09: React.FC = () => {
           </defs>
           <g clipPath="url(#s09l)">
             <rect x={130} y={130} width={760} height={820} fill={C.redDeep} />
-            <Bayezid x={470 + kf(f, [[cKings, -60], [712, 0]]) } y={1880} scale={4.1 * (1 + beat * 0.01)} expression="anger" t={f} />
+            <Bayezid x={470 + kf(f, [[cKings, -60], [L, 0]]) } y={1880} scale={4.1 * (1 + beat * 0.01)} expression="anger" t={f} />
           </g>
           <g clipPath="url(#s09r)">
             <rect x={1030} y={130} width={760} height={820} fill={C.turqDeep} />
-            <Timur x={1450 + kf(f, [[cKings, 60], [712, 0]])} y={1880} scale={4.1 * (1 + beat * 0.01)} facing="left" expression="confident" prop="none" t={f} />
+            <Timur x={1450 + kf(f, [[cKings, 60], [L, 0]])} y={1880} scale={4.1 * (1 + beat * 0.01)} facing="left" expression="confident" prop="none" t={f} />
           </g>
           <path d="M960 120 L960 980" stroke={C.gold} strokeWidth={4} />
         </Svg>
@@ -292,6 +296,7 @@ export const S09: React.FC = () => {
 /* =================================================================== S10 — refugees */
 export const S10: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S10');
   const cEmirs = cue('S10', 'أمراء', 0, 120);
   const cJal = cue('S10', 'أحمد', 0, 420);
   const cQara = cue('S10', 'قره', 0, 520);
@@ -331,7 +336,7 @@ export const S10: React.FC = () => {
         <NameTag text="أحمد الجلائري" x={700} y={360} from={toHall + 20} to={toMap2} color={C.inkSoft} size={34} />
         <NameTag text="قره يوسف" x={460} y={380} from={toHall + 30} to={toMap2} color={C.inkSoft} size={34} />
       </Seg>
-      <Seg from={toMap2} to={995} fadeOut={0}>
+      <Seg from={toMap2} to={L} fadeOut={0}>
         <OldMap views={[viewAt(toMap2, [35, 39.5], 1500), viewAt(995, [37.5, 39.7], 1250)]} cities={['bursa', 'ankara', 'sivas', 'erzincan']} cityFrom={toMap2}>
           <MapArrow via={['bursa', 'ankara', 'sivas', 'erzincan']} from={cErz} dur={60} color={C.red} width={10} />
           <City id="erzincan" from={0} glow={cErz + 50} color={C.turqDeep} />
@@ -345,6 +350,7 @@ export const S10: React.FC = () => {
 /* =================================================================== S11 — the envoy */
 export const S11: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S11');
   const kneel = ramp(f, 300, 320);
   const ex = kf(f, [[10, 120], [300, 760]], EASE.soft);
   return (
@@ -353,7 +359,7 @@ export const S11: React.FC = () => {
         keys={[
           {f: 0, x: 520, y: 600, z: 1.35},
           {f: 300, x: 840, y: 580, z: 1.2},
-          {f: 464, x: 900, y: 520, z: 1.6},
+          {f: L, x: 900, y: 520, z: 1.6},
         ]}
       >
         <Layer depth={1}>
@@ -373,15 +379,16 @@ export const S11: React.FC = () => {
 /* =================================================================== S12 — Timur's letter */
 export const S12: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S12');
   const cStart = cue('S12', 'اعلم', 0, 150);
-  const narrEnd = 624;
+  const narrEnd = L - 24;
   const lines = ['اعلم أن أكثر الأرض، من البحر إلى البحر، في قبضتنا،', 'وأن الملوك يقفون ببابنا.', 'فسلّم إلينا أعداءنا، ولا تتجاوز قدرك…', 'فإنك إن أبيت، فسترى ما لا تحب.'];
   const chars = lines.join('').length;
   const cps = (chars / Math.max(60, narrEnd - cStart - 20)) * 30;
   return (
     <SceneShell id="S12">
       <Parchment dark drift={1} />
-      <Camera keys={[{f: 0, x: 960, y: 520, z: 0.95}, {f: cStart, x: 960, y: 500, z: 1.02}, {f: 648, x: 1000, y: 600, z: 1.12}]}>
+      <Camera keys={[{f: 0, x: 960, y: 520, z: 0.95}, {f: cStart, x: 960, y: 500, z: 1.02}, {f: L, x: 1000, y: 600, z: 1.12}]}>
         <Layer depth={1}>
           <Letter lines={lines} heading="من الأمير تيمور گورگان" from={6} unroll={40} writeFrom={cStart} cps={cps} accent={C.turqDeep} seal={C.ink} sealAt={narrEnd - 10} fontSize={50} note="(بتصرّف عن الحوليات)" />
         </Layer>
@@ -393,6 +400,7 @@ export const S12: React.FC = () => {
 /* =================================================================== S13 — the reply */
 export const S13: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S13');
   const cLegend = cue('S13', 'وتقول', 0, 300);
   const cBlood = cue('S13', 'بالدم', 0, 600);
   const lines = ['لسنا ممن يسلّم من استجار به…', 'وما أنت إلا قاطع طريق،', 'فإن كنت رجلاً فاخرج إلينا…'];
@@ -409,9 +417,9 @@ export const S13: React.FC = () => {
           <Wash color={C.red} opacity={0.2} />
         </Camera>
       </Seg>
-      <Seg from={cLegend} to={658} fadeOut={0}>
+      <Seg from={cLegend} to={L} fadeOut={0}>
         <Parchment dark />
-        <Camera keys={[{f: cLegend, x: 960, y: 520, z: 1.0}, {f: 658, x: 920, y: 600, z: 1.1}]} shake={(t) => (t > cBlood - 4 && t < cBlood + 20 ? 10 : 1.5)}>
+        <Camera keys={[{f: cLegend, x: 960, y: 520, z: 1.0}, {f: L, x: 920, y: 600, z: 1.1}]} shake={(t) => (t > cBlood - 4 && t < cBlood + 20 ? 10 : 1.5)}>
           <Layer depth={1}>
             <Letter lines={lines} heading="من السلطان بايزيد" from={cLegend} unroll={22} cps={16} ink={C.redDeep} accent={C.red} seal={C.red} sealAt={cBlood - 6} angry fontSize={54} note="(بتصرّف عن الروايات)" />
           </Layer>
@@ -437,6 +445,7 @@ const KettleDrum: React.FC<{x: number; y: number; s?: number; hit: number}> = ({
 
 export const S14: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S14');
   const cSilent = cue('S14', 'صامتا', 0, 60);
   const cClose = cue('S14', 'أغلق', 0, 120);
   const cDrums = cue('S14', 'الطبول', 0, 200);
@@ -478,8 +487,8 @@ export const S14: React.FC = () => {
           </Layer>
         </Camera>
       </Seg>
-      <Seg from={cMarch} to={514} fadeOut={0}>
-        <Camera keys={[{f: cMarch, x: 1100, y: 540, z: 1.2}, {f: 514, x: 700, y: 520, z: 1.0}]}>
+      <Seg from={cMarch} to={L} fadeOut={0}>
+        <Camera keys={[{f: cMarch, x: 1100, y: 540, z: 1.2}, {f: L, x: 700, y: 520, z: 1.0}]}>
           <Layer depth={0.1}>
             <Svg>
               <Sky mode="dawn" clouds={4} />
@@ -499,7 +508,7 @@ export const S14: React.FC = () => {
             </Svg>
           </Layer>
         </Camera>
-        <DateCard text="صيف ١٤٠٠" sub="تيمور يزحف غرباً" from={cMarch + 10} to={500} />
+        <DateCard text="صيف ١٤٠٠" sub="تيمور يزحف غرباً" from={cMarch + 10} to={L - 14} />
       </Seg>
     </SceneShell>
   );

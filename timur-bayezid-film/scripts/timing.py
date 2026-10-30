@@ -2,20 +2,23 @@
 Writes story/timing.json and src/data/timing.ts."""
 import json, os
 FPS, TARGET = 30, 900
-LEAD, TAIL = 0.6, 0.8
-ACT_OPEN_EXTRA = {'S03': 2.0, 'S15': 2.0, 'S28': 2.0}
+LEAD, TAIL = 0.35, 0.45
+ACT_OPEN_EXTRA = {'S03': 1.3, 'S15': 1.3, 'S28': 1.3}
+BREAK_SCALE = 0.5   # musical breaks shortened to fit the (slower) human narration
+MIN_CREDITS = 12.0
 script = json.load(open('story/script.json', encoding='utf-8'))
 durs = json.load(open('story/narration_durations.json'))
 rows, total = [], 0.0
 for s in script['scenes']:
     if s['narration']:
         lead = LEAD + ACT_OPEN_EXTRA.get(s['id'], 0) + s.get('preSilence', 0)
-        sec = lead + durs[s['id']] + TAIL + s.get('breakAfter', 0)
+        sec = lead + durs[s['id']] + TAIL + s.get('breakAfter', 0) * BREAK_SCALE
     else:
         lead, sec = 0, s['fixedSeconds']
     rows.append({'id': s['id'], 'act': s['act'], 'title': s['title'], 'lead': lead, 'narr': durs.get(s['id'], 0), 'sec': sec})
     total += sec
 rows[-1]['sec'] += TARGET - total  # absorb remainder in the end credits
+assert rows[-1]['sec'] >= MIN_CREDITS, f"credits too short: {rows[-1]['sec']:.1f}s — shorten pauses"
 frame = 0
 for r in rows:
     r['frames'] = round(r['sec'] * FPS)

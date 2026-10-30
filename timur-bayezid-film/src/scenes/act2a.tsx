@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {C, FONT} from '../theme';
 import {EASE, fadeInOut, kf, noise1, ramp, rr} from '../lib/anim';
-import {cue} from '../lib/cue';
+import {cue, narrEnd as narrEndOf, narrStart, sceneLen} from '../lib/cue';
 import {SceneShell} from '../components/SceneShell';
 import {Camera, Layer} from '../components/Camera';
 import {Parchment, Svg} from '../components/Stage';
@@ -19,6 +19,7 @@ import {Person} from '../characters/Person';
 /* =================================================================== S15 — Sivas */
 export const S15: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S15');
   const cDig = cue('S15', 'وحفر', 0, 260);
   const cCrack = cue('S15', 'تصدعت', 0, 360);
   const cSurr = cue('S15', 'فاستسلمت', 0, 400);
@@ -36,7 +37,7 @@ export const S15: React.FC = () => {
           {f: cCrack + 20, x: 960, y: 560, z: 1.15},
           {f: cBuried, x: 960, y: 600, z: 1.0},
           {f: cErt, x: 760, y: 700, z: 1.35},
-          {f: 998, x: 740, y: 720, z: 1.6},
+          {f: L, x: 740, y: 720, z: 1.6},
         ]}
         shake={(t) => (t > cCrack - 20 && t < cCrack + 30 ? 8 : 0)}
       >
@@ -90,7 +91,7 @@ export const S15: React.FC = () => {
         <Wash color={C.ink} opacity={0.25 * dark} />
       </Camera>
       <DateCard text="سيواس" sub="أغسطس ١٤٠٠ — حصار ١٨ يوماً" from={110} to={cDig + 60} />
-      <NameTag text="أرطغرل بن بايزيد" x={760} y={520} from={cErt} to={990} color={C.red} size={38} />
+      <NameTag text="أرطغرل بن بايزيد" x={760} y={520} from={cErt} to={L - 8} color={C.red} size={38} />
       <Caption text="تذكر الروايات العثمانية…" from={cErt - 20} to={cErt + 120} y={950} size={36} />
       <ActCard name="الفصل الثاني" title="الصدام" from={0} to={96} />
     </SceneShell>
@@ -100,6 +101,7 @@ export const S15: React.FC = () => {
 /* =================================================================== S16 — tears and storm */
 export const S16: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S16');
   const cOath = cue('S16', 'وأقسم', 0, 170);
   const cTimur = cue('S16', 'لكن', 0, 230);
   const cAleppo = cue('S16', 'حلب', 0, 380);
@@ -129,7 +131,7 @@ export const S16: React.FC = () => {
         </Camera>
         <Flash at={cOath} color={C.redLight} peak={0.35} />
       </Seg>
-      <Seg from={split} to={725} fadeOut={0}>
+      <Seg from={split} to={L} fadeOut={0}>
         <OldMap views={[viewAt(split, 'sivas', 1500), viewAt(cDam, [39, 35.5], 2000), viewAt(725, [41, 35.5], 2200)]} cities={['sivas', 'malatya', 'aleppo', 'damascus', 'baghdad']} cityFrom={split}>
           <MapArrow via={['sivas', 'malatya', 'aleppo']} from={split + 20} dur={cAleppo - split - 10} color={C.turq} width={13} />
           <MapArrow via={['aleppo', [37.5, 34.8], 'damascus']} from={cAleppo + 10} dur={cDam - cAleppo + 5} color={C.turq} width={13} />
@@ -149,6 +151,7 @@ export const S16: React.FC = () => {
 /* =================================================================== S17 — Erzincan & Karabakh */
 export const S17: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S17');
   const cErz = cue('S17', 'أرزنجان', 0, 70);
   const cSlap = cue('S17', 'صفعة', 0, 200);
   const cKar = cue('S17', 'قراباغ', 0, 300);
@@ -163,8 +166,8 @@ export const S17: React.FC = () => {
         </OldMap>
         <Flash at={cSlap} color={C.redLight} peak={0.3} />
       </Seg>
-      <Seg from={split} to={674} fadeOut={0}>
-        <Camera keys={[{f: split, x: 700, y: 540, z: 1.2}, {f: 674, x: 1250, y: 560, z: 1.05}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 700, y: 540, z: 1.2}, {f: L, x: 1250, y: 560, z: 1.05}]}>
           <Layer depth={0.1}>
             <Svg>
               <Sky mode="winter" clouds={5} />
@@ -188,13 +191,13 @@ export const S17: React.FC = () => {
               {Array.from({length: 8}).map((_, i) => (
                 <Sprite key={i} unit="timuridSoldier" anim="ride" x={200 + i * 260} y={980 + (i % 2) * 20} scale={0.55} facing={i % 3 ? 'right' : 'left'} />
               ))}
-              <Rider who="timur" x={kf(f, [[split, 200], [674, 1400]], EASE.soft)} y={1060} scale={0.75} gait="walk" t={f} prop="none" />
+              <Rider who="timur" x={kf(f, [[split, 200], [L, 1400]], EASE.soft)} y={1060} scale={0.75} gait="walk" t={f} prop="none" />
               <Particles kind="snow" count={120} seed="kbs" wind={0.6} />
             </Svg>
           </Layer>
           <Wash color={C.turqDeep} opacity={0.18} />
         </Camera>
-        <DateCard text="قراباغ" sub="شتاء ١٤٠١ – ١٤٠٢" from={split + 10} to={660} />
+        <DateCard text="قراباغ" sub="شتاء ١٤٠١ – ١٤٠٢" from={split + 10} to={L - 14} />
       </Seg>
     </SceneShell>
   );
@@ -203,6 +206,7 @@ export const S17: React.FC = () => {
 /* =================================================================== S18 — the muster */
 export const S18: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S18');
   const units = [
     {w: 'الإنكشارية', label: 'الإنكشارية', x: 500},
     {w: 'السباهية', label: 'السباهية', x: 1250},
@@ -225,8 +229,8 @@ export const S18: React.FC = () => {
         ))}
         <DateCard text="بورصة — ربيع ١٤٠٢" sub="الحشد الكبير" from={10} to={units[1].at - 10} corner="tl" />
       </Seg>
-      <Seg from={split} to={847} fadeOut={0}>
-        <Camera keys={[{f: split, x: 960, y: 560, z: 1.2}, {f: 847, x: 960, y: 600, z: 1.0}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 960, y: 560, z: 1.2}, {f: L, x: 960, y: 600, z: 1.0}]}>
           <Layer depth={0.15}>
             <Svg>
               <Sky mode="day" clouds={4} />
@@ -251,7 +255,7 @@ export const S18: React.FC = () => {
           </Layer>
         </Camera>
         {['سليمان', 'عيسى', 'موسى', 'محمد'].map((n, i) => (
-          <NameTag key={n} text={n} x={[420, 650, 1270, 1500][i]} y={950} above={false} from={names[i]} to={847} color={C.redDeep} size={36} />
+          <NameTag key={n} text={n} x={[420, 650, 1270, 1500][i]} y={950} above={false} from={names[i]} to={L} color={C.redDeep} size={36} />
         ))}
       </Seg>
     </SceneShell>
@@ -307,6 +311,7 @@ const CamFollow: React.FC<{x: number}> = () => {
 /* =================================================================== S19 — the manoeuvre */
 export const S19: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S19');
   const cTokat = cue('S19', 'توقات', 0, 60);
   const cNot = cue('S19', 'يأت', 0, 240);
   const cKay = cue('S19', 'قيصرية', 0, 330);
@@ -329,7 +334,7 @@ export const S19: React.FC = () => {
         <City id="ankara" glow={cAnk} color={C.turqDeep} size={1.3} />
       </OldMap>
       <Flash at={cSurp} color={C.goldLight} peak={0.35} />
-      <Caption text="الصاعقة… فوجئت هذه المرة" from={cSurp - 10} to={700} y={880} size={56} />
+      <Caption text="الصاعقة… فوجئت هذه المرة" from={cSurp - 10} to={L - 1} y={880} size={56} />
     </SceneShell>
   );
 };
@@ -337,6 +342,7 @@ export const S19: React.FC = () => {
 /* =================================================================== S20 — thirst */
 export const S20: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S20');
   const cCubuk = cue('S20', 'چوبوق', 0, 200);
   const cWater = cue('S20', 'سبقهم', 0, 420);
   const cBattle = cue('S20', 'كانت', 0, 640);
@@ -374,8 +380,8 @@ export const S20: React.FC = () => {
         </Camera>
         <DateCard text="يوليو ١٤٠٢" sub="سهل چوبوق قرب أنقرة" from={cCubuk - 10} to={split - 10} />
       </Seg>
-      <Seg from={split} to={803} fadeOut={0}>
-        <Camera keys={[{f: split, x: 960, y: 560, z: 1.25}, {f: cBattle, x: 960, y: 560, z: 1.0}, {f: 803, x: 900, y: 600, z: 1.1}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 960, y: 560, z: 1.25}, {f: cBattle, x: 960, y: 560, z: 1.0}, {f: L, x: 900, y: 600, z: 1.1}]}>
           <Layer depth={0.15}>
             <Svg>
               <Sky mode="heat" clouds={2} />
@@ -421,6 +427,7 @@ export const S20: React.FC = () => {
 /* =================================================================== S21 — the last night */
 export const S21: React.FC = () => {
   const f = useCurrentFrame();
+  const L = sceneLen('S21');
   const cNum = cue('S21', 'تقدر', 0, 200);
   const cTatar = cue('S21', 'التتار', 0, 470);
   const split = cTatar - 30;
@@ -454,8 +461,8 @@ export const S21: React.FC = () => {
         <DateCard text="ليلة ٢٧ يوليو ١٤٠٢" sub="سهل أنقرة" from={10} to={cNum - 10} />
         <Caption text="العثمانيون: نحو ١٠٠ ألف — التيموريون: أكثر من ذلك (تقديرات حديثة)" from={cNum} to={split} y={930} size={36} />
       </Seg>
-      <Seg from={split} to={797} fadeOut={0}>
-        <Camera keys={[{f: split, x: 960, y: 600, z: 1.1}, {f: 797, x: 1010, y: 560, z: 1.5}]}>
+      <Seg from={split} to={L} fadeOut={0}>
+        <Camera keys={[{f: split, x: 960, y: 600, z: 1.1}, {f: L, x: 1010, y: 560, z: 1.5}]}>
           <Layer depth={0.1}>
             <Svg>
               <Sky mode="night" clouds={2} />
@@ -473,7 +480,7 @@ export const S21: React.FC = () => {
           <Wash color={C.goldLight} opacity={0.35 + noise1('ntw', f / 3) * 0.05} blend="screen" radial={[960, 820]} />
           <Wash color={C.red} opacity={0.12 * beat} blend="screen" />
         </Camera>
-        <Caption text="رسائل تيمور تصل قبل جيوشه…" from={split + 40} to={760} y={90} size={38} />
+        <Caption text="رسائل تيمور تصل قبل جيوشه…" from={split + 40} to={L - 37} y={90} size={38} />
       </Seg>
     </SceneShell>
   );
