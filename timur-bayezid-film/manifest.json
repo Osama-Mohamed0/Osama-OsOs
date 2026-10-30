@@ -4,20 +4,20 @@
     "S01": {
       "title": "الخطاف: الخيمة",
       "act": 1,
-      "frames": 798,
-      "status": "reviewed",
+      "frames": 719,
+      "status": "rendered",
       "video": "out/scenes/S01.mp4",
-      "renderSec": 61,
-      "renderedAt": "2026-10-29T18:39:28.586Z"
+      "renderSec": 81,
+      "renderedAt": "2026-10-30T07:56:13.465Z"
     },
     "S02": {
       "title": "العنوان",
       "act": 1,
       "frames": 270,
-      "status": "reviewed",
+      "status": "rendered",
       "video": "out/scenes/S02.mp4",
-      "renderSec": 33,
-      "renderedAt": "2026-10-29T18:40:01.753Z"
+      "renderSec": 43,
+      "renderedAt": "2026-10-30T07:56:56.587Z"
     },
     "S03": {
       "title": "قوصوه: ولادة سلطان",
@@ -310,7 +310,7 @@
   },
   "final": {
     "file": "final/Timur_vs_Bayezid.mp4",
-    "duration_s": 900.0,
+    "duration_s": 900,
     "hq_parts": "final/HQ_parts/"
   }
 }
