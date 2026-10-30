@@ -142,8 +142,8 @@
       "frames": 725,
       "status": "rendered",
       "video": "out/scenes/S16.mp4",
-      "renderSec": 111,
-      "renderedAt": "2026-10-29T19:24:22.303Z"
+      "renderSec": 113,
+      "renderedAt": "2026-10-30T01:10:02.359Z"
     },
     "S17": {
       "title": "أرزنجان وقراباغ",
@@ -169,8 +169,8 @@
       "frames": 701,
       "status": "rendered",
       "video": "out/scenes/S19.mp4",
-      "renderSec": 134,
-      "renderedAt": "2026-10-29T19:29:07.358Z"
+      "renderSec": 124,
+      "renderedAt": "2026-10-30T01:12:06.397Z"
     },
     "S20": {
       "title": "العطش",
@@ -205,8 +205,8 @@
       "frames": 910,
       "status": "rendered",
       "video": "out/scenes/S23.mp4",
-      "renderSec": 211,
-      "renderedAt": "2026-10-29T19:36:18.221Z"
+      "renderSec": 186,
+      "renderedAt": "2026-10-30T01:15:12.679Z"
     },
     "S24": {
       "title": "الخيانة",
