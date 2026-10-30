@@ -230,55 +230,82 @@
       "title": "تفرّق الأبناء",
       "act": 2,
       "frames": 587,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S26.mp4",
+      "renderSec": 93,
+      "renderedAt": "2026-10-29T19:39:58.152Z"
     },
     "S27": {
       "title": "الوقفة الأخيرة",
       "act": 2,
       "frames": 1153,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S27.mp4",
+      "renderSec": 154,
+      "renderedAt": "2026-10-29T19:42:32.890Z"
     },
     "S28": {
       "title": "وجهاً لوجه",
       "act": 3,
       "frames": 813,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S28.mp4",
+      "renderSec": 64,
+      "renderedAt": "2026-10-29T19:43:36.996Z"
     },
     "S29": {
       "title": "القفص",
       "act": 3,
       "frames": 1061,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S29.mp4",
+      "renderSec": 86,
+      "renderedAt": "2026-10-29T19:45:02.955Z"
     },
     "S30": {
       "title": "آق شهر",
       "act": 3,
       "frames": 947,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S30.mp4",
+      "renderSec": 45,
+      "renderedAt": "2026-10-29T19:45:48.499Z"
     },
     "S31": {
       "title": "حرب الإخوة",
       "act": 3,
       "frames": 1013,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S31.mp4",
+      "renderSec": 191,
+      "renderedAt": "2026-10-29T19:49:00.178Z"
     },
     "S32": {
       "title": "مصير الأعرج",
       "act": 3,
       "frames": 966,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S32.mp4",
+      "renderSec": 128,
+      "renderedAt": "2026-10-29T19:51:08.237Z"
     },
     "S33": {
       "title": "العبرة",
       "act": 3,
       "frames": 674,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S33.mp4",
+      "renderSec": 63,
+      "renderedAt": "2026-10-29T19:52:11.256Z"
     },
     "S34": {
       "title": "شارة الختام",
       "act": 3,
       "frames": 456,
-      "status": "coded"
+      "status": "rendered",
+      "video": "out/scenes/S34.mp4",
+      "renderSec": 58,
+      "renderedAt": "2026-10-29T19:53:09.421Z"
     }
   }
 }

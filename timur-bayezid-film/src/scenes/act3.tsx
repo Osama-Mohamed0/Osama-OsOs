@@ -453,7 +453,7 @@ export const S34: React.FC = () => {
         </Layer>
         <Layer depth={1}>
           <Svg>
-            <Rosette x={960} y={300} r={150} progress={p} color={C.gold} width={2} rot={-f * 0.06} dot={false} />
+            <Rosette x={960} y={165} r={70} progress={p} color={C.gold} width={2} rot={-f * 0.06} dot={false} />
             <OrnateFrame x={160} y={80} w={1600} h={920} progress={p} color={C.gold} inner={C.redDeep} />
           </Svg>
           <AbsoluteFill style={{alignItems: 'center'}}>

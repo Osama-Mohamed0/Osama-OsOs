@@ -385,7 +385,7 @@ export const S25: React.FC = () => {
           </Layer>
         </Camera>
         <NameTag text="ستيفان لازاريفيتش" x={760} y={330} from={40} to={cLions - 10} color={C.navy} size={38} />
-        <Quote text="«هؤلاء البؤساء يقاتلون كالأسود»" sub="عبارة تُروى عن تيمور" from={cLions} to={split} y={120} size={60} color={C.parchmentLight} />
+        <Quote text="«هؤلاء البؤساء يقاتلون كالأسود»" sub="عبارة تُروى عن تيمور" from={cLions} to={split} y={120} size={60} color={C.redDeep} />
       </Seg>
       <Seg from={split} to={781} fadeOut={0}>
         <Camera keys={[{f: split, x: 960, y: 520, z: 1.25}, {f: cRefuse, x: 1060, y: 440, z: 1.6}, {f: 781, x: 1080, y: 420, z: 1.9}]}>
@@ -551,7 +551,7 @@ export const S27: React.FC = () => {
               <rect x={-400} y={850} width={2800} height={500} fill={C.ink} />
               {(() => {
                 const riders = Array.from({length: 8}).map((_, i) => {
-                  const a = (i / 8) * Math.PI * 2 + f / 200;
+                  const a = (i / 8) * Math.PI * 2 + Math.PI / 8 + (1 - ring) * 0.6;
                   const r = 950 - ring * 380;
                   return {i, a, x: 960 + Math.cos(a) * r, y: 990 + Math.sin(a) * 110, s: 0.62 + Math.sin(a) * 0.08};
                 });
