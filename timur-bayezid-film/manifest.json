@@ -5,7 +5,7 @@
       "title": "الخطاف: الخيمة",
       "act": 1,
       "frames": 798,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S01.mp4",
       "renderSec": 61,
       "renderedAt": "2026-10-29T18:39:28.586Z"
@@ -14,7 +14,7 @@
       "title": "العنوان",
       "act": 1,
       "frames": 270,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S02.mp4",
       "renderSec": 33,
       "renderedAt": "2026-10-29T18:40:01.753Z"
@@ -23,7 +23,7 @@
       "title": "قوصوه: ولادة سلطان",
       "act": 1,
       "frames": 837,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S03.mp4",
       "renderSec": 171,
       "renderedAt": "2026-10-29T18:42:53.466Z"
@@ -32,7 +32,7 @@
       "title": "الصاعقة",
       "act": 1,
       "frames": 967,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S04.mp4",
       "renderSec": 186,
       "renderedAt": "2026-10-29T19:08:39.342Z"
@@ -41,7 +41,7 @@
       "title": "نيكوبوليس",
       "act": 1,
       "frames": 1064,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S05.mp4",
       "renderSec": 166,
       "renderedAt": "2026-10-29T18:58:56.595Z"
@@ -50,7 +50,7 @@
       "title": "العرش",
       "act": 1,
       "frames": 750,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S06.mp4",
       "renderSec": 145,
       "renderedAt": "2026-10-29T18:50:39.236Z"
@@ -59,7 +59,7 @@
       "title": "الأعرج",
       "act": 1,
       "frames": 803,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S07.mp4",
       "renderSec": 124,
       "renderedAt": "2026-10-29T19:10:43.298Z"
@@ -68,7 +68,7 @@
       "title": "آلة الحرب",
       "act": 1,
       "frames": 893,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S08.mp4",
       "renderSec": 138,
       "renderedAt": "2026-10-29T19:13:01.773Z"
@@ -77,7 +77,7 @@
       "title": "أرض واحدة وملكان",
       "act": 1,
       "frames": 712,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S09.mp4",
       "renderSec": 84,
       "renderedAt": "2026-10-29T19:14:26.498Z"
@@ -86,7 +86,7 @@
       "title": "اللاجئون",
       "act": 1,
       "frames": 995,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S10.mp4",
       "renderSec": 175,
       "renderedAt": "2026-10-29T19:17:22.452Z"
@@ -95,7 +95,7 @@
       "title": "الرسول",
       "act": 1,
       "frames": 464,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S11.mp4",
       "renderSec": 85,
       "renderedAt": "2026-10-29T19:18:47.542Z"
@@ -104,7 +104,7 @@
       "title": "كتاب تيمور",
       "act": 1,
       "frames": 648,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S12.mp4",
       "renderSec": 47,
       "renderedAt": "2026-10-29T19:19:34.668Z"
@@ -113,7 +113,7 @@
       "title": "رد الصاعقة",
       "act": 1,
       "frames": 658,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S13.mp4",
       "renderSec": 75,
       "renderedAt": "2026-10-29T19:20:49.606Z"
@@ -122,7 +122,7 @@
       "title": "الطبول",
       "act": 1,
       "frames": 514,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S14.mp4",
       "renderSec": 39,
       "renderedAt": "2026-10-29T19:21:29.581Z"
@@ -131,7 +131,7 @@
       "title": "سيواس",
       "act": 2,
       "frames": 998,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S15.mp4",
       "renderSec": 60,
       "renderedAt": "2026-10-29T19:22:30.546Z"
@@ -140,7 +140,7 @@
       "title": "الدموع والعاصفة",
       "act": 2,
       "frames": 725,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S16.mp4",
       "renderSec": 113,
       "renderedAt": "2026-10-30T01:10:02.359Z"
@@ -149,7 +149,7 @@
       "title": "أرزنجان وقراباغ",
       "act": 2,
       "frames": 674,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S17.mp4",
       "renderSec": 73,
       "renderedAt": "2026-10-29T19:25:35.613Z"
@@ -158,7 +158,7 @@
       "title": "الحشد",
       "act": 2,
       "frames": 847,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S18.mp4",
       "renderSec": 77,
       "renderedAt": "2026-10-29T19:26:52.671Z"
@@ -167,7 +167,7 @@
       "title": "المناورة",
       "act": 2,
       "frames": 701,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S19.mp4",
       "renderSec": 124,
       "renderedAt": "2026-10-30T01:12:06.397Z"
@@ -176,7 +176,7 @@
       "title": "العطش",
       "act": 2,
       "frames": 803,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S20.mp4",
       "renderSec": 87,
       "renderedAt": "2026-10-29T19:30:35.079Z"
@@ -185,7 +185,7 @@
       "title": "الليلة الأخيرة",
       "act": 2,
       "frames": 797,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S21.mp4",
       "renderSec": 49,
       "renderedAt": "2026-10-29T19:31:24.745Z"
@@ -194,7 +194,7 @@
       "title": "التشكيل",
       "act": 2,
       "frames": 963,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S22.mp4",
       "renderSec": 81,
       "renderedAt": "2026-10-29T19:32:46.320Z"
@@ -203,7 +203,7 @@
       "title": "مطر السهام",
       "act": 2,
       "frames": 910,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S23.mp4",
       "renderSec": 186,
       "renderedAt": "2026-10-30T01:15:12.679Z"
@@ -212,7 +212,7 @@
       "title": "الخيانة",
       "act": 2,
       "frames": 758,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S24.mp4",
       "renderSec": 59,
       "renderedAt": "2026-10-29T19:37:17.251Z"
@@ -221,7 +221,7 @@
       "title": "أسود الصرب",
       "act": 2,
       "frames": 781,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S25.mp4",
       "renderSec": 49,
       "renderedAt": "2026-10-30T01:31:19.368Z"
@@ -230,7 +230,7 @@
       "title": "تفرّق الأبناء",
       "act": 2,
       "frames": 587,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S26.mp4",
       "renderSec": 93,
       "renderedAt": "2026-10-29T19:39:58.152Z"
@@ -239,7 +239,7 @@
       "title": "الوقفة الأخيرة",
       "act": 2,
       "frames": 1153,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S27.mp4",
       "renderSec": 138,
       "renderedAt": "2026-10-30T01:33:37.974Z"
@@ -248,7 +248,7 @@
       "title": "وجهاً لوجه",
       "act": 3,
       "frames": 813,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S28.mp4",
       "renderSec": 64,
       "renderedAt": "2026-10-29T19:43:36.996Z"
@@ -257,7 +257,7 @@
       "title": "القفص",
       "act": 3,
       "frames": 1061,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S29.mp4",
       "renderSec": 86,
       "renderedAt": "2026-10-29T19:45:02.955Z"
@@ -266,7 +266,7 @@
       "title": "آق شهر",
       "act": 3,
       "frames": 947,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S30.mp4",
       "renderSec": 45,
       "renderedAt": "2026-10-29T19:45:48.499Z"
@@ -275,7 +275,7 @@
       "title": "حرب الإخوة",
       "act": 3,
       "frames": 1013,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S31.mp4",
       "renderSec": 191,
       "renderedAt": "2026-10-29T19:49:00.178Z"
@@ -284,7 +284,7 @@
       "title": "مصير الأعرج",
       "act": 3,
       "frames": 966,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S32.mp4",
       "renderSec": 128,
       "renderedAt": "2026-10-29T19:51:08.237Z"
@@ -293,7 +293,7 @@
       "title": "العبرة",
       "act": 3,
       "frames": 674,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S33.mp4",
       "renderSec": 63,
       "renderedAt": "2026-10-29T19:52:11.256Z"
@@ -302,10 +302,15 @@
       "title": "شارة الختام",
       "act": 3,
       "frames": 456,
-      "status": "rendered",
+      "status": "reviewed",
       "video": "out/scenes/S34.mp4",
       "renderSec": 49,
       "renderedAt": "2026-10-30T01:34:27.367Z"
     }
+  },
+  "final": {
+    "file": "final/Timur_vs_Bayezid.mp4",
+    "duration_s": 900.0,
+    "hq_parts": "final/HQ_parts/"
   }
 }
