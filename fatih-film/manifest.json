@@ -1,0 +1,39 @@
+{
+  "scenes": {
+    "S01": {
+      "status": "rendered",
+      "video": "out/scenes/S01.mp4",
+      "frames": 756,
+      "renderSec": 42,
+      "renderedAt": "2026-11-11T20:15:40.011Z"
+    },
+    "S02": {
+      "status": "rendered",
+      "video": "out/scenes/S02.mp4",
+      "frames": 270,
+      "renderSec": 32,
+      "renderedAt": "2026-11-11T20:16:12.316Z"
+    },
+    "S03": {
+      "status": "rendered",
+      "video": "out/scenes/S03.mp4",
+      "frames": 1158,
+      "renderSec": 46,
+      "renderedAt": "2026-11-11T20:16:59.062Z"
+    },
+    "S04": {
+      "status": "rendered",
+      "video": "out/scenes/S04.mp4",
+      "frames": 646,
+      "renderSec": 126,
+      "renderedAt": "2026-11-11T20:19:05.774Z"
+    },
+    "S05": {
+      "status": "rendered",
+      "video": "out/scenes/S05.mp4",
+      "frames": 852,
+      "renderSec": 118,
+      "renderedAt": "2026-11-11T20:21:04.579Z"
+    }
+  }
+}

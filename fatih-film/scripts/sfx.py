@@ -53,173 +53,117 @@ def clashes(t0, t1, every=0.7, gain=0.4, seed=0):
         t += every * r.uniform(0.5, 1.5)
 
 
+def cannon(t, gain=1.0, seed=0):
+    one(sfx_boom(), t, gain)
+    one(sfx_thunder(seed, dist=0.2), t + 0.05, 0.6 * gain)
+    one(sfx_rumble(2.5), t + 0.1, 0.4 * gain)
+
+
 def build():
-    # S01 tent: wind outside, candle, footsteps, chains, thunder at «الصاعقة»
-    bed(sfx_wind, 'S01', gain=0.5, strength=0.6)
-    bed(sfx_candle, 'S01', gain=0.8)
-    one(sfx_footsteps(8, 1.5), S('S01', 1), 0.7)
-    one(sfx_chains(1), S('S01', 2.5), 0.35)
-    one(sfx_chains(2), S('S01', 6.0), 0.3)
-    one(sfx_thunder(1), C('S01', 'الصاعقة', 0, 13), 0.9)
-    one(sfx_thunder(2, dist=0.5), F('S01', 0) + (C('S01', 'فكيف', 0, 23) - START['S01']) + 0.7, 0.7)
-    # S02 title
-    one(sfx_thunder(3), S('S02', 0.35), 1.0)
-    one(sfx_boom(), S('S02', 0.4), 0.7)
+    # ---------------- ACT I
+    bed(sfx_wind, 'S01', gain=0.45, strength=0.6)
+    bed(sfx_fire, 'S01', gain=0.35, seed=1)
+    one(sfx_neigh(1), S('S01', 4), 0.3, 0.3)
+    one(sfx_boom(), S('S02', 0.4), 0.8)
+    one(sfx_thunder(3), S('S02', 0.35), 0.8)
     one(sfx_boom(), E('S02') - 0.5, 0.5)
-    # S03 Kosovo
-    bed(sfx_wind, 'S03', 2, gain=0.45, strength=0.7)
-    one(sfx_whoosh(1.4), C('S03', 'مراد', 0, 6) + 0.6, 0.3)
-    one(sfx_footsteps(3.5, 1.6, 3), C('S03', 'بايزيد', 0, 9) - 1.5, 0.6)
-    # S04 lightning map
-    for w in ('آيدين', 'وصاروخان', 'ومنتشا', 'وكرميان', 'قرمان'):
-        one(sfx_whoosh(0.5), C('S04', w, 0, 5) - 0.45, 0.5)
-    one(sfx_thunder(4), C('S04', 'يلدرم', 0, 21), 0.8)
-    one(sfx_whoosh(2.5), C('S04', 'المخلوعين', 0, 26), 0.3)
-    # S05 Nicopolis
-    bed(sfx_gallop, 'S05', 0.6, C('S05', 'وسحقهم', 0, 14) - START['S05'] + 1, gain=0.7, rate=2.6, n_horses=10, seed=5)
-    bed(sfx_crowd, 'S05', 3, C('S05', 'ستيفان', 0, 18) - START['S05'], gain=0.6, intensity=0.6, seed=5)
+    bed(sfx_wind, 'S03', 1, gain=0.4, strength=0.6)
+    one(sfx_whoosh(1.5), C('S03', 'العرب', 0, 10) - 0.4, 0.3)
+    one(sfx_whoosh(2.5), C('S04', 'والآن', 0, 12) - 1, 0.35)
+    bed(sfx_crowd, 'S05', C('S05', 'فارنا', 0, 15) - START['S05'] - 1, C('S05', 'خليل', 0, 21) - START['S05'], gain=0.4, intensity=0.6, seed=5)
+    clashes(C('S05', 'فارنا', 0, 15), C('S05', 'خليل', 0, 21) - 1, 0.6, 0.3, 5)
+    bed(sfx_candle, 'S06', gain=0.8)
+    one(sfx_scroll(), C('S06', 'تعلم', 0, 4), 0.6)
+    one(sfx_scroll(), C('S06', 'آق', 0, 13), 0.5)
+    bed(sfx_crowd, 'S07', 0.3, 6, gain=0.35, intensity=0.5, seed=7)
+    one(sfx_quill(5), C('S08', 'يختبر', 0, 12), 0.6)
+    bed(sfx_wind, 'S08', gain=0.15, strength=0.3)
+    bed(sfx_dig, 'S09', C('S09', 'بدأ', 0, 5) - START['S09'], C('S09', 'ارتفعت', 0, 18) - START['S09'], gain=0.45, seed=9)
+    bed(sfx_wind, 'S09', gain=0.35, strength=0.5, seed=9)
+    bed(sfx_water, 'S10', gain=0.5, seed=10)
+    cannon(C('S10', 'أغرقتها', 0, 9) - 0.13, 0.9, 10)
+    one(sfx_water(2.5, 11), C('S10', 'أغرقتها', 0, 9) + 0.6, 0.6)
+    bed(sfx_fire, 'S11', gain=0.5, seed=11, strength=0.7)
+    for k in range(6):
+        one(sfx_clash(110 + k), S('S11', 1.5 + k * 1.3), 0.25)
+    bed(sfx_march, 'S12', 0.5, -1, gain=0.4, rate=1.2)
+    bed(sfx_rumble, 'S12', 0.5, -1, gain=0.35)
+    bed(sfx_wind, 'S12', gain=0.25, strength=0.4, seed=12)
+    # ---------------- ACT II
+    one(sfx_boom(), S('S13', 0.2), 0.6)
+    bed(sfx_crowd, 'S13', 0.5, C('S13', 'جوفاني', 0, 25) - START['S13'] - 1, gain=0.45, intensity=0.55, seed=13)
+    bed(sfx_march, 'S13', 0.5, C('S13', 'جوفاني', 0, 25) - START['S13'] - 1, gain=0.4, rate=1.8)
+    bed(sfx_wind, 'S14', gain=0.3, strength=0.4, seed=14)
+    one(sfx_chains(14), C('S14', 'سلسلة', 0, 14) + 0.3, 0.6)
+    c1 = C('S15', 'ولأول', 0, 3)
+    cN = C('S15', 'والمدافعون', 0, 11)
+    for i, t in enumerate([F('S15', 30), c1 + 1.0, c1 + 4.33, cN - 1.33]):
+        cannon(t, 1.0, 150 + i)
+    bed(sfx_footsteps, 'S15', cN - START['S15'], cN - START['S15'] + 6, gain=0.4, rate=2.0)
+    bed(sfx_dig, 'S15', cN - START['S15'] + 1, C('S15', 'وكان', 0, 19) - START['S15'], gain=0.3, seed=15)
+    bed(sfx_fire, 'S15', C('S15', 'وكان', 0, 19) - START['S15'], gain=0.3, seed=15)
+    cF = C('S16', 'فانقض', 0, 7)
+    bed(sfx_water, 'S16', gain=0.5, seed=16)
+    bed(sfx_crowd, 'S16', cF - START['S16'], C('S16', 'ودخلت', 0, 14) - START['S16'], gain=0.5, intensity=0.7, seed=16)
+    for k in range(5):
+        one(sfx_arrows(160 + k), cF + k, 0.5)
     for k in range(3):
-        one(sfx_arrows(k), F('S05', 110 + k * 40), 0.6)
-    clashes(C('S05', 'وسحقهم', 0, 14) - 1, C('S05', 'وسحقهم', 0, 14) + 3, 0.35, 0.5, 5)
-    bed(sfx_wind, 'S05', C('S05', 'ستيفان', 0, 18) - START['S05'] - 1, gain=0.3)
-    # S06 throne
-    bed(sfx_wind, 'S06', gain=0.12, strength=0.3)
-    one(sfx_whoosh(3), C('S06', 'الخطر', 0, 15) + 1, 0.25)
-    # S07 Timur
-    bed(sfx_wind, 'S07', gain=0.5, strength=0.7, seed=7)
-    one(sfx_footsteps(10, 1.1, 7), S('S07', 0.5), 0.5)
-    one(sfx_arrows(7), C('S07', 'السهام', 0, 8) - 0.5, 0.7)
-    one(sfx_neigh(7), C('S07', 'يضحك', 0, 22) + 0.4, 0.35, 0.4)
-    # S08 conquests
-    for w in ('فارس', 'والعراق', 'الذهبية', 'دلهي'):
-        one(sfx_fire(4, 8, 0.6), C('S08', w, 0, 10) + 1.0, 0.6)
-    t = C('S08', 'الحرب', 1, 18)
-    one(sfx_trumpet_elephant(1), t + 0.5, 0.5, -0.3)
-    one(sfx_trumpet_elephant(2), t + 4.5, 0.4, 0.4)
-    bed(sfx_fire, 'S08', t - START['S08'], gain=0.4, seed=8)
-    bed(sfx_wind, 'S08', t - START['S08'], gain=0.35)
-    # S09
-    one(sfx_spark(), C('S09', 'تلامست', 0, 14), 0.8)
-    one(sfx_boom(), C('S09', 'وملكان', 0, 18), 0.5)
-    # S10 refugees
-    one(sfx_gallop(9, 2.2, 3, 10, 0.6), C('S10', 'أمراء', 0, 4), 0.45)
-    one(sfx_gallop(9, 2.0, 2, 11, 0.6), C('S10', 'أحمد', 0, 14), 0.45)
-    bed(sfx_footsteps, 'S10', C('S10', 'فأكرمهما', 0, 23) - START['S10'], C('S10', 'فأكرمهما', 0, 23) - START['S10'] + 3, gain=0.4, rate=1.4)
-    # S11 envoy walk
-    one(sfx_footsteps(9.5, 1.1, 11), S('S11', 0.4), 0.8)
-    bed(sfx_wind, 'S11', gain=0.1, strength=0.2)
-    # S12 / S13 letters
-    one(sfx_scroll(), S('S12', 0.3), 0.8)
-    one(sfx_quill(LEN['S12'] - 7), C('S12', 'اعلم', 0, 5), 0.7)
-    one(sfx_stamp(), E('S12') - 1.65, 0.8)
-    one(sfx_scroll(), C('S13', 'وتقول', 0, 10), 0.8)
-    one(sfx_quill(9), C('S13', 'وتقول', 0, 10) + 1, 0.9)
-    one(sfx_stamp(), C('S13', 'بالدم', 0, 20) - 0.2, 1.0)
-    one(sfx_thunder(13), C('S13', 'بالدم', 0, 20) - 0.15, 0.7)
-    # S14 drums (music) + horns + marching
-    one(sfx_scroll(), C('S14', 'أغلق', 0, 4), 0.6)
-    t = C('S14', 'تحركت', 0, 10)
-    one(sfx_march(LEN['S14'] - (t - START['S14']), 1.6, 14), t - 0.5, 0.6)
-    one(sfx_gallop(E('S14') - t, 1.6, 8, 14, 0.6), t, 0.5)
-
-    # S15 Sivas
-    one(sfx_boom(), S('S15', 0.2), 0.6)
-    bed(sfx_wind, 'S15', 2, gain=0.4, strength=0.6, seed=15)
-    bed(sfx_dig, 'S15', C('S15', 'وحفر', 0, 8) - START['S15'], C('S15', 'تصدعت', 0, 12) - START['S15'], gain=0.8)
-    one(sfx_rumble(3.5), C('S15', 'تصدعت', 0, 12) - 0.8, 0.9)
-    one(sfx_boom(), C('S15', 'تصدعت', 0, 12) + 0.3, 0.6)
-    bed(sfx_fire, 'S15', C('S15', 'دفنوا', 0, 20) - START['S15'], gain=0.45, seed=15)
-    # S16
-    bed(sfx_candle, 'S16', 0, C('S16', 'لكن', 0, 7) - START['S16'], gain=0.8)
-    for w in ('حلب', 'دمشق', 'بغداد'):
-        one(sfx_fire(4, 16, 0.6), C('S16', w, 0, 12) + 0.3, 0.55)
-    # S17
-    one(sfx_whoosh(1.0), C('S17', 'أرزنجان', 0, 2) - 0.6, 0.5)
-    one(sfx_thunder(17, 0.4), C('S17', 'صفعة', 0, 6), 0.5)
-    t = C('S17', 'صفعة', 0, 6) + 1.5
-    bed(sfx_wind, 'S17', t - START['S17'], gain=0.6, strength=0.9, seed=17)
-    one(sfx_neigh(17), t + 4, 0.3, -0.4)
-    # S18 muster
-    bed(sfx_march, 'S18', 0.2, C('S18', 'أبناؤه', 0, 21) - START['S18'], gain=0.5, rate=1.66, seed=18)
-    bed(sfx_crowd, 'S18', 0.2, C('S18', 'أبناؤه', 0, 21) - START['S18'], gain=0.25, intensity=0.4, seed=18)
-    one(sfx_gallop(8, 1.5, 6, 18, 0.5), C('S18', 'السباهية', 0, 6), 0.4)
-    one(sfx_neigh(18), C('S18', 'التتار', 0, 9) + 0.5, 0.3, 0.3)
-    # S19
-    one(sfx_whoosh(1.2), C('S19', 'التف', 0, 11), 0.4)
-    one(sfx_boom(), C('S19', 'فوجئت', 0, 20), 0.6)
-    # S20 heat & water
-    bed(sfx_heat, 'S20', gain=1.0)
-    bed(sfx_march, 'S20', 0, C('S20', 'سبقهم', 0, 14) - START['S20'], gain=0.45, rate=1.1, seed=20)
-    bed(sfx_wind, 'S20', gain=0.25, strength=0.4, seed=20)
-    bed(sfx_water, 'S20', C('S20', 'سبقهم', 0, 14) - START['S20'], gain=0.6, seed=20)
-    bed(sfx_dig, 'S20', C('S20', 'سبقهم', 0, 14) - START['S20'], C('S20', 'سبقهم', 0, 14) - START['S20'] + 6, gain=0.5, seed=21)
-    # S21 night
-    bed(sfx_crickets, 'S21', gain=1.0)
-    bed(sfx_fire, 'S21', gain=0.3, seed=21)
-    bed(sfx_wind, 'S21', gain=0.15, strength=0.3, seed=21)
-    # S22 formation
-    bed(sfx_wind, 'S22', gain=0.35, strength=0.5, seed=22)
-    one(sfx_neigh(22), C('S22', 'وقبالتهم', 0, 17), 0.3, 0.5)
-    one(sfx_trumpet_elephant(22), C('S22', 'الفيلة', 0, 23), 0.45, 0.5)
-    # S23 the battle (after the held breath)
-    t_in = S('S23', 1.8)
-    bed(sfx_crowd, 'S23', 1.8, gain=0.85, intensity=0.9, seed=23)
-    bed(sfx_gallop, 'S23', 1.8, gain=0.8, rate=2.7, n_horses=14, seed=23)
-    for k in range(10):
-        one(sfx_arrows(230 + k), t_in + 0.2 + k * 2.0, 0.6)
-    clashes(t_in + 6, E('S23'), 0.5, 0.45, 23)
-    for k in range(4):
-        one(sfx_neigh(231 + k), t_in + 5 + k * 6.5, 0.3, (-1) ** k * 0.5)
-    # S24 betrayal
-    bed(sfx_crowd, 'S24', gain=0.75, intensity=0.85, seed=24)
-    one(sfx_gallop(LEN['S24'] - 2, 2.7, 10, 24, 0.7), S('S24', 0.5), 0.7)
-    clashes(S('S24', 1), E('S24'), 0.7, 0.35, 24)
-    one(sfx_neigh(24), C('S24', 'استدار', 0, 4) + 0.3, 0.45, -0.3)
-    # S25 Serbs
-    cP = C('S25', 'وشق', 0, 17)
-    bed(sfx_crowd, 'S25', 0, cP - START['S25'], gain=0.7, intensity=0.85, seed=25)
-    clashes(S('S25', 0.5), cP, 0.4, 0.5, 25)
-    one(sfx_gallop(cP - START['S25'], 2.6, 8, 25, 0.7), S('S25'), 0.6)
-    bed(sfx_wind, 'S25', cP - START['S25'], gain=0.35, seed=25)
-    # S26 scatter
-    one(sfx_gallop(6, 2.5, 4, 26, 0.6), S('S26', 1), 0.5)
-    bed(sfx_wind, 'S26', gain=0.5, strength=0.9, seed=26)
-    # S27 last stand
-    cM = C('S27', 'محمود', 0, 22)
-    bed(sfx_crowd, 'S27', 0, C('S27', 'الفرار', 0, 16) - START['S27'], gain=0.6, intensity=0.8, seed=27)
-    clashes(S('S27', 0.5), C('S27', 'الفرار', 0, 16), 0.55, 0.5, 27)
-    one(sfx_gallop(cM - C('S27', 'الفرار', 0, 16), 2.6, 1, 271, 0.8), C('S27', 'الفرار', 0, 16) - 0.3, 0.8)
-    one(sfx_neigh(272), C('S27', 'فتعثر', 0, 19) + 0.1, 0.55)
-    one(sfx_rumble(2.0), C('S27', 'فتعثر', 0, 19) + 0.3, 0.8)
-    one(sfx_gallop(3.5, 2.4, 8, 273, 0.7), cM - 0.2, 0.6)
-    bed(sfx_wind, 'S27', cM - START['S27'] + 1, gain=0.55, strength=0.8, seed=27)
-    one(sfx_chains(27), C('S27', 'سقطت', 0, 30) + 0.5, 0.4)
-
-    # S28–S29 tent
-    bed(sfx_candle, 'S28', gain=0.8)
-    bed(sfx_wind, 'S28', gain=0.25, strength=0.4, seed=28)
-    one(sfx_footsteps(2.5, 1.2, 28), C('S28', 'قام', 0, 4), 0.5)
-    bed(sfx_candle, 'S29', 0, C('S29', 'ويرى', 0, 15) - START['S29'], gain=0.8)
-    one(sfx_chains(29), C('S29', 'جزاؤك', 0, 13) - 0.9, 0.7)
-    one(sfx_stamp(), C('S29', 'جزاؤك', 0, 13) - 0.2, 0.7)
-    bed(sfx_footsteps, 'S29', C('S29', 'ويرى', 0, 15) - START['S29'], C('S29', 'الثابت', 0, 23) - START['S29'], gain=0.45, rate=1.4)
-    one(sfx_fire(5, 29, 0.6), C('S29', 'بورصة', 0, 29), 0.6)
-    # S30 death
-    bed(sfx_wind, 'S30', gain=0.45, strength=0.7, seed=30)
-    bed(sfx_candle, 'S30', 0, C('S30', 'مات', 0, 6) - START['S30'], gain=0.9)
-    one(sfx_bell(150), C('S30', 'مات', 0, 6) + 0.2, 0.55)
-    bed(sfx_footsteps, 'S30', C('S30', 'وأطلق', 0, 18) - START['S30'], gain=0.5, rate=1.0)
-    # S31
-    for w in ('عيسى', 'سليمان', 'موسى'):
-        one(sfx_clash(31), C('S31', w, 1, 20), 0.35)
-    # S32
-    bed(sfx_wind, 'S32', 0, C('S32', 'وبعد', 0, 17) - START['S32'], gain=0.6, strength=1.0, seed=32)
-    one(sfx_whoosh(3), C('S32', 'فمات', 0, 5) + 0.3, 0.3)
-    one(sfx_bell(196), C('S32', 'وبعد', 0, 17) + 2, 0.35)
-    # S33
+        cannon(cF + 0.5 + k * 1.7, 0.5, 165 + k)
+    cH = C('S16', 'فرسه', 0, 20)
+    one(sfx_gallop(2.5, 2.6, 1, 16, 0.6), cH - 1.6, 0.6)
+    one(sfx_neigh(16), cH + 0.4, 0.5)
+    one(sfx_water(1.5, 17), cH + 0.9, 0.8)
+    bed(sfx_candle, 'S17', gain=0.8)
+    bed(sfx_wind, 'S18', gain=0.4, strength=0.5, seed=18)
+    bed(sfx_rumble, 'S18', 0.5, C('S18', 'الصباح', 0, 18) - START['S18'], gain=0.4)
+    bed(sfx_march, 'S18', 0.5, C('S18', 'الصباح', 0, 18) - START['S18'], gain=0.35, rate=1.0)
+    bed(sfx_crowd, 'S18', C('S18', 'الصباح', 0, 18) - START['S18'] + 1, C('S18', 'السلسلة', 0, 28) - START['S18'], gain=0.35, intensity=0.5, seed=18)
+    bed(sfx_dig, 'S19', 1, C('S19', 'برجا', 0, 14) - START['S19'], gain=0.5, seed=19)
+    cB = C('S19', 'فأحرقه', 0, 17)
+    one(sfx_fire(LEN['S19'] - (cB - START['S19']), 19, 0.8), cB, 0.7)
+    bed(sfx_wind, 'S20', gain=0.45, strength=0.7, seed=20)
+    one(sfx_bell(170), S('S20', 1), 0.4)
+    one(sfx_thunder(20, dist=0.7), C('S20', 'أيقونة', 0, 7) + 0.8, 0.5)
+    one(sfx_scroll(), S('S21', 0.2), 0.8)
+    one(sfx_quill(6), C('S21', 'فجاء', 0, 9) + 0.4, 0.7)
+    one(sfx_stamp(), E('S21') - 1.65, 0.8)
+    bed(sfx_candle, 'S22', gain=0.8)
+    one(sfx_stamp(), C('S22', 'الهجوم', 0, 17) - 0.05, 0.5)
+    bed(sfx_crickets, 'S23', gain=0.35, seed=23)
+    bed(sfx_candle, 'S23', gain=0.5)
+    one(sfx_bell(196), C('S23', 'المدينة', 0, 10), 0.4)
+    # ---------------- ACT III
+    one(sfx_boom(), S('S24', 0.2), 0.7)
+    c1 = C('S24', 'الأولى', 0, 10)
+    bed(sfx_crowd, 'S24', c1 - START['S24'] - 1, -0.3, gain=0.6, intensity=0.8, seed=24)
+    for k in range(6):
+        one(sfx_arrows(240 + k), c1 + k * 1.33, 0.5)
+    clashes(c1 + 2, C('S24', 'والسلطان', 0, 29), 0.6, 0.3, 24)
+    cHit = C('S25', 'أصيب', 0, 10)
+    bed(sfx_march, 'S25', 0.2, cHit - START['S25'], gain=0.55, rate=1.66)
+    one(sfx_clash(250), cHit - 0.13, 0.8)
+    bed(sfx_crowd, 'S25', cHit - START['S25'] + 1, -0.3, gain=0.55, intensity=0.8, seed=25)
+    one(sfx_whoosh(2), S('S26', 1.3), 0.3)
+    bed(sfx_crowd, 'S26', C('S26', 'حسن', 0, 9) - START['S26'] - 1, gain=0.45, intensity=0.7, seed=26)
+    bed(sfx_wind, 'S26', C('S26', 'لحظات', 0, 16) - START['S26'], gain=0.45, strength=0.7, seed=26)
+    bed(sfx_wind, 'S27', gain=0.5, strength=0.8, seed=27)
+    one(sfx_clash(270), C('S27', 'واندفع', 0, 5) + 0.3, 0.3)
+    bed(sfx_gallop, 'S28', 0, C('S28', 'حفنة', 0, 10) - START['S28'] - 2, gain=0.35, rate=1.3, n_horses=1, seed=28)
+    bed(sfx_wind, 'S28', gain=0.2, strength=0.3, seed=28)
+    one(sfx_bell(220), C('S28', 'الفاتح', 0, 20), 0.35)
+    bed(sfx_crowd, 'S29', 0, C('S29', 'بطريركهم', 0, 10) - START['S29'], gain=0.3, intensity=0.4, seed=29)
+    bed(sfx_dig, 'S29', 0.5, C('S29', 'بطريركهم', 0, 10) - START['S29'], gain=0.2, seed=29)
+    bed(sfx_water, 'S29', C('S29', 'إسطنبول', 0, 18) - START['S29'] - 1, gain=0.35, seed=29)
+    for w, fb in (('صربيا', 2), ('والموره', 3), ('وطرابزون', 4), ('والبوسنة', 5), ('أوترانتو', 8)):
+        one(sfx_whoosh(0.8), C('S30', w, 0, fb) - 0.6, 0.45)
+    cD = C('S30', 'مات', 0, 16)
+    bed(sfx_candle, 'S30', cD - START['S30'] - 2, cD - START['S30'] + 1.3, gain=0.9)
+    bed(sfx_wind, 'S30', cD - START['S30'] - 1, gain=0.35, strength=0.5, seed=30)
+    bed(sfx_wind, 'S31', gain=0.25, strength=0.4, seed=31)
+    bed(sfx_water, 'S31', C('S31', 'وهاجر', 0, 8) - START['S31'], gain=0.3, seed=31)
+    bed(sfx_wind, 'S32', gain=0.35, strength=0.5, seed=32)
     bed(sfx_wind, 'S33', gain=0.3, strength=0.4, seed=33)
-    one(sfx_thunder(33, dist=0.7), C('S33', 'الصاعقة', 0, 14) + 0.4, 0.45)
-    # S34
+    bed(sfx_water, 'S33', gain=0.3, seed=33)
     one(sfx_boom(), E('S34') - 5.5, 0.35)
 
 
