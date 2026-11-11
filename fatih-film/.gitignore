@@ -1,0 +1,11 @@
+node_modules/
+.cache/
+out/
+audio/work/
+*.log
+audio/narration/*.wav
+audio/stems/
+audio/soundtrack.wav
+public/audio/
+audio/narration_piper/
+.cache
