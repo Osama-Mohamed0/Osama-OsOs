@@ -10,7 +10,7 @@ import soundfile as sf
 from PIL import Image, ImageDraw
 
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FILM = 'final/Timur_vs_Bayezid.mp4'
+FILM = 'final/Al_Fatih.mp4'
 os.makedirs('out/qa', exist_ok=True)
 report = {}
 

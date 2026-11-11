@@ -1,6 +1,6 @@
 """Assemble the film: concatenate the rendered scene videos (identical to the Main composition,
 frame for frame), apply the global finish (vignette + light film grain), mux the mixed soundtrack.
-Output: final/Timur_vs_Bayezid.mp4  (1920x1080, 30 fps, H.264 + AAC)."""
+Output: final/Al_Fatih.mp4  (1920x1080, 30 fps, H.264 + AAC)."""
 import json
 import os
 import subprocess
@@ -39,9 +39,9 @@ def main():
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-stats', '-f', 'concat', '-safe', '0', '-i', 'out/concat.txt', '-i', 'audio/soundtrack.wav',
            '-filter_complex', f'[0:v]{vf}[v]', '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-preset', 'medium', '-crf', CRF,
            '-profile:v', 'high', '-level', '4.1', '-g', '60', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart',
-           '-t', '900', 'final/Timur_vs_Bayezid.mp4']
+           '-t', '900', 'final/Al_Fatih.mp4']
     subprocess.run(cmd, check=True)
-    print('done:', subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration,size,bit_rate', '-of', 'json', 'final/Timur_vs_Bayezid.mp4']).decode())
+    print('done:', subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration,size,bit_rate', '-of', 'json', 'final/Al_Fatih.mp4']).decode())
 
 
 if __name__ == '__main__':
