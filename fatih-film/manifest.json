@@ -41,6 +41,20 @@
       "frames": 1144,
       "renderSec": 65,
       "renderedAt": "2026-11-11T20:22:10.257Z"
+    },
+    "S07": {
+      "status": "rendered",
+      "video": "out/scenes/S07.mp4",
+      "frames": 673,
+      "renderSec": 62,
+      "renderedAt": "2026-11-11T20:23:13.101Z"
+    },
+    "S08": {
+      "status": "rendered",
+      "video": "out/scenes/S08.mp4",
+      "frames": 804,
+      "renderSec": 41,
+      "renderedAt": "2026-11-11T20:23:54.523Z"
     }
   }
 }
