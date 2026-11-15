@@ -118,6 +118,19 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   { const enc = TM.encode({ a: new Float32Array([1.5, 2.5]), _rtX: 1 }); const dec = TM.decode(enc); ok(dec.a[1] === 2.5 && dec._rtX === undefined, 'typed array codec'); }
   { const d = TM.IO.writeDXF({ strings: [{ name: 'L1', closed: false, pts: [[0, 0, 0], [1, 1, 1]] }] }); const r = TM.IO.readDXF(d); ok(r.strings.length === 1 && r.strings[0].pts[1][2] === 1, 'DXF round-trip'); }
 
+  { // Surpac binary string + DTM (records: int32 string no, Y X Z doubles, D text \0; DTM triangles index records incl. separators)
+    const parts = [], i32 = v => { const b = Buffer.alloc(4); b.writeInt32BE(v); parts.push(b); }, f64 = v => { const b = Buffer.alloc(8); b.writeDoubleBE(v); parts.push(b); }, txt = t => parts.push(Buffer.from(t + '\0', 'latin1'));
+    const rec = (sn, y, x, z, d = '') => { i32(sn); f64(y); f64(x); f64(z); txt(d); };
+    parts.push(Buffer.from('cube,01-Jan-24,,\n0,0,0,0,0,0,0\n', 'latin1')); i32(0); txt('');
+    const P = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0], [0, 0, 10], [10, 0, 10], [10, 10, 10], [0, 10, 10]];
+    P.slice(0, 4).forEach(p => rec(1, p[1], p[0], p[2], ',low')); rec(0, 0, 0, 0); P.slice(4).forEach(p => rec(2, p[1], p[0], p[2])); rec(0, 0, 0, 0); rec(0, 0, 0, 0, 'END');
+    const str = new Uint8Array(Buffer.concat(parts)); const ss = TM.IO.readSTR(str, 'cube'); ok(ss.length === 2 && ss[0].pts.length === 4 && ss[0].desc === 'low' && ss[1].pts[2][2] === 10, 'Surpac binary .str', `${ss.length} strings`);
+    parts.length = 0; parts.push(Buffer.from('cube.str,123;algorithm=standard\r\n', 'latin1')); i32(0); txt(''); rec(0, 0, 0, 0, 'END'); i32(1); i32(1); txt(''); i32(2); i32(1); txt('closed=yes');
+    const R = k => k < 4 ? k + 1 : k + 2; // record numbers (separator after the 4th point)
+    const T = [[0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7], [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]];
+    T.forEach((t, n) => { i32(3); i32(n + 1); t.forEach(v => i32(R(v))); i32(0); i32(0); i32(0); txt(''); });
+    const m = TM.IO.readDTM(new Uint8Array(Buffer.concat(parts)), 'cube', str); ok(m.triangles === 12 && near(TM.Solid.volume(m), 1000, 1e-6) && TM.Solid.isClosed(m).closed, 'Surpac binary .dtm with companion .str', TM.Solid.volume(m)); }
+
   console.log('Underground');
   { const line = [[0, 0, 100], [100, 0, 100]]; const r = TM.UG.tunnel(line, { type: 'rect', w: 4, h: 4 }); const v = TM.Solid.volume(r.mesh); ok(near(v, 1600, 1) && TM.Solid.isClosed(r.mesh).closed, 'rectangular drive volume = 4×4×100', v.toFixed(1));
     const c = TM.UG.tunnel([[0, 0, 0], [0, 0, 50]], { type: 'circular', w: 4 }); const vc = TM.Solid.volume(c.mesh); ok(Math.abs(vc - Math.PI * 4 * 50) / (Math.PI * 4 * 50) < 0.03, 'circular raise volume ≈ πr²h', vc.toFixed(1));

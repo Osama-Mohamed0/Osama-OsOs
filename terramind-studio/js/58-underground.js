@@ -191,7 +191,7 @@
       const floor = (x, y) => { const f = a.floorAt(x, y); return isFinite(f) ? Math.max(f, zt) : NaN; };
       const op = TM.Mine.scheduleP(TM.Mine.panelsFromBM(bm, floor, s.benchH, s), Object.assign({}, s, { capex: 0, closure: 0 }));
       let ugT = 0, ugM = 0; for (let id = 0; id < bm.N; id++) { const g = bm.grade[id]; if (!(g >= ugCog)) continue; const k = Math.floor(id / (d.nx * d.ny)); const z = d.z0 + (k + .5) * d.dz; if (z > zt - p.crown) continue; const t = TM.Est.blockTonnes(bm, id); ugT += t; ugM += t * g; }
-      const ugYears = ugT / p.ugRate, ugCashT = ugT ? (ugM / ugT * ue.netPrice - ue.cost) : 0; let ugNpv = 0;
+      const ugYears = ugT / p.ugRate, ugCashT = ugT ? (TM.Mine.valueT(ugM / ugT, se) - ue.cost) : 0; let ugNpv = 0;
       if (ugT > 0 && ugCashT > 0) { const n = Math.ceil(ugYears), start = op.life; ugNpv -= p.ugCapex / Math.pow(1 + r, Math.max(0, start - 1)); for (let y = 1; y <= n; y++) { const t = Math.min(p.ugRate, ugT - p.ugRate * (y - 1)); ugNpv += t * ugCashT / Math.pow(1 + r, start + y); } }
       const total = op.npv - s.capex + (ugNpv > 0 ? ugNpv : 0);
       rows.push({ rl: zt, op_ore_t: Math.round(op.total.ore), op_waste_t: Math.round(op.total.waste + op.total.low), op_sr: op.total.ore ? +((op.total.waste + op.total.low) / op.total.ore).toFixed(2) : null, op_life: op.life, op_npv_musd: +((op.npv - s.capex) / 1e6).toFixed(1), ug_ore_t: Math.round(ugT), ug_grade: ugT ? +(ugM / ugT).toFixed(2) : 0, ug_life: +ugYears.toFixed(1), ug_npv_musd: +(Math.max(0, ugNpv) / 1e6).toFixed(1), total_npv_musd: +(total / 1e6).toFixed(1) });

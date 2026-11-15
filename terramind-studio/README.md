@@ -1,4 +1,4 @@
-# TerraMind Studio 1.3
+# TerraMind Studio 1.4
 
 TerraMind Studio is a mining geology, resource estimation, open-pit and underground mine planning application. It runs in the browser and is controlled by a bilingual (Arabic/English) AI copilot.
 
@@ -45,6 +45,12 @@ The browser edition needs no installation or server. On Windows, double-click `i
      - «جدول الإنتاج»
      - «اقترح 3 آبار تكميلية»
      - «مقطع شمالي عند 8300»
+
+## الجديد في 1.4 (بعد اختباره على مشروع Surpac حقيقي)
+- **ملفات Surpac الثنائية:** قراءة ملفات ‎.str و‎.dtm بالصيغة الثنائية (binary) التي يحفظها Surpac 6 وما بعده، مع ربط كل ‎.dtm بملف ‎.str الخاص به تلقائياً. حجم مجسم الغطاء المحسوب يطابق تقرير Surpac بالضبط (392,046 م³).
+- **الخامات الصناعية:** نموذج اقتصادي لخامات تُباع بالطن مع مواصفة جودة، مثل رمل السيليكا والحجر الجيري والجبس. يأخذ سعر الطن ونسبة الإنتاج من المصنع (yield) ومواصفة التركيز، ويُطبَّق على تحسين الحفرة والجدولة والمؤشرات.
+- **مدى الألوان وشريط حد القطع:** يتكيّفان تلقائياً مع حقل التركيز، فيعملان مع SiO2 من 97 إلى 99% كما يعملان مع الذهب من 0 إلى 3 غ/طن.
+- **المقاطع:** مبالغة رأسية تلقائية أو يدوية (×1 حتى ×20) للمحاجر والرواسب الضحلة.
 
 ## الجديد في 1.3
 - **الواجهة:**
@@ -104,7 +110,7 @@ The browser edition needs no installation or server. On Windows, double-click `i
 | QA/QC | Validate, Statistics & top-cut | Finds duplicates, overlaps, gaps, intervals past total depth, dog-legs and extreme values. Auto-fixes intervals. Suggests a top-cut from the tail break. |
 | Desurvey | automatic | Minimum-curvature desurvey of every hole. |
 | Composite | Composite | Fixed-length, length-weighted composites. Optional lithology domain. Top-cut is applied before compositing. |
-| Surfaces | Terrain & Strings | XYZ points, Surpac `.str`, DXF (polylines / 3DFACE / points), OBJ. Delaunay DTM, contours, string digitising, cut & fill against a level pad or another surface. |
+| Surfaces | Terrain & Strings | XYZ points, Surpac `.str`/`.dtm` (text or binary), DXF (polylines / 3DFACE / points), OBJ. Delaunay DTM, contours, string digitising, cut & fill against a level pad or another surface. |
 | Variography | Block Model → Variography | Experimental variograms (omni plus a 12-direction fan), automatic major / semi / minor axes, spherical model fit. |
 | Estimation | Estimate | Ordinary block kriging (2×2×2 discretisation) / IDW / NN. Anisotropic search ellipsoid, min/max samples, max per hole. Optional domain solid. Partial blocks under topography. |
 | Classification | Classify | Measured / Indicated / Inferred by distance, holes and samples. Resource table by class. |

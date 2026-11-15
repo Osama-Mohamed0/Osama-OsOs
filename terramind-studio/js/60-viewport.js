@@ -19,8 +19,15 @@
 
   VP.CMAPS = { gold: ['#4a3216', '#8a5715', '#cf8a1c', '#f2b740', '#fde9ad'], viridis: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'], turbo: ['#30123b', '#4686fb', '#1ae4b6', '#a2fc3c', '#fabb39', '#e4460a', '#7a0403'] };
   const hexRgb = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
-  VP.gmax = 3;
-  VP.cmap = function (g, name) { const st = (VP.CMAPS[name || TM.P.settings.colormap] || VP.CMAPS.gold).map(hexRgb); const x = TM.clamp(g / VP.gmax, 0, 1) * (st.length - 1); const i = Math.min(Math.floor(x), st.length - 2), f = x - i; return [0, 1, 2].map(k => st[i][k] + (st[i + 1][k] - st[i][k]) * f); };
+  VP.gmin = 0; VP.gmax = 3;
+  // Colour range from the data: skewed grades (gold) → 0…P97.5; tight, high-valued grades (SiO2 %, Fe %) → min…max
+  VP.updateRange = function () {
+    const P = TM.P; if (!P) return; const f = P.settings.gradeField; let v = P.db.assays.map(a => a[f]).filter(isFinite);
+    if (P.bm) { const g = P.bm.grade; for (let i = 0; i < g.length; i += Math.max(1, Math.floor(g.length / 20000))) if (isFinite(g[i])) v.push(g[i]); }
+    if (!v.length) { VP.gmin = 0; VP.gmax = 3; return; } const st = TM.stats(v); const nice = x => { const m = Math.pow(10, Math.floor(Math.log10(Math.abs(x) || 1))); return Math.ceil(x / m * 2) / 2 * m; };
+    if (st.cv < 0.3 && st.min > 0) { VP.gmin = +st.min.toFixed(3); VP.gmax = +(st.max > st.min ? st.max : st.min + 1).toFixed(3); } else { VP.gmin = 0; VP.gmax = Math.max(nice(st.p975), 0.1); }
+  };
+  VP.cmap = function (g, name) { const st = (VP.CMAPS[name || TM.P.settings.colormap] || VP.CMAPS.gold).map(hexRgb); const x = TM.clamp((g - VP.gmin) / ((VP.gmax - VP.gmin) || 1), 0, 1) * (st.length - 1); const i = Math.min(Math.floor(x), st.length - 2), f = x - i; return [0, 1, 2].map(k => st[i][k] + (st[i + 1][k] - st[i][k]) * f); };
   VP.LITH_COLORS = ['#F2C94C', '#C0784A', '#7C8CE0', '#8E99AB', '#E57373', '#4DB6AC', '#BA68C8', '#90A4AE'];
   VP.lithColor = code => { const codes = VP.lithCodes(); const i = codes.indexOf(code); return i < 0 ? '#5b6577' : VP.LITH_COLORS[i % VP.LITH_COLORS.length]; };
   VP.lithCodes = () => { if (!VP._lc || VP._lcN !== TM.P.db.lith.length) { VP._lc = [...new Set(TM.P.db.lith.map(l => l.code))].sort(); VP._lcN = TM.P.db.lith.length; } return VP._lc; };

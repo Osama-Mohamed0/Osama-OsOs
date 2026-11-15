@@ -2,7 +2,7 @@
 (function (TM) {
   'use strict';
   const PL = TM.Plot = {}; const L = (a, b) => TM.L(a, b), fmt = TM.fmt, esc = TM.esc;
-  const st = PL.state = { planSlab: 0, mode: 'section', axis: 'x', pos: null, rl: null, width: 10, scale: 'fit', layers: { topo: true, holes: true, strings: true, solids: true, bm: true, pit: true }, title: '', author: '', digit: null, view: null };
+  const st = PL.state = { ve: 'auto', planSlab: 0, mode: 'section', axis: 'x', pos: null, rl: null, width: 10, scale: 'fit', layers: { topo: true, holes: true, strings: true, solids: true, bm: true, pit: true }, title: '', author: '', digit: null, view: null };
   const PAPER = { w: 1587, h: 1123 }, M = { l: 70, r: 40, t: 50, b: 150 };
 
   // geometry helpers ------------------------------------------------------
@@ -14,10 +14,12 @@
   }
   function mapper(fr) {
     const W = PAPER.w - M.l - M.r, H = PAPER.h - M.t - M.b; let [u0, u1, v0, v1] = st.view || fr.range;
-    let k; if (st.scale === 'fit') k = Math.min(W / (u1 - u0), H / (v1 - v0)); else k = 1000 / +st.scale * 96 / 25.4;
-    const cu = (u0 + u1) / 2, cv = (v0 + v1) / 2; u0 = cu - W / 2 / k; u1 = cu + W / 2 / k; v0 = cv - H / 2 / k; v1 = cv + H / 2 / k;
-    const X = u => M.l + (u - u0) * k, Y = v => M.t + H - (v - v0) * k; const inv = (x, y) => [u0 + (x - M.l) / k, v0 + (M.t + H - y) / k];
-    return { X, Y, inv, k, u0, u1, v0, v1, W, H };
+    // vertical exaggeration on sections: 'auto' fills the sheet when the deposit is much wider than it is deep (shallow quarries)
+    const ve = fr.kind !== 'section' ? 1 : st.ve === 'auto' ? TM.clamp(Math.round((u1 - u0) / Math.max(v1 - v0, 1) * H / W * 0.6), 1, 20) : (+st.ve || 1);
+    let k; if (st.scale === 'fit') k = Math.min(W / (u1 - u0), H / ((v1 - v0) * ve)); else k = 1000 / +st.scale * 96 / 25.4; const kv = k * ve;
+    const cu = (u0 + u1) / 2, cv = (v0 + v1) / 2; u0 = cu - W / 2 / k; u1 = cu + W / 2 / k; v0 = cv - H / 2 / kv; v1 = cv + H / 2 / kv;
+    const X = u => M.l + (u - u0) * k, Y = v => M.t + H - (v - v0) * kv; const inv = (x, y) => [u0 + (x - M.l) / k, v0 + (M.t + H - y) / kv];
+    return { X, Y, inv, k, kv, ve, u0, u1, v0, v1, W, H };
   }
   // slice a triangle mesh with the current plane → segments in (u,v)
   function sliceMesh(pos, idx, fr) {
@@ -33,14 +35,15 @@
     // grid
     const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(v => v * m.k > 70) || 1000; let gr = '';
     for (let u = Math.ceil(m.u0 / step) * step; u <= m.u1; u += step) gr += `<line x1="${m.X(u)}" x2="${m.X(u)}" y1="${M.t}" y2="${M.t + m.H}" stroke="#e3e7ee"/><text x="${m.X(u)}" y="${M.t + m.H + 14}" font-size="10" text-anchor="middle" fill="#555">${fr.labels[0]} ${fmt(u)}</text>`;
-    for (let v = Math.ceil(m.v0 / step) * step; v <= m.v1; v += step) gr += `<line x1="${M.l}" x2="${M.l + m.W}" y1="${m.Y(v)}" y2="${m.Y(v)}" stroke="#e3e7ee"/><text x="${M.l - 6}" y="${m.Y(v) + 3}" font-size="10" text-anchor="end" fill="#555">${fr.labels[1]} ${fmt(v)}</text>`;
+    const stepV = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(v => v * m.kv > 50) || 1000;
+    for (let v = Math.ceil(m.v0 / stepV) * stepV; v <= m.v1; v += stepV) gr += `<line x1="${M.l}" x2="${M.l + m.W}" y1="${m.Y(v)}" y2="${m.Y(v)}" stroke="#e3e7ee"/><text x="${M.l - 6}" y="${m.Y(v) + 3}" font-size="10" text-anchor="end" fill="#555">${fr.labels[1]} ${fmt(v)}</text>`;
     g.push(gr); g.push('<g clip-path="url(#cp)">');
     const L_ = st.layers;
     // block model
     if (L_.bm && P.bm) { const bm = P.bm, d = bm.def; let r = '';
       for (let id = 0; id < bm.N; id++) { const gv = bm.grade[id]; if (!(gv >= s.cutoff)) continue; const i = id % d.nx, j = Math.floor(id / d.nx) % d.ny, k = Math.floor(id / (d.nx * d.ny)); const c = [d.x0 + (i + .5) * d.dx, d.y0 + (j + .5) * d.dy, d.z0 + (k + .5) * d.dz];
         const half = fr.kind === 'plan' ? d.dz / 2 : (st.axis === 'x' ? d.dx / 2 : d.dy / 2); if (Math.abs(fr.off(c)) > half) continue; const uv = fr.toUV(c); const du = fr.kind === 'plan' ? d.dx : (st.axis === 'x' ? d.dy : d.dx), dv = fr.kind === 'plan' ? d.dy : d.dz; if (!inView(uv)) continue;
-        const col = TM.VP.cmap(gv).map(x => Math.round(x * 255)); r += `<rect x="${m.X(uv[0] - du / 2).toFixed(1)}" y="${m.Y(uv[1] + dv / 2).toFixed(1)}" width="${(du * m.k).toFixed(1)}" height="${(dv * m.k).toFixed(1)}" fill="rgb(${col})" fill-opacity=".75"/>`; }
+        const col = TM.VP.cmap(gv).map(x => Math.round(x * 255)); r += `<rect x="${m.X(uv[0] - du / 2).toFixed(1)}" y="${m.Y(uv[1] + dv / 2).toFixed(1)}" width="${(du * m.k).toFixed(1)}" height="${(dv * m.kv).toFixed(1)}" fill="rgb(${col})" fill-opacity=".75"/>`; }
       g.push(r); }
     // topography
     if (L_.topo && TM.rt.tin) {
@@ -69,7 +72,7 @@
     g.push(`<rect x="${M.l}" y="${M.t}" width="${m.W}" height="${m.H}" fill="none" stroke="#111" stroke-width="1.2"/>`);
     if (fr.kind === 'plan') g.push(`<g transform="translate(${M.l + m.W - 40},${M.t + 50})"><polygon points="0,-30 9,8 0,2 -9,8" fill="#111"/><text y="-36" font-size="13" text-anchor="middle" font-weight="600">N</text></g>`);
     const sb = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find(v => v * m.k > 120) || 100; g.push(`<g transform="translate(${M.l},${PAPER.h - M.b + 34})"><rect width="${sb * m.k / 2}" height="6" fill="#111"/><rect x="${sb * m.k / 2}" width="${sb * m.k / 2}" height="6" fill="#fff" stroke="#111"/><text y="20" font-size="10">0</text><text x="${sb * m.k}" y="20" font-size="10" text-anchor="middle">${sb} m</text></g>`);
-    const scaleTxt = st.scale === 'fit' ? `1:${fmt(Math.round(1000 * 96 / 25.4 / m.k))}` : `1:${fmt(+st.scale)}`;
+    const scaleTxt = (st.scale === 'fit' ? `1:${fmt(Math.round(1000 * 96 / 25.4 / m.k))}` : `1:${fmt(+st.scale)}`) + (m.ve > 1 ? ` · VE ×${m.ve}` : '');
     const title = st.title || (fr.kind === 'plan' ? `Plan at RL ${fmt(st.rl)}${st.planSlab > 0 ? ` (±${st.planSlab} m)` : ''}` : `Section ${st.axis === 'x' ? 'E' : 'N'} ${fmt(st.pos)} (±${st.width} m)`);
     const tb = { x: PAPER.w - 520, y: PAPER.h - M.b + 20, w: 480, h: 112 };
     g.push(`<g font-family="Arial,Helvetica,sans-serif"><rect x="${tb.x}" y="${tb.y}" width="${tb.w}" height="${tb.h}" fill="#fff" stroke="#111"/><line x1="${tb.x}" x2="${tb.x + tb.w}" y1="${tb.y + 38}" y2="${tb.y + 38}" stroke="#111"/><line x1="${tb.x + 300}" x2="${tb.x + 300}" y1="${tb.y + 38}" y2="${tb.y + tb.h}" stroke="#111"/>
@@ -95,7 +98,7 @@
       <b>${L('Plan & section', 'المسقط والمقطع')}</b>
       <div class="seg" id="plMode"><button type="button" data-v="plan" aria-pressed="${st.mode === 'plan'}">${L('Plan', 'مسقط')}</button><button type="button" data-v="section" aria-pressed="${st.mode === 'section'}">${L('Section', 'مقطع')}</button></div>
       ${st.mode === 'section' ? `<div class="seg" id="plAxis"><button type="button" data-v="x" aria-pressed="${st.axis === 'x'}">E =</button><button type="button" data-v="y" aria-pressed="${st.axis === 'y'}">N =</button></div><input id="plPos" type="number" step="5" value="${st.pos ?? ''}" title="position"><label>±<input id="plW" type="number" step="5" value="${st.width}"> m</label><button class="btn" type="button" id="plPrev">◀</button><button class="btn" type="button" id="plNext">▶</button>` : `<label>RL <input id="plRL" type="number" step="5" value="${st.rl ?? ''}"></label><label title="0 = all strings">±<input id="plSlab" type="number" step="5" value="${st.planSlab}"> m</label>`}
-      <label>${L('Scale', 'المقياس')} <select id="plScale">${['fit', 500, 1000, 2000, 2500, 5000, 10000].map(v => `<option value="${v}" ${String(st.scale) === String(v) ? 'selected' : ''}>${v === 'fit' ? L('Fit', 'ملاءمة') : '1:' + v}</option>`).join('')}</select></label>
+      ${st.mode === 'section' ? `<label>${L('Vertical exag.', 'المبالغة الرأسية')} <select id="plVE">${['auto', 1, 2, 5, 10, 20].map(v => `<option value="${v}" ${String(st.ve) === String(v) ? 'selected' : ''}>${v === 'auto' ? L('auto', 'تلقائي') : '×' + v}</option>`).join('')}</select></label>` : ''}<label>${L('Scale', 'المقياس')} <select id="plScale">${['fit', 500, 1000, 2000, 2500, 5000, 10000].map(v => `<option value="${v}" ${String(st.scale) === String(v) ? 'selected' : ''}>${v === 'fit' ? L('Fit', 'ملاءمة') : '1:' + v}</option>`).join('')}</select></label>
       ${lay.map(k => `<label class="toggle"><input type="checkbox" data-layer="${k}" ${st.layers[k] ? 'checked' : ''}>${k}</label>`).join('')}
       <input id="plTitle" placeholder="${L('Sheet title', 'عنوان اللوحة')}" value="${esc(st.title)}"><input id="plAuthor" placeholder="${L('Drawn by', 'الرسام')}" value="${esc(st.author)}" style="width:110px">
       <button class="btn ${st.digit ? 'primary' : ''}" type="button" id="plDig">${st.digit ? L('Finish string', 'إنهاء الخط') : L('Digitize', 'رسم')}</button>
@@ -107,7 +110,7 @@
     const num = (id, k) => { const i = $(id); if (i) i.onchange = () => { st[k] = +i.value; st.view = null; PL.draw(); }; };
     num('#plPos', 'pos'); num('#plW', 'width'); num('#plRL', 'rl'); num('#plSlab', 'planSlab');
     if ($('#plPrev')) { $('#plPrev').onclick = () => { st.pos -= st.width * 2; $('#plPos').value = st.pos; PL.draw(); }; $('#plNext').onclick = () => { st.pos += st.width * 2; $('#plPos').value = st.pos; PL.draw(); }; }
-    $('#plScale').onchange = e => { st.scale = e.target.value; PL.draw(); };
+    $('#plScale').onchange = e => { st.scale = e.target.value; PL.draw(); }; if ($('#plVE')) $('#plVE').onchange = e => { st.ve = e.target.value; PL.draw(); };
     el.querySelectorAll('[data-layer]').forEach(c => c.onchange = () => { st.layers[c.dataset.layer] = c.checked; PL.draw(); });
     $('#plTitle').onchange = e => { st.title = e.target.value; PL.draw(); }; $('#plAuthor').onchange = e => { st.author = e.target.value; PL.draw(); };
     $('#plDig').onclick = () => { if (st.digit) { if (st.digit.length > 1) { TM.Undo.push('Digitize'); TM.P.strings.push({ id: TM.uid('str'), name: (st.mode === 'plan' ? 'Plan_RL' + st.rl : `Sec_${st.axis === 'x' ? 'E' : 'N'}${st.pos}`) + '_' + (TM.P.strings.length + 1), closed: false, pts: st.digit, color: '#DC2626', strNo: 50 }); TM.touch('strings'); TM.UI.toast(L(`String with ${st.digit.length} points added`, `أُضيف خط من ${st.digit.length} نقطة`)); } st.digit = null; } else st.digit = []; PL.renderUI(); PL.draw(); };

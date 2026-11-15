@@ -74,7 +74,54 @@
 
   // ---------------------------------------------------------------- Surpac .str
   // Format: header line, axis line, then "string, Y, X, Z, desc..." records; "0,0,0,0" ends a segment; "0,0,0,0,END" ends file.
-  IO.readSTR = function (text, name) {
+  // ---------------------------------------------------------------- Surpac binary strings & DTMs (GEOVIA Surpac 6+)
+  // Binary .str/.dtm: two text header lines, then records [int32 string-no (BE)][Y f64][X f64][Z f64][D-fields text \0];
+  // string-no 0 separates strings, D = "END" ends the point section. A .dtm then carries [int32 type] records:
+  // 1 = object (int32 id, text), 2 = trisolation (int32 id, text), 3 = triangle (int32 id, v1 v2 v3, n1 n2 n3, text).
+  const u8 = b => b instanceof Uint8Array ? b : new Uint8Array(b.buffer ? b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) : b);
+  IO.isSurpacBinary = function (buf, nh = 2) { const b = u8(buf); let n = 0, i = 0; for (; i < b.length && n < nh; i++) if (b[i] === 10) n++; const tail = b.subarray(i, i + 64); let bad = 0; for (const c of tail) if (c < 9 || (c > 13 && c < 32) || c > 126) bad++; return tail.length > 8 && bad > 4; };
+  IO.surpacBinary = function (buf, nh = 2) {
+    const b = u8(buf), dv = new DataView(b.buffer, b.byteOffset, b.byteLength); let i = 0, n = 0; while (i < b.length && n < nh) { if (b[i] === 10) n++; i++; }
+    const header = new TextDecoder('latin1').decode(b.subarray(0, i)).split(/\r?\n/)[0]; const pts = []; let p = i;
+    const cstr = () => { let e = p; while (e < b.length && b[e] !== 0) e++; const t = new TextDecoder('latin1').decode(b.subarray(p, e)); p = e + 1; return t; };
+    if (p + 5 <= b.length && dv.getInt32(p) === 0 && b[p + 4] === 0) p += 5; // leading empty record after the axis line
+    while (p + 28 <= b.length) {
+      const sn = dv.getInt32(p); p += 4; const y = dv.getFloat64(p), x = dv.getFloat64(p + 8), z = dv.getFloat64(p + 16); p += 24; const d = cstr();
+      if (sn === 0) { if (/^END/.test(d)) break; pts.push(null); continue; } pts.push({ sn, x, y, z, d: d.replace(/^,/, '') });
+    }
+    const tris = []; let objects = 0;
+    while (p + 4 <= b.length) {
+      const t = dv.getInt32(p); p += 4;
+      if (t === 3 && p + 28 <= b.length) { tris.push([dv.getInt32(p + 4), dv.getInt32(p + 8), dv.getInt32(p + 12)]); p += 28; cstr(); }
+      else if ((t === 1 || t === 2) && p + 4 <= b.length) { if (t === 1) objects++; p += 4; cstr(); }
+      else break;
+    }
+    return { header, pts, tris, objects };
+  };
+  const recordsToStrings = (recs, name) => { const out = []; let cur = null; for (const r of recs) { if (!r) { cur = null; continue; } if (!cur || cur.strNo !== r.sn) { cur = { strNo: r.sn, pts: [], desc: r.d }; out.push(cur); } cur.pts.push([r.x, r.y, r.z]); } return out.map((s, k) => { const p = s.pts, closed = p.length > 2 && Math.hypot(p[0][0] - p[p.length - 1][0], p[0][1] - p[p.length - 1][1], p[0][2] - p[p.length - 1][2]) < 1e-6; if (closed) p.pop(); return { id: TM.uid('str'), name: `${name || 'str'} #${s.strNo}${out.length > 1 ? '.' + (k + 1) : ''}`, strNo: s.strNo, closed, pts: p, color: '#F59E0B', desc: s.desc }; }); };
+  // Text Surpac rows → the same record list (null = separator)
+  IO.surpacText = function (text) { const lines = String(text).split(/\r?\n/), recs = [], tris = []; let header = lines[0] || '', inTri = false;
+    for (let i = 2; i < lines.length; i++) { const L = lines[i].trim(); if (!L) continue; const c = L.split(',').map(q => q.trim()); if (/^(OBJECT|TRISOLATION)/i.test(c[0])) { inTri = true; continue; }
+      if (inTri) { const v = c.map(Number); if (v.length >= 4 && v.every(isFinite)) tris.push([v[1], v[2], v[3]]); continue; }
+      const sn = parseInt(c[0], 10); if (sn === 0) { if (/END/i.test(L)) inTri = true; recs.push(null); continue; }
+      const y = parseFloat(c[1]), x = parseFloat(c[2]), z = parseFloat(c[3]); if ([x, y, z].every(isFinite)) recs.push({ sn, x, y, z, d: c.slice(4).join(',') }); }
+    return { header, pts: recs, tris }; };
+  // .dtm → mesh. A DTM whose points live in its .str (header "name.str,...", no points) needs that string file's records.
+  IO.readDTM = function (input, name, strInput) {
+    const parse = (q, nh) => typeof q === 'string' ? IO.surpacText(q) : (IO.isSurpacBinary(q, nh) ? IO.surpacBinary(q, nh) : IO.surpacText(new TextDecoder('latin1').decode(u8(q))));
+    // vertex numbers count every record of the point list, string separators included (1-based)
+    const d = parse(input, 1); let recs = d.pts; let vmax = 0; for (const t of d.tris) vmax = Math.max(vmax, t[0], t[1], t[2]);
+    if (vmax > recs.length && strInput) recs = parse(strInput, 2).pts; // triangles index the companion .str records
+    if (!d.tris.length) throw new Error(TM.L('No triangles in this DTM.', 'لا توجد مثلثات في ملف DTM.'));
+    if (vmax > recs.length) throw new Error(TM.L(`This DTM keeps its points in ${d.header.split(',')[0]} — import both files together.`, `هذا الملف يأخذ نقاطه من ${d.header.split(',')[0]} — استورد الملفين معاً.`));
+    const map = new Int32Array(recs.length).fill(-1), P = []; const use = new Set(); for (const t of d.tris) for (const v of t) use.add(v - 1);
+    recs.forEach((r, k) => { if (r && use.has(k)) { map[k] = P.length / 3; P.push(r.x, r.y, r.z); } });
+    const pos = new Float64Array(P); const idx = []; for (const t of d.tris) { const a = map[t[0] - 1], b = map[t[1] - 1], c = map[t[2] - 1]; if (a >= 0 && b >= 0 && c >= 0) idx.push(a, b, c); }
+    return { name, pos, idx: new Uint32Array(idx), strFile: d.header.split(',')[0], triangles: idx.length / 3, points: pos.length / 3 };
+  };
+  IO.readSTR = function (input, name) {
+    if (input && typeof input !== 'string') { if (IO.isSurpacBinary(input)) return recordsToStrings(IO.surpacBinary(input).pts, name); input = new TextDecoder('latin1').decode(u8(input)); }
+    const text = input;
     const lines = String(text).split(/\r?\n/); const strings = []; let cur = null;
     for (let i = 2; i < lines.length; i++) {
       const L = lines[i].trim(); if (!L) continue; const c = L.split(',').map(s => s.trim());

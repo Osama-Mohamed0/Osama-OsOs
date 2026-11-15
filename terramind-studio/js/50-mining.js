@@ -4,10 +4,18 @@
   const M = TM.Mine = {};
 
   // ---------------------------------------------------------------- economics
+  // Commodity models: 'gold' (grade g/t, priced per oz) or 'industrial' (e.g. silica sand: material at or above a quality
+  // spec is sold per tonne of product = ore tonnes × yield; grade only decides whether a tonne is saleable).
+  M.industrial = (s = TM.P.settings) => s.commodity === 'industrial';
   M.econ = function (s = TM.P.settings) {
+    if (M.industrial(s)) { const valueT = (s.priceT || 0) * (s.yieldPct != null ? s.yieldPct : 100) / 100 - (s.sellCostT || 0); const spec = s.spec != null ? s.spec : s.cutoff; return { industrial: true, valueT, netPrice: spec > 0 ? valueT / spec : 0, marginalCOG: valueT > s.procCost + s.gaCost ? spec : Infinity, breakevenCOG: valueT > s.procCost + s.gaCost + s.mineCost ? spec : Infinity }; }
     const netPrice = (s.price - s.sellCost) * s.recovery / 100 / 31.1035; // $ per (g/t × t)
     return { netPrice, marginalCOG: (s.procCost + s.gaCost) / netPrice, breakevenCOG: (s.procCost + s.gaCost + s.mineCost) / netPrice };
   };
+  // Revenue per tonne processed for a block/parcel of grade g (before processing and mining costs)
+  M.valueT = function (g, s = TM.P.settings, e = M.econ(s), rf = 1) { if (e.industrial) return g >= (s.spec != null ? s.spec : s.cutoff) ? e.valueT * rf : 0; return g * e.netPrice * rf; };
+  // Revenue of processed material: gold → recovered oz × (price − selling); industrial → product tonnes × net price
+  M.revenue = function (feedT, metal, s = TM.P.settings, pf = 1) { if (M.industrial(s)) { const prod = feedT * (s.yieldPct != null ? s.yieldPct : 100) / 100; return { units: prod, revenue: prod * ((s.priceT || 0) * pf - (s.sellCostT || 0)) }; } const oz = metal / 31.1035 * s.recovery / 100; return { units: oz, revenue: oz * (s.price * pf - s.sellCost) }; };
   // Cash-flow model for a sequence of increments [{ore, waste, metal(g)}]
   M.schedule = function (incs, s = TM.P.settings, o = {}) {
     const pf = o.priceF || 1, cf = o.costF || 1; const rec = s.recovery / 100; const years = []; let q = incs.map(x => Object.assign({}, x)); let qi = 0, y = 0;
@@ -19,8 +27,8 @@
         yr.ore += c.ore * f; yr.waste += c.waste * f; yr.metal += c.metal * f; mill -= c.ore * f; mine -= tot * f;
         c.ore -= c.ore * f; c.waste -= c.waste * f; c.metal -= c.metal * f; if (f >= 1 - 1e-9) qi++;
       }
-      yr.grade = yr.ore ? yr.metal / yr.ore : 0; yr.oz = yr.metal / 31.1035 * rec;
-      yr.revenue = yr.oz * (s.price * pf - s.sellCost); yr.cost = ((yr.ore + yr.waste) * s.mineCost + yr.ore * (s.procCost + s.gaCost)) * cf; yr.cash = yr.revenue - yr.cost;
+      yr.grade = yr.ore ? yr.metal / yr.ore : 0; { const rv = M.revenue(yr.ore, yr.metal, s, pf); yr.oz = rv.units; yr.revenue = rv.revenue; }
+      yr.cost = ((yr.ore + yr.waste) * s.mineCost + yr.ore * (s.procCost + s.gaCost)) * cf; yr.cash = yr.revenue - yr.cost;
       years.push(yr); y++;
     }
     const fin = M.finance(years, s);
@@ -81,8 +89,8 @@
       yr.feed = yr.ore; yr.metal = yr.oreM;
       if (useLG && mill > 1e-6 && stock.t > 1e-6) { const r = Math.min(mill, stock.t), g = stock.m / stock.t; yr.reclaim = r; yr.feed += r; yr.metal += r * g; stock.t -= r; stock.m -= r * g; }
       if (yr.ore + yr.low + yr.waste + yr.reclaim < 1e-6) break;
-      yr.moved = yr.ore + yr.low + yr.waste; yr.grade = yr.feed ? yr.metal / yr.feed : 0; yr.sr = yr.ore + yr.low ? yr.waste / (yr.ore + yr.low) : null; yr.oz = yr.metal / 31.1035 * rec; yr.stockpile = stock.t;
-      yr.revenue = yr.oz * (s.price * pf - s.sellCost); yr.cost = (yr.moved * s.mineCost + yr.feed * (s.procCost + s.gaCost) + yr.reclaim * rh) * cf; yr.cash = yr.revenue - yr.cost;
+      yr.moved = yr.ore + yr.low + yr.waste; yr.grade = yr.feed ? yr.metal / yr.feed : 0; yr.sr = yr.ore + yr.low ? yr.waste / (yr.ore + yr.low) : null; yr.stockpile = stock.t;
+      { const rv = M.revenue(yr.feed, yr.metal, s, pf); yr.oz = rv.units; yr.revenue = rv.revenue; } yr.cost = (yr.moved * s.mineCost + yr.feed * (s.procCost + s.gaCost) + yr.reclaim * rh) * cf; yr.cash = yr.revenue - yr.cost;
       yr.pushbacks = [...yr.pushbacks].join(','); yr.benches = isFinite(yr.rlFrom) ? `${Math.round(yr.rlFrom)}→${Math.round(yr.rlTo)}` : '—'; years.push(yr);
     }
     const fin = M.finance(years, s), z = { ore: 0, oreM: 0, low: 0, waste: 0, feed: 0, metal: 0, reclaim: 0, oz: 0, revenue: 0, cost: 0, cash: 0 };
@@ -156,7 +164,7 @@
     return { x0, y0, zBot, cell, benchH, nx, ny, nz, N, T, G, topCol, slope };
   };
   M.blockValue = function (lg, id, rf = 1, s = TM.P.settings) {
-    const t = lg.T[id]; if (t <= 0) return 0; const e = M.econ(s); const rev = lg.G[id] * e.netPrice * rf;
+    const t = lg.T[id]; if (t <= 0) return 0; const e = M.econ(s); const rev = M.valueT(lg.G[id], s, e, rf);
     return rev > s.procCost + s.gaCost ? t * (rev - s.procCost - s.gaCost - s.mineCost) : -t * s.mineCost;
   };
   // Precedence offsets: blocks required on levels 1..L above, within slope cone
@@ -196,7 +204,7 @@
     const s = TM.P.settings, e = M.econ(s); let ore = 0, waste = 0, metal = 0, value = 0;
     const floor = new Float32Array(lg.nx * lg.ny).fill(NaN);
     for (let id = 0; id < lg.N; id++) {
-      if (!mined[id]) continue; const t = lg.T[id], g = lg.G[id]; if (g * e.netPrice > s.procCost + s.gaCost) { ore += t; metal += t * g; } else waste += t; value += M.blockValue(lg, id, 1);
+      if (!mined[id]) continue; const t = lg.T[id], g = lg.G[id]; if (M.valueT(g, s, e) > s.procCost + s.gaCost) { ore += t; metal += t * g; } else waste += t; value += M.blockValue(lg, id, 1);
       const col = id % (lg.nx * lg.ny), k = Math.floor(id / (lg.nx * lg.ny)), zb = lg.zBot + k * lg.benchH; if (!(floor[col] <= zb)) floor[col] = zb;
     }
     return { rf, ore, waste, metal, grade: ore ? metal / ore : 0, oz: metal / 31.1035, value, sr: ore ? waste / ore : 0, floor };

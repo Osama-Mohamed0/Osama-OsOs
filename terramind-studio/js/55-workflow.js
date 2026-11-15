@@ -84,7 +84,7 @@
   TM.on('changed', w => { if (w !== 'cutoff' && TM.rt) TM.rt._plan = null; });
   WF.plan = function (o = {}) {
     const P = TM.P, s = Object.assign({}, S(), o.settings || {}), a = TM.Pit.active(); if (!P.bm || !a) return null;
-    const key = sig(s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, a.kind, P.pit && P.pit.selected, P.pit && P.pit.created, P.design && P.design.created, P.bm.created, o.priceF, o.costF);
+    const key = sig(s.commodity, s.priceT, s.yieldPct, s.spec, s.sellCostT, s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, a.kind, P.pit && P.pit.selected, P.pit && P.pit.created, P.design && P.design.created, P.bm.created, o.priceF, o.costF);
     if (!o.nocache && TM.rt._plan && TM.rt._plan.key === key) return TM.rt._plan.r;
     let r; if (a.kind === 'shell') r = TM.Mine.scheduleP(TM.Mine.panels(P.pit.lg, P.pit.shellOf, P.pit.selected), s, o);
     else r = TM.Mine.scheduleP(TM.Mine.panelsFromBM(P.bm, a.floorAt, s.benchH, s), s, o);
@@ -118,7 +118,7 @@
   };
   // Pit-by-pit at the current economics (recomputed when inputs change)
   WF.pitByPit = function () {
-    const p = TM.P.pit; if (!p) return null; const s = S(); const key = sig(s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, p.created);
+    const p = TM.P.pit; if (!p) return null; const s = S(); const key = sig(s.commodity, s.priceT, s.yieldPct, s.spec, s.sellCostT, s.cutoff, s.price, s.sellCost, s.recovery, s.mineCost, s.procCost, s.gaCost, s.capex, s.closure, s.millRate, s.mineRate, s.discount, s.rehandle, s.processLG, p.created);
     if (p._rtPbpKey !== key || !p.pbp) { p.pbp = TM.Mine.pitByPit(p.lg, { shells: p.shells, shellOf: p.shellOf }, s); p._rtPbpKey = key; }
     return p.pbp;
   };
@@ -252,7 +252,7 @@
     const st = TM.P.solids.filter(s => prefix.test(s.name)); if (!st.length) throw new Error(TM.L('No stope solids (names starting with ST_).', 'لا توجد مجسمات أعمال (أسماء تبدأ بـ ST_).'));
     const rows = st.map(s => { const r = TM.Wire.report(s, 0); return { stope: s.name, volume: Math.round(r.volume), tonnes: Math.round(r.bm_tonnes || 0), grade: +(r.bm_grade || 0).toFixed(2), oz: Math.round(r.bm_oz || 0), status: (r.bm_grade || 0) >= cog ? 'ore' : 'below COG' }; });
     const ore = rows.filter(r => r.status === 'ore'), t = ore.reduce((a, r) => a + r.tonnes, 0), m = ore.reduce((a, r) => a + r.tonnes * r.grade, 0);
-    const e = TM.Mine.econ(), val = ore.reduce((a, r) => a + r.tonnes * (r.grade * e.netPrice - S().procCost - S().gaCost - S().mineCost), 0);
+    const e = TM.Mine.econ(), val = ore.reduce((a, r) => a + r.tonnes * (TM.Mine.valueT(r.grade, S(), e) - S().procCost - S().gaCost - S().mineCost), 0);
     return { cutoff: cog, stopes: rows.length, ore_stopes: ore.length, ore_t: Math.round(t), grade: t ? +(m / t).toFixed(2) : 0, oz: Math.round(m / 31.1035), operating_margin_musd: +(val / 1e6).toFixed(1), rows };
   };
 
