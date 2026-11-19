@@ -2,9 +2,9 @@
 Writes story/timing.json and src/data/timing.ts."""
 import json, os
 FPS, TARGET = 30, 900
-LEAD, TAIL = 0.6, 0.8
+LEAD, TAIL = 1.0, 2.2
 ACT_OPEN_EXTRA = {'S03': 2.0, 'S13': 2.0, 'S24': 2.0}
-BREAK_SCALE = 1.0
+BREAK_SCALE = 2.5
 MIN_CREDITS = 12.0
 script = json.load(open('story/script.json', encoding='utf-8'))
 durs = json.load(open('story/narration_durations.json'))

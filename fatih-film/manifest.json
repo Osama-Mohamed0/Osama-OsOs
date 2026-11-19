@@ -3,86 +3,86 @@
     "S01": {
       "status": "rendered",
       "video": "out/scenes/S01.mp4",
-      "frames": 756,
-      "renderSec": 42,
-      "renderedAt": "2026-11-11T20:15:40.011Z"
+      "frames": 758,
+      "renderSec": 45,
+      "renderedAt": "2026-11-19T06:33:30.178Z"
     },
     "S02": {
       "status": "rendered",
       "video": "out/scenes/S02.mp4",
       "frames": 270,
-      "renderSec": 32,
-      "renderedAt": "2026-11-11T20:16:12.316Z"
+      "renderSec": 35,
+      "renderedAt": "2026-11-19T06:34:05.147Z"
     },
     "S03": {
       "status": "rendered",
       "video": "out/scenes/S03.mp4",
-      "frames": 1158,
-      "renderSec": 46,
-      "renderedAt": "2026-11-11T20:16:59.062Z"
+      "frames": 1038,
+      "renderSec": 45,
+      "renderedAt": "2026-11-19T06:34:50.821Z"
     },
     "S04": {
       "status": "rendered",
       "video": "out/scenes/S04.mp4",
-      "frames": 646,
-      "renderSec": 126,
-      "renderedAt": "2026-11-11T20:19:05.774Z"
+      "frames": 640,
+      "renderSec": 130,
+      "renderedAt": "2026-11-19T06:37:00.696Z"
     },
     "S05": {
       "status": "rendered",
       "video": "out/scenes/S05.mp4",
-      "frames": 852,
-      "renderSec": 118,
-      "renderedAt": "2026-11-11T20:21:04.579Z"
+      "frames": 828,
+      "renderSec": 116,
+      "renderedAt": "2026-11-19T06:38:57.145Z"
     },
     "S06": {
       "status": "rendered",
       "video": "out/scenes/S06.mp4",
-      "frames": 1144,
-      "renderSec": 65,
-      "renderedAt": "2026-11-11T20:22:10.257Z"
+      "frames": 1052,
+      "renderSec": 73,
+      "renderedAt": "2026-11-19T06:40:11.071Z"
     },
     "S07": {
       "status": "rendered",
       "video": "out/scenes/S07.mp4",
-      "frames": 673,
-      "renderSec": 62,
-      "renderedAt": "2026-11-11T20:23:13.101Z"
+      "frames": 670,
+      "renderSec": 72,
+      "renderedAt": "2026-11-19T06:41:24.067Z"
     },
     "S08": {
       "status": "rendered",
       "video": "out/scenes/S08.mp4",
-      "frames": 804,
-      "renderSec": 41,
-      "renderedAt": "2026-11-11T20:23:54.523Z"
+      "frames": 763,
+      "renderSec": 43,
+      "renderedAt": "2026-11-19T06:42:08.244Z"
     },
     "S09": {
       "status": "rendered",
       "video": "out/scenes/S09.mp4",
-      "frames": 1114,
-      "renderSec": 49,
-      "renderedAt": "2026-11-11T20:24:43.609Z"
+      "frames": 988,
+      "renderSec": 56,
+      "renderedAt": "2026-11-19T06:43:05.106Z"
     },
     "S10": {
       "status": "rendered",
       "video": "out/scenes/S10.mp4",
-      "frames": 558,
-      "renderSec": 23,
-      "renderedAt": "2026-11-11T20:25:06.544Z"
+      "frames": 599,
+      "renderSec": 29,
+      "renderedAt": "2026-11-19T06:43:34.749Z"
     },
     "S11": {
       "status": "rendered",
       "video": "out/scenes/S11.mp4",
-      "frames": 772,
-      "renderSec": 34,
-      "renderedAt": "2026-11-11T20:25:41.050Z"
+      "frames": 759,
+      "renderSec": 42,
+      "renderedAt": "2026-11-19T06:44:17.212Z"
     },
     "S12": {
       "status": "rendered",
       "video": "out/scenes/S12.mp4",
-      "frames": 828,
-      "renderSec": 38,
-      "renderedAt": "2026-11-11T20:26:19.036Z"
+      "frames": 962,
+      "renderSec": 58,
+      "renderedAt": "2026-11-19T06:45:16.017Z"
     },
     "S13": {
       "status": "rendered",
