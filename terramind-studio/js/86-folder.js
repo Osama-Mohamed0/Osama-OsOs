@@ -20,7 +20,7 @@
     internal: { en: 'Software internal file', ar: 'ملف داخلي لبرنامج آخر' }, unknown: { en: 'Not recognised', ar: 'غير معروف' }
   };
   const INTERNAL = /^(ssi|ddb|dsc|rej|laccdb|accdb|mdb|mdl|bmr|con|log|ai|bak|tmp|ini|db|lnk|slim|dwl|dwl2)$/;
-  const DOC = /^(pdf|jpg|jpeg|png|gif|bmp|tif|tiff|doc|docx|ppt|pptx|txt|md|html|htm)$/;
+  const DOC = /^(not|vgm|pdf|jpg|jpeg|png|gif|bmp|tif|tiff|doc|docx|ppt|pptx|txt|md|html|htm)$/;
 
   // ---------------------------------------------------------------- table classification
   const norm = h => String(h).toLowerCase().trim().replace(/[\s.()]+/g, '_').replace(/_+$/, '');
@@ -47,7 +47,7 @@
     const iLat = has(/^(lat|latitude)/), iLon = has(/^(lon|long|longitude)/);
     if (has(/^xp$/) >= 0 && has(/^yp$/) >= 0) return { kind: 'datamine' };
     if (iHole >= 0 && iFrom >= 0 && iTo >= 0) {
-      const used = new Set([iHole, iFrom, iTo]); const numCols = [], textCols = [];
+      const used = new Set([iHole, iFrom, iTo]); t.header.forEach((h, i) => { if (/^(sample(_?(id|no|num(ber)?))?|samp_?id|id|no|seq|thick(ness)?(_m)?|length|len|width|interval|recovery|rec)$/.test(H[i])) used.add(i); }); const numCols = [], textCols = [];
       t.header.forEach((h, i) => { if (used.has(i)) return; const r = numRatio(rows, i); if (r > 0.8) numCols.push(i); else if (r < 0.2 && rows.some(rw => String(rw[i] ?? '').trim())) textCols.push(i); });
       if (numCols.length) return { kind: 'assay', gradeCols: numCols, textCol: textCols[0] ?? -1 }; if (textCols.length) return { kind: 'lith', textCol: textCols[0] };
     }
@@ -102,7 +102,7 @@
     const bbox = pts => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const [x, y] of pts) { if (!isFinite(x) || !isFinite(y)) continue; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } return isFinite(x0) ? { x0, y0, x1, y1 } : null; };
     const colIt = items.find(i => i.kind === 'collar'); let cb = null;
     if (colIt) { const m = IO.autoMap(colIt.table.header, ['hole', 'x', 'y']); cb = bbox(colIt.table.rows.map(r => [IO.num(r[m.x]), IO.num(r[m.y])])); }
-    const candBox = i => { try { if (i.kind === 'topo') { const c = i.cls.cols; return bbox(i.table.rows.slice(0, 3000).map(r => [IO.num(r[c[0]]), IO.num(r[c[1]])])); } if (i.kind === 'grid') { const p = IO.readSurferGrid(i.data, 8); const q = []; for (let k = 0; k < p.length; k += 3) q.push([p[k], p[k + 1]]); return bbox(q); } if (i.kind === 'dtm') { const r = (IO.isSurpacBinary(i.data, 1) ? IO.surpacBinary(i.data, 1) : { pts: [] }).pts.filter(Boolean); const src = r.length ? r : (i.pair ? IO.surpacBinary(i.pair.data, 2).pts.filter(Boolean) : []); return bbox(src.map(q => [q.x, q.y])); } } catch (e) { } return null; };
+    const candBox = i => { try { if (i.kind === 'topo') { const c = i.cls.cols; return bbox(i.table.rows.slice(0, 3000).map(r => [IO.num(r[c[0]]), IO.num(r[c[1]])])); } if (i.kind === 'grid') { const p = IO.readSurferGrid(i.data, 8); const q = []; for (let k = 0; k < p.length; k += 3) q.push([p[k], p[k + 1]]); return bbox(q); } if (i.kind === 'dtm') { const m = IO.readDTM(i.data, '', i.pair ? i.pair.data : null), q = []; for (let k = 0; k < m.pos.length; k += 3) q.push([m.pos[k], m.pos[k + 1]]); return bbox(q); } } catch (e) { } return null; };
     const overlaps = b => !cb || (b && b.x0 <= cb.x1 + 200 && b.x1 >= cb.x0 - 200 && b.y0 <= cb.y1 + 200 && b.y1 >= cb.y0 - 200);
     const raw = [...items.filter(i => i.kind === 'topo').sort((a, b) => (isTopoName(b) - isTopoName(a)) || ((b.table ? b.table.rows.length : 0) - (a.table ? a.table.rows.length : 0))), ...items.filter(i => i.kind === 'dtm' && isTopoName(i)), ...items.filter(i => i.kind === 'grid')];
     const topoCands = [];
@@ -144,6 +144,7 @@
     for (const role of ['collar', 'survey', 'assay', 'lith']) { const it = use.find(i => i.kind === role); if (!it) continue; const t = Object.assign({}, it.table); t.map = IO.autoMap(t.header, FIELDS[role]); if (role === 'assay') { t.gradeCols = it.cls.gradeCols; if (it.cls.textCol >= 0 && !use.some(i => i.kind === 'lith')) T.lithFromAssay = true, T.lith = Object.assign({}, it.table, { map: Object.assign(IO.autoMap(t.header, ['hole', 'from', 'to']), { code: it.cls.textCol }) }); } if (role === 'lith' && t.map.code < 0) t.map.code = it.cls.textCol; T[role] = t; it.done = true; report.done.push(`${L(F.KINDS[role].en, F.KINDS[role].ar)}: ${it.path} (${TM.fmt(t.rows.length)})`); await tick(); }
     if (T.collar) {
       const db = TM.Drill.importTables(T); P.db = db; P.settings.gradeField = db.fields[0] || P.settings.gradeField;
+      { const names = items.map(i => i.path).join(' '), pref = /kaolin|كاولين|bauxite|بوكسيت|alumin/i.test(names) ? /^al2o3/ : /silica|سيليكا|glass|quartz/i.test(names) ? /^sio2/ : /iron|حديد|hematite|magnetite/i.test(names) ? /^fe/ : null; const f = pref && db.fields.find(x => pref.test(String(x).toLowerCase())); if (f) { P.settings.gradeField = f; report.warn.push(L(`grade field set to ${f} (from the project's commodity in the file names)`, `حقل التركيز ضُبط على ${f} (حسب نوع الخام في أسماء الملفات)`)); } }
       // vertical surveys when none were supplied
       if (!db.surveys.length) { db.collars.forEach(c => db.surveys.push({ id: c.id, at: 0, az: 0, dip: -90 })); report.warn.push(L('no survey file — holes treated as vertical', 'لا يوجد ملف مسح — اعتُبرت الآبار رأسية')); }
       // collar elevations: missing or all identical → drape on topography
@@ -170,6 +171,7 @@
     for (const it of use.filter(i => !i.done)) {
       try {
         const nm = base(it.name);
+        if (it.kind === 'dtm' && /boundar|lease|licen|study|حدود/i.test(nm) && it.pair && it.pair.use) { report.warn.push(L(`${it.path}: boundary wireframe not made into a solid — its outline is kept as a string`, `${it.path}: نطاق الحدود لم يُحوَّل لمجسم — حدوده محفوظة كخط`)); continue; }
         if (it.kind === 'dtm') { const m = IO.readDTM(it.data, nm, it.pair ? it.pair.data : null); if (TM.Solid.isClosed(m).closed) { P.solids.push(TM.Solid.make(nm, m, { source: 'Surpac DTM', color: /ob|overburden|waste/i.test(nm) ? '#A16207' : /dump/i.test(nm) ? '#F2B740' : '#A78BFA' })); report.done.push(L(`solid ${nm}: ${TM.fmt(TM.Solid.volume(m))} m³`, `مجسم ${nm}: ${TM.fmt(TM.Solid.volume(m))} م³`)); } else { P.surfaces.push({ id: TM.uid('srf'), name: nm, role: 'surface', pts: m.pos, tri: m.idx, color: '#8fa6c4' }); report.done.push(L('surface ', 'سطح ') + nm); } if (it.pair) it.pair.used = true; }
         else if (it.kind === 'str') { const ss = IO.readSTR(it.data, nm); ss.forEach((s, k) => { s.name = ss.length > 1 ? `${nm}_${k + 1}` : nm; s.color = /pit/i.test(nm) ? '#34D399' : /limit|lease|licen|boundary/i.test(nm) ? '#F87171' : /dump/i.test(nm) ? '#F2B740' : '#F59E0B'; }); P.strings.push(...ss); report.done.push(L(`${ss.length} strings from ${it.path}`, `${ss.length} خط من ${it.path}`)); }
         else if (it.kind === 'dxf') { const r = IO.readDXF(it.text); r.strings.forEach(s => P.strings.push({ id: TM.uid('str'), name: s.name || nm, closed: s.closed, pts: s.pts, color: '#F59E0B', strNo: 1 })); if (r.faces.length) P.solids.push(TM.Solid.make(nm, IO.facesToMesh(r.faces, nm), { source: 'DXF', color: '#A78BFA' })); report.done.push(L(`DXF ${it.path}: ${r.strings.length} strings, ${r.faces.length} faces`, `DXF ‏${it.path}: ${r.strings.length} خط، ${r.faces.length} وجه`)); }
