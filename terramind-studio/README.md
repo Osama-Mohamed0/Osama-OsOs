@@ -1,4 +1,4 @@
-# TerraMind Studio 1.4
+# TerraMind Studio 1.5
 
 TerraMind Studio is a mining geology, resource estimation, open-pit and underground mine planning application. It runs in the browser and is controlled by a bilingual (Arabic/English) AI copilot.
 
@@ -45,6 +45,13 @@ The browser edition needs no installation or server. On Windows, double-click `i
      - «جدول الإنتاج»
      - «اقترح 3 آبار تكميلية»
      - «مقطع شمالي عند 8300»
+
+## الجديد في 1.5
+- **فيديو زيارة افتراضية للموقع عبر Blender:** من تبويب الذكاء الاصطناعي ← «فيديو المستثمر (Blender)». يولّد البرنامج حزمة فيها سكريبت Python يبني المشروع داخل Blender ويصوّر فيديو سينمائياً بالعربي وبالإنجليزي (من 60 إلى 90 ثانية). الهدف أن يرى المستثمر الموقع دون أن يزوره، وأن يشرح مدير المشروع المكان للعاملين.
+  - **مشاهد الفيديو:** لقطة افتتاحية، ثم جولة على المرافق مع لافتات بالاسمين، ثم نظرة من مستوى العامل. بعدها الجيولوجيا (الأرض شفافة ويظهر الخام ملوّناً بالتركيز)، ثم تطور الحفرة سنة بسنة، ثم الأعمال تحت الأرض والتفجير، وأخيراً لوحة الأرقام.
+  - **عناصر المشهد:** المرافق المرسومة كمضلعات مغلقة تتحول إلى مجسمات: الورشة والمصنع مبانٍ، وأحواض الترسيب ماء، ومنصة الخام والمروحة كما هي. الموقع محاط بصحراء ممتدة، والمبالغة الرأسية تلقائية للمواقع الضحلة.
+  - **طريقة التشغيل:** على النسخة المكتبية زر «إخراج الفيديو الآن» يشغّل Blender مباشرة إن كان مثبتاً. على أي نسخة أخرى صدّر ملف ‎.zip ثم شغّل `render_windows.bat` من داخله. يعمل مع Blender 4.2 وما بعده (Eevee أو Cycles).
+- **استيراد مجلد مشروع كامل:** من تبويب المشروع ← «استيراد مجلد مشروع» (أو Ctrl+Shift+O). تختار المجلد مرة واحدة، فيتعرّف البرنامج على كل ملف ويضعه في مكانه: الطبوغرافيا، ورؤوس الآبار، والمسوحات، والتحاليل، وسجلات الآبار الحقلية، وملفات Surpac ‎.str/.dtm، وDXF، وشبكات Surfer، والمستندات. يستبعد النسخ المكررة والطبوغرافيا المرسومة بنظام إحداثيات آخر، ثم يعرض تقريراً بما استُورد وما يحتاج مراجعة.
 
 ## الجديد في 1.4 (بعد اختباره على مشروع Surpac حقيقي)
 - **ملفات Surpac الثنائية:** قراءة ملفات ‎.str و‎.dtm بالصيغة الثنائية (binary) التي يحفظها Surpac 6 وما بعده، مع ربط كل ‎.dtm بملف ‎.str الخاص به تلقائياً. حجم مجسم الغطاء المحسوب يطابق تقرير Surpac بالضبط (392,046 م³).
@@ -154,6 +161,10 @@ js/60-viewport.js     three.js scene, section clipping, picking, sketching
 js/70-ui.js           forms, tables, SVG charts, layers, KPIs, inspector
 js/80-ai.js           tool schemas, providers, offline parser, auditor cards
 js/85-report.js       executive report
+js/86-folder.js       whole-folder import: file classification, duplicate/CRS checks, field-log parsing
+js/87-blender.js      Blender virtual-site-visit exporter (scene.json, bilingual labels and title cards, zip)
+js/87-blender-py.js   generated from blender/build_scene.py by tools/embed-blender.js
+blender/build_scene.py Blender script that builds and renders the scene (bpy, Blender 4.2+)
 js/88-menu.js         menu bar, keyboard shortcuts, recent projects
 js/90-app.js          ribbon commands, dialogs, import wizards, boot
 tests/run-tests.js    engine tests:  node terramind-studio/tests/run-tests.js

@@ -1,7 +1,7 @@
 // TerraMind Studio — Electron main process (desktop edition)
 'use strict';
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
-const path = require('path'), fs = require('fs');
+const path = require('path'), fs = require('fs'), { spawn } = require('child_process');
 
 let win = null, pendingOpen = process.argv.find(a => a.toLowerCase().endsWith('.tmd')) || null;
 
@@ -65,6 +65,24 @@ ipcMain.handle('tm:openPath', (e, p) => { if (!p || !/\.(tmd|json)$/i.test(p) ||
 ipcMain.handle('tm:pendingOpen', () => { if (!pendingOpen || !fs.existsSync(pendingOpen)) return null; const p = pendingOpen; pendingOpen = null; return { path: p, name: path.basename(p), data: fs.readFileSync(p) }; });
 ipcMain.on('tm:title', (e, t) => win && win.setTitle(t));
 ipcMain.on('tm:confirmClose', () => { if (win) { win.__forceClose = true; win.close(); } });
+
+// ---- Blender: write the exported package and render the investor video in the background ----
+function findBlender() {
+  const c = []; for (const pf of [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter(Boolean)) { const d = path.join(pf, 'Blender Foundation'); if (fs.existsSync(d)) for (const v of fs.readdirSync(d).sort().reverse()) c.push(path.join(d, v, 'blender.exe')); c.push(path.join(pf, 'Steam', 'steamapps', 'common', 'Blender', 'blender.exe')); }
+  c.push('/Applications/Blender.app/Contents/MacOS/Blender', '/usr/bin/blender', '/usr/local/bin/blender', '/snap/bin/blender');
+  return c.find(p => { try { return fs.existsSync(p); } catch (e) { return false; } }) || null;
+}
+ipcMain.handle('tm:blenderRender', async (e, { name, files, args }) => {
+  const exe = findBlender(); if (!exe) throw new Error('Blender 4.2 or newer was not found. Install it from blender.org, or use "Export Blender package" and run render_windows.bat.');
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-'), folder = path.join(app.getPath('documents'), 'TerraMind Videos', `${String(name || 'project').replace(/[\\/:*?"<>|]+/g, '_')}_${stamp}`);
+  for (const f of files) { const p = path.resolve(folder, f.name); if (!p.startsWith(path.resolve(folder) + path.sep)) continue; fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, Buffer.from(f.data)); }
+  return await new Promise((resolve, reject) => {
+    const ch = spawn(exe, ['-b', '-P', path.join(folder, 'build_scene.py'), '--', ...(args || ['--render'])], { cwd: folder, windowsHide: true });
+    const relay = d => String(d).split(/\r?\n/).forEach(l => { if (l && win) win.webContents.send('tm:blender', l); });
+    ch.stdout.on('data', relay); ch.stderr.on('data', relay);
+    ch.on('error', reject); ch.on('close', code => { if (code === 0) { shell.openPath(path.join(folder, 'output')); resolve({ folder }); } else reject(new Error(`Blender stopped (code ${code}). The package is in ${folder}.`)); });
+  });
+});
 
 if (!app.requestSingleInstanceLock()) app.quit();
 else {

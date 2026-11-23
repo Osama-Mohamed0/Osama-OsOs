@@ -13,7 +13,7 @@
         ['importFolder', 'Whole project folder (auto-detect)…', 'مجلد مشروع كامل (تعرّف تلقائي)…', 'folder-input', 'Ctrl+Shift+O'], '-',
         ['importDH', 'Drillholes (CSV / Excel)…', 'آبار (CSV / Excel)…', 'table'], ['importSurf', 'Points, surfaces & solids (XYZ / Surpac .str .dtm / DXF / OBJ / STL)…', 'نقاط وأسطح ومجسمات (XYZ / Surpac ‎.str ‎.dtm / DXF / OBJ / STL)…', 'layers'], ['importDatamine', 'Datamine strings / points (ASCII CSV)…', 'خطوط ونقاط Datamine (CSV نصي)…', 'database']] },
       { sub: 'export', en: 'Export', ar: 'تصدير شامل', icon: 'download', items: [
-        ['reportPdf', 'Executive report (PDF)', 'التقرير التنفيذي (PDF)', 'file-text'], ['plot', 'Plan / section sheets (PDF / SVG / PNG)…', 'لوحات المسقط والمقطع (PDF / SVG / PNG)…', 'map', 'F7'],
+        ['reportPdf', 'Executive report (PDF)', 'التقرير التنفيذي (PDF)', 'file-text'], ['blenderVideo', 'Investor video — virtual site visit (Blender)…', 'فيديو المستثمر — زيارة افتراضية (Blender)…', 'clapperboard'], ['plot', 'Plan / section sheets (PDF / SVG / PNG)…', 'لوحات المسقط والمقطع (PDF / SVG / PNG)…', 'map', 'F7'],
         ['exportStr', 'Strings & surfaces (DXF / .str)…', 'الخطوط والأسطح (DXF / ‎.str)…', 'spline'], ['exportSolid', 'Solids (OBJ / STL / DXF)…', 'المجسمات (OBJ / STL / DXF)…', 'box'],
         ['exportBM', 'Block model (CSV)', 'نموذج البلوكات (CSV)', 'grid'], ['blastExport', 'Blast holes (CSV)', 'ثقوب التفجير (CSV)', 'zap']] }, '-',
       ['settings', 'Project & economics…', 'المشروع والاقتصاديات…', 'settings', 'Ctrl+,'], '-', ['exit', 'Exit', 'خروج', 'log-out', 'Alt+F4']] },

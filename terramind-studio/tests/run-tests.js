@@ -2,9 +2,9 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const ctx = { console, setTimeout, clearTimeout, Math, Date, JSON, Buffer, TextEncoder, TextDecoder };
+const ctx = { console, setTimeout, clearTimeout, Math, Date, JSON, Buffer, TextEncoder, TextDecoder, Blob };
 ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/58-underground.js', 'js/86-folder.js', 'js/62-cad.js'])
+for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/58-underground.js', 'js/86-folder.js', 'js/87-blender.js', 'js/87-blender-py.js', 'js/62-cad.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 const TM = ctx.TM;
 let pass = 0, fail = 0;
@@ -141,6 +141,15 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     const log = F.parseLog(t(['Project Name: X', 'Borehole No: BH 7'], [['Coordinates N: 3012567', ''], ['E: 470185', ''], ['1', '1.5', '0', 'loose sediment, yellowish brown, few gravel.'], ['2', '3', '90', 'sand,well sorted,pale white,fine grains.'], ['3', '4.5', '90', 'sand,well sorted,pale white,fine grains.']]));
     ok(log && log.hole === 'BH 7' && log.E === 470185 && log.intervals.length === 3 && log.intervals[2].from === 3 && F.lithCode(log.intervals[0].desc) === 'OB' && F.lithCode(log.intervals[1].desc) === 'SND', 'parses a borehole log sheet', JSON.stringify(log && log.intervals.map(v => v.to)));
     const g = 'DSAA\n3 2\n0 20\n0 10\n1 6\n1 2 3\n4 5 6\n'; const gp = TM.IO.readSurferGrid(new TextEncoder().encode(g)); ok(gp.length === 18 && gp[3] === 10 && gp[17] === 6, 'reads an ASCII Surfer grid'); }
+
+  console.log('Blender export');
+  { const B = TM.Blender;
+    ok(TM.BlenderPy === require('fs').readFileSync(path.join(ROOT, 'blender/build_scene.py'), 'utf8'), 'embedded Blender script matches blender/build_scene.py (run tools/embed-blender.js)');
+    ok(B.solidKind('Ore_body_2024') === 'ore' && B.stringKind('Licence boundary') === 'boundary' && B.stringKind('Haul road') === 'road', 'classifies solids and strings');
+    const sq = n => ({ name: n, closed: true, pts: [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]] });
+    ok(B.propKind(sq('Settling_Pond_1'))[0] === 'water' && B.propKind(sq('Workshop'))[0] === 'building' && B.propKind(sq('ROM_pad'))[0] === 'pad' && B.propKind(Object.assign(sq('Workshop'), { closed: false })) === null, 'facility outlines become 3D props');
+    const z = B.zip([{ name: 'a.txt', data: 'hello' }, { name: 'd/b.bin', data: new Uint8Array([1, 2, 3]) }], 'pkg'); const u = new Uint8Array(await z.arrayBuffer());
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength), eocd = u.length - 22; ok(dv.getUint32(0, true) === 0x04034b50 && dv.getUint32(eocd, true) === 0x06054b50 && dv.getUint16(eocd + 10, true) === 2 && dv.getUint32(14, true) === 0x3610a686, 'writes a valid store-only zip (CRC-32 checked)', u.length + ' bytes'); }
 
   console.log('Underground');
   { const line = [[0, 0, 100], [100, 0, 100]]; const r = TM.UG.tunnel(line, { type: 'rect', w: 4, h: 4 }); const v = TM.Solid.volume(r.mesh); ok(near(v, 1600, 1) && TM.Solid.isClosed(r.mesh).closed, 'rectangular drive volume = 4×4×100', v.toFixed(1));
