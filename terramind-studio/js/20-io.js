@@ -222,5 +222,19 @@
     const strings = []; for (const [k, arr] of groups) { arr.sort((a, b) => a.n - b.n); const pts = arr.map(a => a.p); const f = pts[0], l = pts[pts.length - 1]; const closed = pts.length > 3 && Math.hypot(f[0] - l[0], f[1] - l[1], f[2] - l[2]) < 1e-3; if (closed) pts.pop(); if (pts.length >= 2) strings.push({ id: TM.uid('str'), name: `${name}_${k}`, strNo: +k || 1, closed, pts, color: '#22D3EE' }); }
     return { strings, points: [] };
   };
+  // Surfer grids (.grd): Surfer 7 binary (DSRB), Surfer 6 binary (DSBB) or ASCII (DSAA) → XYZ points (blanked nodes skipped)
+  IO.readSurferGrid = function (buf, step = 1) {
+    const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf), dv = new DataView(b.buffer, b.byteOffset, b.byteLength), tag = String.fromCharCode(b[0], b[1], b[2], b[3]); const pts = [];
+    const push = (nx, ny, x0, y0, dx, dy, get, blank) => { for (let j = 0; j < ny; j += step) for (let i = 0; i < nx; i += step) { const z = get(i, j); if (!isFinite(z) || Math.abs(z) >= blank) continue; pts.push(x0 + i * dx, y0 + j * dy, z); } };
+    if (tag === 'DSRB') { let p = 0, ny = 0, nx = 0, x0, y0, dx, dy, blank = 1e30, data = -1;
+      while (p + 8 <= b.length) { const id = String.fromCharCode(b[p], b[p + 1], b[p + 2], b[p + 3]), size = dv.getInt32(p + 4, true); p += 8;
+        if (id === 'GRID') { ny = dv.getInt32(p, true); nx = dv.getInt32(p + 4, true); x0 = dv.getFloat64(p + 8, true); y0 = dv.getFloat64(p + 16, true); dx = dv.getFloat64(p + 24, true); dy = dv.getFloat64(p + 32, true); blank = dv.getFloat64(p + 64, true) * 0.999; }
+        if (id === 'DATA') { data = p; break; } p += size; }
+      if (data < 0) throw new Error('Surfer grid without DATA section'); push(nx, ny, x0, y0, dx, dy, (i, j) => dv.getFloat64(data + 8 * (j * nx + i), true), blank); }
+    else if (tag === 'DSBB') { const nx = dv.getInt16(4, true), ny = dv.getInt16(6, true), x0 = dv.getFloat64(8, true), x1 = dv.getFloat64(16, true), y0 = dv.getFloat64(24, true), y1 = dv.getFloat64(32, true); push(nx, ny, x0, y0, (x1 - x0) / (nx - 1), (y1 - y0) / (ny - 1), (i, j) => dv.getFloat32(56 + 4 * (j * nx + i), true), 1.7e38); }
+    else if (tag === 'DSAA') { const v = new TextDecoder().decode(b).trim().split(/\s+/).slice(1).map(Number); const nx = v[0], ny = v[1], x0 = v[2], x1 = v[3], y0 = v[4], y1 = v[5]; push(nx, ny, x0, y0, (x1 - x0) / (nx - 1), (y1 - y0) / (ny - 1), (i, j) => v[8 + j * nx + i], 1.7e38); }
+    else throw new Error('Unknown Surfer grid format');
+    return pts;
+  };
   IO.download = (text, filename, type = 'text/plain') => TM.saveBlob(new Blob([text], { type }), filename);
 })(typeof window !== 'undefined' ? window.TM : globalThis.TM);

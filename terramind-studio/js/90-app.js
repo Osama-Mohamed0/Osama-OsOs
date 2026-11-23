@@ -40,7 +40,7 @@
 
   // ---------------------------------------------------------------- ribbon
   const TABS = {
-    project: [['newP', 'file-plus'], ['openP', 'folder-open'], ['saveP', 'save'], ['saveAs', 'save'], ['demo', 'sparkles'], '|', ['undo', 'undo-2'], ['redo', 'redo-2'], '|', ['settings', 'settings'], ['history', 'history']],
+    project: [['newP', 'file-plus'], ['openP', 'folder-open'], ['importFolder', 'folder-input'], ['saveP', 'save'], ['saveAs', 'save'], ['demo', 'sparkles'], '|', ['undo', 'undo-2'], ['redo', 'redo-2'], '|', ['settings', 'settings'], ['history', 'history']],
     data: [['importDH', 'upload'], ['browse', 'table'], ['validate', 'shield-check'], ['stats', 'bar-chart-3'], ['composite', 'combine'], ['exportComps', 'download']],
     cad: [['select', 'mouse-pointer-2', true], ['move', 'move', true], ['insert', 'plus-circle', true], ['delVert', 'minus-circle', true], ['measure', 'ruler', true], ['sketch', 'pen-tool', true], '|', ['strProps', 'info'], ['strOps', 'wand-2'], '|', ['undo', 'undo-2'], ['redo', 'redo-2']],
     terrain: [['importSurf', 'upload'], ['dtm', 'mountain'], ['contours', 'waves'], ['cutfill', 'layers'], ['reconcile', 'git-compare'], ['exportStr', 'download'], '|', ['plot', 'map']],
@@ -53,7 +53,7 @@
   };
   const TAB_LABEL = { project: ['Project', 'المشروع'], data: ['Drillhole Data', 'بيانات الآبار'], cad: ['CAD & Strings', 'الرسم والخطوط'], terrain: ['Surfaces & Plots', 'الأسطح واللوحات'], geology: ['Geology & Solids', 'الجيولوجيا والمجسمات'], block: ['Block Model & Resources', 'نموذج البلوكات والموارد'], pit: ['Pit Design & Schedule', 'تصميم الحفرة والجدولة'], blast: ['Drill & Blast', 'الحفر والتفجير'], ug: ['Underground', 'المنجم التحت سطحي'], ai: ['AI & Reports', 'الذكاء والتقارير'] };
   const TOOL_LABEL = {
-    newP: ['New', 'جديد'], saveAs: ['Save as…', 'حفظ باسم…'], undo: ['Undo', 'تراجع'], redo: ['Redo', 'إعادة'],
+    newP: ['New', 'جديد'], importFolder: ['Import project folder', 'استيراد مجلد مشروع'], saveAs: ['Save as…', 'حفظ باسم…'], undo: ['Undo', 'تراجع'], redo: ['Redo', 'إعادة'],
     select: ['Select', 'تحديد'], move: ['Move vertex', 'تحريك نقطة'], insert: ['Insert vertex', 'إدراج نقطة'], delVert: ['Delete vertex', 'حذف نقطة'], measure: ['Measure', 'قياس'], strProps: ['Properties', 'الخصائص'], strOps: ['String tools…', 'أدوات الخطوط…'],
     plot: ['Plan / section plots', 'لوحات المسقط والمقطع'], solidSections: ['Solid from sections', 'مجسم من المقاطع'], stopeRpt: ['Stope reserves', 'احتياطي الأعمال'], faults: ['Faults & boundaries', 'الفوالق والحدود'], stopeOpt: ['Stope optimiser (MSO)', 'محسّن الغرف (MSO)'], spiralDecline: ['Spiral decline generator', 'مولّد المنحدر الحلزوني'], tunnelSolid: ['Tunnel / raise solid', 'مجسم نفق / مدخنة'], ringDesign: ['Ring (fan) blasting', 'التفجير المروحي للغرف'], faceRound: ['Face round (jumbo)', 'تفجير واجهة النفق'], transition: ['Open-pit → UG transition', 'التحول من سطحي إلى تحت سطحي'], solidBool: ['Solid Booleans', 'عمليات منطقية'], solidRpt: ['Solid report', 'تقرير المجسم'], bmCalc: ['Attribute calculator', 'حاسبة الحقول'],
     pitDesign: ['Pit design from toe', 'تصميم حفرة من القاع'], dumpDesign: ['Dump design', 'تصميم مكب'], designDtm: ['Design → DTM', 'التصميم ← سطح'], pitSource: ['Pit for KPIs', 'الحفرة للمؤشرات'], benchRpt: ['Bench report', 'تقرير المصاطب'],
@@ -146,6 +146,7 @@
     viewTop() { VP.view('top'); }, viewIso() { VP.view('iso'); },
     // ---- menu bar commands
     importDatamine() { App.importDatamine(); },
+    importFolder() { TM.Folder.dialog(); },
     reportPdf() { const r = TM.Report.build({ name: TM.P.name, sensitivity: true }); TM.Report.print(r.el); },
     exit() { if (TM.native) window.close(); else UI.toast(L('Close this browser tab to exit (your work is autosaved).', 'أغلق تبويب المتصفح للخروج (العمل محفوظ تلقائياً).')); },
     selectAll() { need(TM.P.strings.length, L('No strings.', 'لا توجد خطوط.')); TM.CAD.multi = TM.P.strings.filter(s => !VP.hidden.has(s.id)); TM.CAD.select(TM.CAD.multi[TM.CAD.multi.length - 1]); UI.toast(L(`${TM.CAD.multi.length} strings selected — Delete removes them, Edit → Clean works on them.`, `تم تحديد ${TM.CAD.multi.length} خطاً — Delete للحذف.`)); },

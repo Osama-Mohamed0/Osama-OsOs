@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const ctx = { console, setTimeout, clearTimeout, Math, Date, JSON, Buffer, TextEncoder, TextDecoder };
 ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/58-underground.js', 'js/62-cad.js'])
+for (const f of ['vendor/delaunator.min.js', 'js/00-core.js', 'js/10-project.js', 'js/20-io.js', 'js/30-drillholes.js', 'js/35-surfaces.js', 'js/40-estimation.js', 'js/45-implicit.js', 'js/47-solidops.js', 'js/50-mining.js', 'js/52-design.js', 'js/55-workflow.js', 'js/57-blast.js', 'js/58-underground.js', 'js/86-folder.js', 'js/62-cad.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 const TM = ctx.TM;
 let pass = 0, fail = 0;
@@ -130,6 +130,17 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     const T = [[0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7], [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]];
     T.forEach((t, n) => { i32(3); i32(n + 1); t.forEach(v => i32(R(v))); i32(0); i32(0); i32(0); txt(''); });
     const m = TM.IO.readDTM(new Uint8Array(Buffer.concat(parts)), 'cube', str); ok(m.triangles === 12 && near(TM.Solid.volume(m), 1000, 1e-6) && TM.Solid.isClosed(m).closed, 'Surpac binary .dtm with companion .str', TM.Solid.volume(m)); }
+
+  console.log('Folder import');
+  { const F = TM.Folder, t = (h, rows) => ({ header: h, rows });
+    ok(F.classifyTable(t(['hole_id', 'max_depth', 'x east', 'y', 'z'], [['BH01', '15', '470629', '3012805', '950']])).kind === 'collar', 'classifies collar table');
+    ok(F.classifyTable(t(['azimuth', 'depth', 'dip', 'hole_id'], [['0', '15', '-90', 'BH01']])).kind === 'survey', 'classifies survey table');
+    const a = F.classifyTable(t(['Type', 'depth_from', 'depth_to', 'hole_id', 'sio2'], [['OB', '0', '0.5', 'BH01', '99'], ['Ore', '0.5', '15', 'BH01', '98']])); ok(a.kind === 'assay' && a.gradeCols.length === 1 && a.textCol === 0, 'classifies assay table with a type column');
+    const topo = t(['East', 'North', 'Elv'], Array.from({ length: 30 }, (_, i) => [String(470000 + i), String(3012000 + i), String(950 + i / 10)])); ok(F.classifyTable(topo).kind === 'topo', 'classifies topography points');
+    ok(F.classifyTable(t(['Latitude', 'Longitude', 'Elv'], Array.from({ length: 30 }, () => ['27.2', '38.7', '950']))).kind === 'geo', 'flags lat/long copies');
+    const log = F.parseLog(t(['Project Name: X', 'Borehole No: BH 7'], [['Coordinates N: 3012567', ''], ['E: 470185', ''], ['1', '1.5', '0', 'loose sediment, yellowish brown, few gravel.'], ['2', '3', '90', 'sand,well sorted,pale white,fine grains.'], ['3', '4.5', '90', 'sand,well sorted,pale white,fine grains.']]));
+    ok(log && log.hole === 'BH 7' && log.E === 470185 && log.intervals.length === 3 && log.intervals[2].from === 3 && F.lithCode(log.intervals[0].desc) === 'OB' && F.lithCode(log.intervals[1].desc) === 'SND', 'parses a borehole log sheet', JSON.stringify(log && log.intervals.map(v => v.to)));
+    const g = 'DSAA\n3 2\n0 20\n0 10\n1 6\n1 2 3\n4 5 6\n'; const gp = TM.IO.readSurferGrid(new TextEncoder().encode(g)); ok(gp.length === 18 && gp[3] === 10 && gp[17] === 6, 'reads an ASCII Surfer grid'); }
 
   console.log('Underground');
   { const line = [[0, 0, 100], [100, 0, 100]]; const r = TM.UG.tunnel(line, { type: 'rect', w: 4, h: 4 }); const v = TM.Solid.volume(r.mesh); ok(near(v, 1600, 1) && TM.Solid.isClosed(r.mesh).closed, 'rectangular drive volume = 4×4×100', v.toFixed(1));
