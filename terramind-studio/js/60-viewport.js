@@ -125,6 +125,8 @@
   VP.buildBM = function () {
     const bm = TM.P.bm; if (!bm) { dispose('bm'); return; } const d = bm.def;
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(d.dx * 0.92, d.dz * 0.92, d.dy * 0.92), clipMat(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: VP.vis.bmOpacity < 1, opacity: VP.vis.bmOpacity })), Math.max(1, bm.estimated || 1));
+    // colour buffer sized to the capacity now: three.js would size it from the current count (0 here) and every block would render black
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, bm.estimated || 1) * 3).fill(1), 3);
     mesh.count = 0; mesh.frustumCulled = false; mesh.userData = { kind: 'bm', vis: new Int32Array(Math.max(1, bm.estimated || 1)) }; put('bm', mesh); VP.filterBM();
   };
   VP.filterBM = function () {

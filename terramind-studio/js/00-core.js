@@ -1,7 +1,7 @@
 /* TerraMind Studio — core utilities, i18n, event bus, typed-array codec. */
 (function (TM) {
   'use strict';
-  TM.version = '1.5.1';
+  TM.version = '1.5.2';
 
   // ---------------------------------------------------------------- math / format
   TM.D2R = Math.PI / 180;
